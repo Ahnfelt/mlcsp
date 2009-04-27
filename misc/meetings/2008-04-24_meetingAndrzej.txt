@@ -1,0 +1,18 @@
+mål at b. vinter kan tilbyde til næste år.
+ikke modificere oversætter.
+ikke duplikere i concurrent ml.
+implementation udnytter multiple processorer.
+http://caml.inria.fr/pub/docs/manual-ocaml/manual038.html
+haskell csp som inspirations kilde.
+og event som inspirations kilde.
+benytte både vmthreads og system threads? (vi vil gerne få gavn af multi(cpu) multi(core)
+fornuftig library.
+implementere issing model fra xmp.
+omtanke (analyse - teori) om hvorfor vi har truffet et valg og om hvordan 
+implementeres (regler i csp).
+teoretisk mapning mellem csp teori og kode.
+næste møde tirsdag klokken 16:00.
+
+--mulighed for at kører over nettet ... men lav basale først.
+
+-mutex + condition + shared memory ...

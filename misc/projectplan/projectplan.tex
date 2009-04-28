@@ -62,8 +62,8 @@
 
 % Opening
 \title{Algorithms and data structures: homework 1}
-\author{Joakim Ahnfelt-Rønne - XX/XX/XXXX - xxxxx@diku.dk\\
-        Ramón Salvador Soto Mathiesen - 15/05/1979 - ramon@diku.dk\\
+\author{Joakim Ahnfelt-Rønne - 1986/03/14 - joakim.ahnfelt@gmail.com \and 
+        Ramón Salvador Soto Mathiesen - 1979/05/15 - ramon@diku.dk \and
         Andrzej Filinski - andrzej@diku.dk}
 \date{Tuesday, 28$^{th}$ April 2009}
 
@@ -78,47 +78,71 @@
 \newpage
 
 \section*{Background}
-%based on we have taken the course xmp, we would like to have a better
-%csp library than pycsp/c++csp/jcsp and that relates more to tony hoares book.
-%
-%with mlcsp we would like to bla, bla, bla ....
+When we took the course Extreme Multiprogramming last block, we missed 
+a CSP library for a functional programming language. All the presented lan- 
+guages was for imperative languages. We missed a library that was based on 
+ML, a language we learn and use a lot at the Computer Science Department 
+at Copenhagen University.
+
+Our goal is to implement a library for a ML based language. We choose 
+OcamML, based on that we could handle ob jects and besides, we would be 
+able to crosscompile it, and maybe reuse it on F\#, after question answered 
+by F\# main create Don Syme. This way both the scientific community uses 
+same tools as the the private sector. 
 
 \section*{Objectives}
 \begin{itemize}
- \item
- \item
+ \item Applying the CSP programming model to a functional language (in 
+   contrast to imperative lanuages wich has loops, mutable data struc- 
+   tures, etc.).
+ \item Designing an API using functional programming concepts such as higher 
+   order functions and closures.
 \end{itemize}
  
 \section*{Expected results}
 \begin{itemize}
- \item
- \item
+ \item A library for OCaml based on Tony Hoares CSP book and similar to 
+   existing libraries such as JCSP, PyCSP and C++CSP, adobted to a 
+   functional setting. 
+ \item Write an application implementing the 2D ising model using the API.
+ \item Concise, understandable documentation of the API.
 \end{itemize}
 
-\newpage
+\section*{Expected results}
+\begin{itemize}
+ \item Socket/process based backend to enable parallelism and distribution.
+ \item File format for defining static networks, with functions for loading the 
+   network and functions for generating a graphical representation of the 
+   network. 
+\end{itemize}
+
 \section*{Schedule}
 \begin{itemize}
- \item Project start:
- \item Project stop: 
+ \item Project start: 2009/05/11
+ \item Project stop: 2009/07/19
 \end{itemize}
 
-\begin{tabular}{|c|c|}
+\begin{tabular}{|c|p{11.5cm}|}
     \hline
     Week & Goal\\
     \hline
-    1 & Something \\
+    1 \& 2 & Implementation of one-to-one, one-to-any and any-to-one channels on
+    top of user-level threads, using the POSIX-like mutex and condition
+    primitives.\\
     \hline
-    2 & Something \\
+    3 & Implementation of poison. \\
     \hline
-    3 & Something \\
+    4 & Implementation of read-guards. \\
     \hline
-    4 & Something \\
-    \hline
-    5 & Something \\
+    5 & Implementation of write-guards.  \\
     \hline
     6 & Something \\
     \hline
     7 & Something \\
+    \hline
+    8 & Something \\
+    \hline
+    9 & Something \\
     \hline
 \end{tabular}
 

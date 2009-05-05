@@ -67,7 +67,7 @@
 \author{Joakim Ahnfelt-Rønne - 1986/03/14 - joakim.ahnfelt@gmail.com \and 
         Ramón Salvador Soto Mathiesen - 1979/05/15 - ramon@diku.dk \and
         Andrzej Filinski - andrzej@diku.dk}
-\date{Tuesday, 28$^{th}$ April 2009}
+\date{Tuesday, 5$^{th}$ May 2009}
 
 \begin{document}
 
@@ -81,80 +81,93 @@
 
 \section*{Background}
 When we took the course Extreme Multiprogramming last block, we missed 
-a CSP library for a functional programming language. All the presented lan- 
-guages was for imperative languages. We missed a library that was based on 
-ML, a language we learn and use a lot at the Computer Science Department 
-at Copenhagen University.
+a CSP\cite{hoare} library for a functional programming language. All the 
+presented libraries were for imperative languages. We missed a library that 
+was based on ML, or functional programming in general.
 
-Our goal is to implement a library for a ML based language. We choose 
-OcamML, based on that we could handle objects and besides, we would be 
-able to crosscompile it, and maybe reuse it on F\#, after question answered 
-by F\# main creator Don Syme. This way both the scientific community uses 
-same tools as the the private sector. 
+\subsection*{Method and approach}
+OCaml comes with several libraries for concurrency.
+It provides the basic POSIX-like primitives in the packages Thread,
+Mutex and Condition. It provides lightweight threads in the virtual
+machine and system threads in both the virtual machine and when
+compiled to a native binary. Both thread models offer preemptive
+scheduling. Out of the box it also provides an additional library 
+with composable channels based on Concurrent ML, called Event. 
+% How is this different from CSP?
 
-\section*{Objectives}
+We're going to base our CSP library on the POSIX-like primitives,
+which are almost universally available.
+
+Initially we will build a small core library with a minimal number
+of primitives for concurrent computation. We will then expand on this
+through multiple iterations, ending each iteration with a slightly
+more featured but self contained library with documentation.
+
+
+\section*{Learning objectives} %Læringsmål.
 \begin{itemize}
- \item Applying the CSP programming model to a functional language (in 
-   contrast to imperative lanuages wich has loops, mutable data struc- 
-   tures, etc.).
- \item Designing an API using functional programming concepts such as higher 
-   order functions and closures.
+ \item API design for concurrency based on CSP in a functional language.
+ \item Implementing the concurrency API in a functional language.
+ \item Assessing the API and underlying implementation by comparing
+   applications built on top of it with similar applications built on
+   top of an existing CSP library.
+ \item The focus is on the API design. Efficiency is not a goal.
 \end{itemize}
- 
+
 \section*{Expected results}
 \begin{itemize}
- \item A library for OCaml based on Tony Hoares CSP book and similar to 
-   existing libraries such as JCSP, PyCSP and C++CSP, adobted to a 
-   functional setting. 
- \item Write an application implementing the 2D ising model using the API.
- \item Concise, understandable documentation of the API.
+ \item An API for CSP based concurrent computation in ML.
+ \item An implementation of the API in the form of a library for OCaml.
+ \item An evaluation of the API (and implementation) comparing
+   the library with an existing CSP library such as JCSP, PyCSP or C++CSP,
+   with emphasis on design, composability, extendability and usability.
+ \item Documentation for the API.
 \end{itemize}
 
-\section*{Expected results}
+\section*{Possible extensions to the project}
 \begin{itemize}
- \item Socket/process based backend to enable parallelism and distribution.
- \item File format for defining static networks, with functions for loading the 
-   network and functions for generating a graphical representation of the 
-   network. 
+ \item True parallelism through system threads (still with shared memory).
+ \item Distribution through socket based communication.
+ \item File format for defining static networks, similar to the file format 
+   approach taken by CSPBuilder for PyCSP.
 \end{itemize}
 
 \section*{Schedule}
 \begin{itemize}
  \item Project start: 2009/05/11
- \item Project stop: 2009/07/19
+ \item Project end: 2009/07/31
 \end{itemize}
 
-\begin{tabular}{|c|p{11.5cm}|}
-    \hline
-    Week & Goal\\
-    \hline
-    1 \& 2 & Implementation of one-to-one, one-to-any and any-to-one channels on
-    top of user-level threads, using the POSIX-like mutex and condition
-    primitives.\\
-    \hline
-    3 & Implementation of poison. \\
-    \hline
-    4 & Implementation of read-guards. \\
-    \hline
-    5 & Implementation of write-guards.  \\
-    \hline
-    6 & Something \\
-    \hline
-    7 & Something \\
-    \hline
-    8 & Something \\
-    \hline
-    9 & Something \\
-    \hline
-\end{tabular}
-
+\begin{itemize}
+ \item Milestone I: Simple prototype. Design and implementation of a simple API
+   where we can make a simple network, such as the Fibonacci example presented
+   in the course XMP 2008/2009. In order to achieve this we will at least need:
+   \begin{itemize}
+     \item processes.
+     \item one-to-one channels.
+   \end{itemize}
+ \item Milestone II: Final API. In this milestone we should
+   have the final version of the API. We will have a code stop in order to be
+   able to write the final report. When this milestone is reaches we should be
+   able to implement the 2D Ising model or similar.
+   \begin{itemize}
+     \item poison.
+     \item one-to-any, any-to-one and any-to-any channels.
+     \item poison, channel and time guards.
+   \end{itemize}
+ \item Milestone III: Report + Final API (refactored). In this final
+   milestone we will only make refactoring to the code (change state but not
+   functionality) if we consider so. In the report we will also have the final
+   documentation, appendix, for the API. The date for this milestone will math
+   the end date for the project.
+\end{itemize}
 
 % ----------------------------------------------------------------------
 % Bibliography
 % ----------------------------------------------------------------------
 \begin{thebibliography}{99}
 
-\bibitem[CSP, Hoare]{hoare}
+\bibitem[Hoare]{hoare}
 :\\
 Communicating Sequential Processes\\
 C. A. R. Hoare\\

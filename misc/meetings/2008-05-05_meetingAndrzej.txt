@@ -1,0 +1,42 @@
+baggrund:
+-fjern det med F#.
+
+Objectives + Expected result i et.
+-Men et, lave OCAML CSP API, overvejelser.
+-Næste punkt, implementere API og dokumenteres.
+-Afprøve ved at implementere Issing 2D modellen.
+
+Læringsmål (learning objectives):
+-Design et Concurrency/Funktionelt API.
+-Implementere API.
+-Comparativ evaluering, ikke bare performance, men taklingen af opgaven osv.
+
+Opdele possible extension i to, hver af deres punkter.
+a)Paralelisme i en maskine.
+b)Distributioner, serialisering og ikke et centralt styringsmpunkt som i et OS.
+-File format as it looks in CSPBuilder.
+
+Mangler afsnit om method og approach.
+-Der findes CSP biblioteker.
+-Def findes CML (concurrent ml) model.
+-Byte code vs native.
+
+Skema:
+-Tilføj milestones. Milestone I meget simpel, Milestone II tilføjelse af poison.
+Højst II eller III det vil sige kode stop.
+-Omdøb stop til end dato. Og slutning af juli, fredag 31/07/2009.
+-Spiral/Agile metode.
+-Ikke så meget tabel, som vi laver det.
+-Topologisk sorteret.
+(få hul igenem først og så udvid).
+-I stedet for arbejdsopgaver tager, så bestem hvornår vores prototyper vil være
+klar.
+
+Rapport husk det, deadline 2 uger før?
+
+OBS!!! Ikke et mål at få en super efektiv implementation (demo).
+PyCSP gør noget, vi må gerne sige vi gør som dem fordi vi ikke har fundet bedre.
+
+Send tidligere draft + tex sources til AF.
+
+næste møde: 12. may 16 - 17 på DINC.

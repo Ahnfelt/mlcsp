@@ -142,5 +142,3 @@ let _ =
         (fun () -> Channel.write c "bar"; "foo")
         (fun () -> Channel.read c) in
     print_endline (x ^ y)
-
-

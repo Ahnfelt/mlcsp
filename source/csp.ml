@@ -28,17 +28,21 @@
 
 module type Channel = sig
 
-    type 'a t
+    type ('a, 'c) t
     
-    val create : unit -> 'a t
-    
-    val read : 'a t -> 'a
-
-    val write : 'a t -> 'a -> unit
-    
-    val poison : 'a t -> unit
-
     exception PoisonException
+    
+    val create : unit -> ('a, [`Read | `Write | `Poison]) t
+    
+    val read : ('a, [> `Read]) t -> 'a
+    val write : ('a, [> `Write]) t -> 'a -> unit
+    
+    val poison : ('a, [> `Poison]) t -> unit
+
+    val read_only : ('a, [> `Read]) t -> ('a, [`Read]) t
+    val write_only : ('a, [> `Write]) t -> ('a, [`Write]) t
+    val read_poison_only : ('a, [> `Read | `Poison]) t -> ('a, [`Read | `Poison]) t
+    val write_poison_only : ('a, [> `Write | `Poison]) t -> ('a, [`Write | `Poison]) t
     
 end
 
@@ -62,7 +66,7 @@ module Channel : Channel = struct
 
     type 'a slot = Empty | HasValue of 'a | Poison
 
-    type 'a t = 'a slot ref * Mutex.t * Condition.t * Condition.t * Condition.t
+    type ('a, 'c) t = 'a slot ref * Mutex.t * Condition.t * Condition.t * Condition.t
     
     exception PoisonException
 
@@ -116,6 +120,11 @@ module Channel : Channel = struct
         Condition.broadcast cw;
         Condition.broadcast cd
         )
+        
+    let read_only c = c
+    let write_only c = c
+    let read_poison_only c = c
+    let write_poison_only c = c
 
 end
 
@@ -169,9 +178,9 @@ let _ =
     print_endline (a ^ b ^ c ^ d ^ e ^ f ^ g ^ h)
 
 let _ = 
-    let c = Channel.create () in
+    let (cin, cout) = let c = Channel.create () in (Channel.read_only c, Channel.write_poison_only c) in
     Process.fork [
-        (fun () -> let rec aux () = let v = Channel.read c in print_endline v; aux () in aux ());
-        (fun () -> Channel.write c "1"; Channel.write c "2"; Channel.write c "3"; Channel.poison c) 
+        (fun () -> let rec aux () = let v = Channel.read cin in print_endline v; aux () in aux ());
+        (fun () -> Channel.write cout "1"; Channel.write cout "2"; Channel.write cout "3"; Channel.poison cout) 
         ]
 

@@ -178,9 +178,16 @@ let _ =
     print_endline (a ^ b ^ c ^ d ^ e ^ f ^ g ^ h)
 
 let _ = 
-    let (cin, cout) = let c = Channel.create () in (Channel.read_only c, Channel.write_poison_only c) in
-    Process.fork [
-        (fun () -> let rec aux () = let v = Channel.read cin in print_endline v; aux () in aux ());
-        (fun () -> Channel.write cout "1"; Channel.write cout "2"; Channel.write cout "3"; Channel.poison cout) 
+    let printer cin () =
+        while true do print_endline (Channel.read cin) done in
+    let generator cout () =
+        Channel.write cout "1"; 
+        Channel.write cout "2"; 
+        Channel.write cout "3"; 
+        Channel.poison cout; in
+    let c = Channel.create () in
+        Process.fork [
+            printer (Channel.read_only c);
+            generator (Channel.write_poison_only c);
         ]
 

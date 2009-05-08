@@ -168,3 +168,10 @@ let _ =
         in
     print_endline (a ^ b ^ c ^ d ^ e ^ f ^ g ^ h)
 
+let _ = 
+    let c = Channel.create () in
+    Process.fork [
+        (fun () -> let rec aux () = let v = Channel.read c in print_endline v; aux () in aux ());
+        (fun () -> Channel.write c "1"; Channel.write c "2"; Channel.write c "3"; Channel.poison c) 
+        ]
+

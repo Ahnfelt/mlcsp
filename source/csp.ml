@@ -44,8 +44,6 @@ end
 
 module type Process = sig
 
-    type 'a t
-
     val fork : (unit -> unit) list -> unit
 
     val parallel : (unit -> 'a) -> (unit -> 'b) -> 'a * 'b
@@ -64,20 +62,20 @@ module Channel : Channel = struct
 
     type 'a slot = Empty | HasValue of 'a | Poison
 
-    type 'a t = 'a slot ref * Mutex.t * Condition.t * Condition.t
+    type 'a t = 'a slot ref * Mutex.t * Condition.t * Condition.t * Condition.t
     
     exception PoisonException
 
-    let create () = (ref Empty, Mutex.create (), Condition.create (), Condition.create ())
+    let create () = (ref Empty, Mutex.create (), Condition.create (), Condition.create (), Condition.create ())
 
-    let withMutex m f = (
+    let with_mutex m f = (
         Mutex.lock m; 
         let v = try f () with e -> Mutex.unlock m; raise e in 
         Mutex.unlock m;
         v
         )
 
-    let read (r, m, cr, cw) = 
+    let read (r, m, cr, cw, cd) = 
         let rec aux () = (
             match !r with
             | Empty -> (
@@ -85,42 +83,43 @@ module Channel : Channel = struct
                 aux ()
                 )
             | HasValue v -> (
+                r := Empty;
+                Condition.signal cd;
                 Condition.signal cw;
                 v
                 )
             | Poison -> raise PoisonException
             ) in
-        withMutex m aux
+        with_mutex m aux
 
-    let write (r, m, cr, cw) n = 
+    let write (r, m, cr, cw, cd) v = 
         let rec aux () = (
             match !r with
             | Empty -> (
-                r := HasValue n;
+                r := HasValue v;
                 Condition.signal cr;
-                Condition.wait cw m;
+                Condition.wait cd m;
                 (if !r = Poison then raise PoisonException);
                 ()
                 )
-            | HasValue v -> (
-                Condition.wait cr m;
+            | HasValue _ -> (
+                Condition.wait cw m;
                 aux ()
                 )
             | Poison -> raise PoisonException
             ) in
-        withMutex m aux
+        with_mutex m aux
 
-    let poison (r, m, cr, cw) = withMutex m (fun () ->
+    let poison (r, m, cr, cw, cd) = with_mutex m (fun () ->
         r := Poison;
-        Condition.signal cr;
-        Condition.signal cw
+        Condition.broadcast cr;
+        Condition.broadcast cw;
+        Condition.broadcast cd
         )
 
 end
 
 module Process : Process = struct
-    
-    type 'a t = 'a option ref * Thread.t
     
     type 'a result = Good of 'a | Bad of exn
     
@@ -157,8 +156,15 @@ end
 
 let _ = 
     let c = Channel.create () in
-    let (x, y) = Process.parallel
+    let (a, b, c, d, e, f, g, h) = Process.parallel8
         (fun () -> Channel.read c)
-        (fun () -> Channel.write c "foo"; "bar") in
-    print_endline (x ^ y)
+        (fun () -> Channel.write c "r1"; "w1") 
+        (fun () -> Channel.write c "r2"; "w2") 
+        (fun () -> Channel.read c)
+        (fun () -> Channel.read c)
+        (fun () -> Channel.write c "r3"; "w3") 
+        (fun () -> Channel.read c)
+        (fun () -> Channel.write c "r4"; "w4") 
+        in
+    print_endline (a ^ b ^ c ^ d ^ e ^ f ^ g ^ h)
 

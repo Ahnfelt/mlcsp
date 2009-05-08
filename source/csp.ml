@@ -26,19 +26,17 @@
 
 (* $Id: csp.ml,v 1.0 2009/05/05 09:00:00 gentauro Exp $ *)
 
-(* Process *)
-
-(* Channels *)
-
 module type Channel = sig
 
     type 't t
     
-    val create: unit -> 't t
+    val create : unit -> 't t
     
-    val read: 't t -> 't
+    val read : 't t -> 't
 
-    val write: 't t -> 't -> unit
+    val write : 't t -> 't -> unit
+    
+    val poison : 't t -> unit
 
     exception PoisonException
     
@@ -47,14 +45,22 @@ end
 module type Process = sig
 
     type 't t
-    
-    val fork: (unit -> 'a) -> unit
 
-    val parallel: (unit -> 'a) -> (unit -> 'b) -> 'a * 'b
+    val fork : (unit -> unit) list -> unit
+
+    val parallel : (unit -> 'a) -> (unit -> 'b) -> 'a * 'b
+    
+    val parallel3 : (unit -> 'a) -> (unit -> 'b) -> (unit -> 'c) -> 'a * 'b * 'c
+    val parallel4 : (unit -> 'a) -> (unit -> 'b) -> (unit -> 'c) -> (unit -> 'd) -> 'a * 'b * 'c * 'd
+    val parallel5 : (unit -> 'a) -> (unit -> 'b) -> (unit -> 'c) -> (unit -> 'd) -> (unit -> 'e) -> 'a * 'b * 'c * 'd * 'e
+    val parallel6 : (unit -> 'a) -> (unit -> 'b) -> (unit -> 'c) -> (unit -> 'd) -> (unit -> 'e) -> (unit -> 'f) -> 'a * 'b * 'c * 'd * 'e * 'f
+    val parallel7 : (unit -> 'a) -> (unit -> 'b) -> (unit -> 'c) -> (unit -> 'd) -> (unit -> 'e) -> (unit -> 'f) -> (unit -> 'g) -> 'a * 'b * 'c * 'd * 'e * 'f * 'g
+    val parallel8 : (unit -> 'a) -> (unit -> 'b) -> (unit -> 'c) -> (unit -> 'd) -> (unit -> 'e) -> (unit -> 'f) -> (unit -> 'g) -> (unit -> 'h) -> 'a * 'b * 'c * 'd * 'e * 'f * 'g * 'h
+    val parallel9 : (unit -> 'a) -> (unit -> 'b) -> (unit -> 'c) -> (unit -> 'd) -> (unit -> 'e) -> (unit -> 'f) -> (unit -> 'g) -> (unit -> 'h) -> (unit -> 'i) -> 'a * 'b * 'c * 'd * 'e * 'f * 'g * 'h * 'i
 
 end
 
-module Channel = struct
+module Channel : Channel = struct
 
     type 't slot = Empty | HasValue of 't | Poison
 
@@ -71,33 +77,38 @@ module Channel = struct
         v
         )
 
-    let rec read (r, m, cr, cw) = withMutex m (fun () ->
-        match !r with
-        | Empty -> (
-            Condition.wait cr m;
-            read (r, m, cr, cw)
-            )
-        | HasValue v -> (
-            Condition.signal cw;
-            v
-            )
-        | Poison -> raise PoisonException
-        )
+    let read (r, m, cr, cw) = 
+        let rec aux () = (
+            match !r with
+            | Empty -> (
+                Condition.wait cr m;
+                aux ()
+                )
+            | HasValue v -> (
+                Condition.signal cw;
+                v
+                )
+            | Poison -> raise PoisonException
+            ) in
+        withMutex m aux
 
-    let rec write (r, m, cr, cw) n = withMutex m (fun () ->
-        match !r with
-        | Empty -> (
-            r := HasValue n;
-            Condition.signal cr;
-            Condition.wait cw m;
-            if !r = Poison then raise PoisonException
-            ); ()
-        | HasValue v -> (
-            Condition.wait cr m;
-            write (r, m, cr, cw) n
-            ); ()
-        | Poison -> raise PoisonException
-        )
+    let rec write (r, m, cr, cw) n = 
+        let rec aux () = (
+            match !r with
+            | Empty -> (
+                r := HasValue n;
+                Condition.signal cr;
+                Condition.wait cw m;
+                (if !r = Poison then raise PoisonException);
+                ()
+                )
+            | HasValue v -> (
+                Condition.wait cr m;
+                aux ()
+                )
+            | Poison -> raise PoisonException
+            ) in
+        withMutex m aux
 
     let rec poison (r, m, cr, cw) = withMutex m (fun () ->
         r := Poison;
@@ -107,7 +118,7 @@ module Channel = struct
 
 end
 
-module Process = struct
+module Process : Process = struct
     
     type 't t = 't option ref * Thread.t
     
@@ -116,43 +127,38 @@ module Process = struct
     exception NeverException
 
     let parallel f1 f2 = 
-        let spawn f r = Thread.create (
-            fun () -> r := 
-                try Good (f ()) with
-                e -> Bad e
-        ) () in (
+        let attempt f r = r := try Good (f ()) with e -> Bad e in
         let r1 = ref (Bad NeverException) in 
         let r2 = ref (Bad NeverException) in 
-        let t1 = spawn f1 r1 in
-        let t2 = spawn f2 r2 in
+        let t1 = Thread.create (fun () -> attempt f1 r1) () in (
+        attempt f2 r2;
         Thread.join t1;
-        Thread.join t2;
         let extract r = match !r with
             | Good v -> v
             | Bad e -> raise e in
         (extract r1, extract r2)
         )
         
-    let rec parallel3 f1 f2 f3 = let (v1, (v2, v3)) = parallel f1 (fun () -> parallel f2 f3) in (v1, v2, v3)
-    let rec parallel4 f1 f2 f3 f4 = let (v1, (v2, v3, v4)) = parallel f1 (fun () -> parallel3 f2 f3 f4) in (v1, v2, v3, v4)
-    let rec parallel5 f1 f2 f3 f4 f5 = let (v1, (v2, v3, v4, v5)) = parallel f1 (fun () -> parallel4 f2 f3 f4 f5) in (v1, v2, v3, v4, v5)
-    let rec parallel6 f1 f2 f3 f4 f5 f6 = let (v1, (v2, v3, v4, v5, v6)) = parallel f1 (fun () -> parallel5 f2 f3 f4 f5 f6) in (v1, v2, v3, v4, v5, v6)
-    let rec parallel7 f1 f2 f3 f4 f5 f6 f7 = let (v1, (v2, v3, v4, v5, v6, v7)) = parallel f1 (fun () -> parallel6 f2 f3 f4 f5 f6 f7) in (v1, v2, v3, v4, v5, v6, v7)
-    let rec parallel8 f1 f2 f3 f4 f5 f6 f7 f8 = let (v1, (v2, v3, v4, v5, v6, v7, v8)) = parallel f1 (fun () -> parallel7 f2 f3 f4 f5 f6 f7 f8) in (v1, v2, v3, v4, v5, v6, v7, v8)
-    let rec parallel9 f1 f2 f3 f4 f5 f6 f7 f8 f9 = let (v1, (v2, v3, v4, v5, v6, v7, v8, v9)) = parallel f1 (fun () -> parallel8 f2 f3 f4 f5 f6 f7 f8 f9) in (v1, v2, v3, v4, v5, v6, v7, v8, v9)
+    let parallel3 f1 f2 f3 = let (v1, (v2, v3)) = parallel f1 (fun () -> parallel f2 f3) in (v1, v2, v3)
+    let parallel4 f1 f2 f3 f4 = let (v1, (v2, v3, v4)) = parallel f1 (fun () -> parallel3 f2 f3 f4) in (v1, v2, v3, v4)
+    let parallel5 f1 f2 f3 f4 f5 = let (v1, (v2, v3, v4, v5)) = parallel f1 (fun () -> parallel4 f2 f3 f4 f5) in (v1, v2, v3, v4, v5)
+    let parallel6 f1 f2 f3 f4 f5 f6 = let (v1, (v2, v3, v4, v5, v6)) = parallel f1 (fun () -> parallel5 f2 f3 f4 f5 f6) in (v1, v2, v3, v4, v5, v6)
+    let parallel7 f1 f2 f3 f4 f5 f6 f7 = let (v1, (v2, v3, v4, v5, v6, v7)) = parallel f1 (fun () -> parallel6 f2 f3 f4 f5 f6 f7) in (v1, v2, v3, v4, v5, v6, v7)
+    let parallel8 f1 f2 f3 f4 f5 f6 f7 f8 = let (v1, (v2, v3, v4, v5, v6, v7, v8)) = parallel f1 (fun () -> parallel7 f2 f3 f4 f5 f6 f7 f8) in (v1, v2, v3, v4, v5, v6, v7, v8)
+    let parallel9 f1 f2 f3 f4 f5 f6 f7 f8 f9 = let (v1, (v2, v3, v4, v5, v6, v7, v8, v9)) = parallel f1 (fun () -> parallel8 f2 f3 f4 f5 f6 f7 f8 f9) in (v1, v2, v3, v4, v5, v6, v7, v8, v9)
  
-    let rec fork fs = match fs with
-        | f::fs -> ignore (parallel f (fun () -> fork fs))
-        | [] -> ()
+    let fork fs = let rec aux fs = match fs with
+        | f::fs -> ignore (parallel f (fun () -> aux fs))
+        | [] -> () in
+        try aux fs with _ -> ()
         
 end
 
-(* let _ = print_endline (Process.run (fun () -> "foo")) *)
 
 let _ = 
     let c = Channel.create () in
     let (x, y) = Process.parallel
-        (fun () -> Channel.read c) 
+        (fun () -> Channel.read c)
         (fun () -> Channel.write c "foo"; "bar") in
     print_endline (x ^ y)
 

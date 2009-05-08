@@ -28,15 +28,15 @@
 
 module type Channel = sig
 
-    type 't t
+    type 'a t
     
-    val create : unit -> 't t
+    val create : unit -> 'a t
     
-    val read : 't t -> 't
+    val read : 'a t -> 'a
 
-    val write : 't t -> 't -> unit
+    val write : 'a t -> 'a -> unit
     
-    val poison : 't t -> unit
+    val poison : 'a t -> unit
 
     exception PoisonException
     
@@ -44,7 +44,7 @@ end
 
 module type Process = sig
 
-    type 't t
+    type 'a t
 
     val fork : (unit -> unit) list -> unit
 
@@ -62,9 +62,9 @@ end
 
 module Channel : Channel = struct
 
-    type 't slot = Empty | HasValue of 't | Poison
+    type 'a slot = Empty | HasValue of 'a | Poison
 
-    type 't t = 't slot ref * Mutex.t * Condition.t * Condition.t
+    type 'a t = 'a slot ref * Mutex.t * Condition.t * Condition.t
     
     exception PoisonException
 
@@ -92,7 +92,7 @@ module Channel : Channel = struct
             ) in
         withMutex m aux
 
-    let rec write (r, m, cr, cw) n = 
+    let write (r, m, cr, cw) n = 
         let rec aux () = (
             match !r with
             | Empty -> (
@@ -110,7 +110,7 @@ module Channel : Channel = struct
             ) in
         withMutex m aux
 
-    let rec poison (r, m, cr, cw) = withMutex m (fun () ->
+    let poison (r, m, cr, cw) = withMutex m (fun () ->
         r := Poison;
         Condition.signal cr;
         Condition.signal cw
@@ -120,9 +120,9 @@ end
 
 module Process : Process = struct
     
-    type 't t = 't option ref * Thread.t
+    type 'a t = 'a option ref * Thread.t
     
-    type 't result = Good of 't | Bad of exn
+    type 'a result = Good of 'a | Bad of exn
     
     exception NeverException
 

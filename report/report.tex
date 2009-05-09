@@ -115,17 +115,17 @@ This secion describes the process primitives \\
 CSP & OCamlCSP \\
 \hline
 & \\
-($c_1\,?\,x \to skip \parallel c_2\,?\,y \to skip$); x + y & let (x, y) = parallel \\
+($c_1\,?\,x \to skip \parallel c_2\,?\,y \to skip$); $c_3\,!\,x + y$ & let (x, y) = parallel \\
 & \quad (fun () $\to$ read c1) \\
 & \quad (fun () $\to$ read c2) \\
-& in x + y \\
+& in write c3 (x + y) \\
 & \\
 (imperative representation) & let x = ref 0 in \\
 & let y = ref 0 in \\
 & fork [ \\
 & \quad (fun () $\to$ x := read c1) \\
 & \quad (fun () $\to$ y := read c2) ]; \\
-& !x + !y \\
+& write c3 (!x + !y) \\
 \end{tabular}
 \caption{Parallel processes in CSP vs. OCamlCSP}
 \label{channel-alternation}

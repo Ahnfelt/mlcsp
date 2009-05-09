@@ -40,13 +40,14 @@ module Csp = struct
         
         val read : ('a, [> `Read]) t -> 'a
         val write : ('a, [> `Write]) t -> 'a -> unit
-        
         val poison : ('a, [> `Poison]) t -> unit
 
-        val read_only : ('a, [> `Read]) t -> ('a, [`Read]) t
+        val poison_only : ('a, [> `Poison]) t -> ('a, [`Poison]) t
         val write_only : ('a, [> `Write]) t -> ('a, [`Write]) t
-        val read_poison_only : ('a, [> `Read | `Poison]) t -> ('a, [`Read | `Poison]) t
         val write_poison_only : ('a, [> `Write | `Poison]) t -> ('a, [`Write | `Poison]) t
+        val read_only : ('a, [> `Read]) t -> ('a, [`Read]) t
+        val read_poison_only : ('a, [> `Read | `Poison]) t -> ('a, [`Read | `Poison]) t
+        val read_write_only : ('a, [> `Read | `Write]) t -> ('a, [`Read | `Write]) t
         
     end
 
@@ -73,24 +74,24 @@ module Csp = struct
         type 'a slot = Empty | HasValue of 'a | Poison
 
         type ('a, 'c) t = 'a slot ref * Mutex.t * Condition.t * Condition.t * Condition.t
-        
+
         exception PoisonException
 
         let channel () = (ref Empty, Mutex.create (), Condition.create (), Condition.create (), Condition.create ())
 
         let with_mutex m f = (
             Mutex.lock m; 
-            let v = try f () with e -> Mutex.unlock m; raise e in 
+            let v = try f m with e -> Mutex.unlock m; raise e in 
             Mutex.unlock m;
             v
             )
 
         let read (r, m, cr, cw, cd) = 
-            let rec aux () = (
+            let rec aux m = (
                 match !r with
                 | Empty -> (
                     Condition.wait cr m;
-                    aux ()
+                    aux m
                     )
                 | HasValue v -> (
                     r := Empty;
@@ -103,7 +104,7 @@ module Csp = struct
             with_mutex m aux
 
         let write (r, m, cr, cw, cd) v = 
-            let rec aux () = (
+            let rec aux m = (
                 match !r with
                 | Empty -> (
                     r := HasValue v;
@@ -114,23 +115,25 @@ module Csp = struct
                     )
                 | HasValue _ -> (
                     Condition.wait cw m;
-                    aux ()
+                    aux m
                     )
                 | Poison -> raise PoisonException
                 ) in
             with_mutex m aux
 
-        let poison (r, m, cr, cw, cd) = with_mutex m (fun () ->
+        let poison (r, m, cr, cw, cd) = with_mutex m (fun m ->
             r := Poison;
             Condition.broadcast cr;
             Condition.broadcast cw;
             Condition.broadcast cd
             )
             
-        let read_only c = c
+        let poison_only c = c
         let write_only c = c
-        let read_poison_only c = c
         let write_poison_only c = c
+        let read_only c = c
+        let read_poison_only c = c
+        let read_write_only c = c
 
     end
 
@@ -175,6 +178,19 @@ module Csp = struct
 
 end
 
+(*
+    Proposal for alternation interface:
+    Csp.prioritized [
+        Csp.Read (c1, fun v -> v * v);
+        Csp.Read (c2, fun v -> v + v);
+        Csp.Write (c3, (fun () -> v), fun v -> 0);
+        Csp.Wait (0.100, fun t -> 0);
+    ]
+    Csp.arbitrary [ ... ] - may not be too interesting to support.
+    Csp.random [ ... ]
+    Csp.fair [ ... ] - can this be done with that interface?
+    In any case, random may be enough.
+*)
 
 let _ = 
     let c = Csp.channel () in

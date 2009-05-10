@@ -1,7 +1,6 @@
 (* Fibonacci CSP network *)
 
-open Fib
-open Csp
+open Legoland
 
 let rec fibcsp n =
   match n with

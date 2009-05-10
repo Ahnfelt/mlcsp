@@ -26,15 +26,19 @@
 
 (* $Id: legoland.ml,v 1.0 2009/05/05 09:00:00 gentauro Exp $ *)
 
+open Csp
+open Csp.Process
+open Csp.Channel
+
 (* let rec idint in1 out () =  *)
 
 (* let rec succint in1 out () =  *)
 
 let rec plusint in1 in2 out () =
-    let (x, y) = Process.parallel
-      (fun () -> Channel.read in1)
-      (fun () -> Channel.read in2) in
-      Channel.write out (x + y); plusint in1 in2 out ()
+    let (x, y) = parallel
+      (fun () -> read in1)
+      (fun () -> read in2) in
+      write out (x + y); plusint in1 in2 out ()
 
 (* let rec delta2int in out1 out2 () =  *)
 

@@ -201,31 +201,3 @@ end
     In any case, random may be enough.
 *)
 
-let _ = 
-    let c = Csp.channel () in
-    let (a, b, c, d, e, f, g, h) = Csp.parallel8
-        (fun () -> Csp.read c)
-        (fun () -> Csp.write c "r1"; "w1") 
-        (fun () -> Csp.write c "r2"; "w2") 
-        (fun () -> Csp.read c)
-        (fun () -> Csp.read c)
-        (fun () -> Csp.write c "r3"; "w3") 
-        (fun () -> Csp.read c)
-        (fun () -> Csp.write c "r4"; "w4") 
-        in
-    print_endline (a ^ b ^ c ^ d ^ e ^ f ^ g ^ h)
-
-let _ = 
-    let printer cin i =
-        while true do print_endline (Csp.read cin ^ " from printer #" ^ string_of_int i) done in
-    let generator cout () =
-        Csp.write cout "1"; 
-        Csp.write cout "2"; 
-        Csp.write cout "3"; 
-        Csp.poison cout; in
-    let c = Csp.channel () in
-        Csp.fork [
-            (fun () -> Csp.spawn 10 (printer (Csp.read_only c)));
-            generator (Csp.write_poison_only c);
-        ]
-

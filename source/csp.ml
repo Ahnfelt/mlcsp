@@ -192,6 +192,7 @@ end
     In any case, random may be enough.
 *)
 
+(*
 let _ = 
     let c = Csp.channel () in
     let (a, b, c, d, e, f, g, h) = Csp.parallel8
@@ -205,7 +206,9 @@ let _ =
         (fun () -> Csp.write c "r4"; "w4") 
         in
     print_endline (a ^ b ^ c ^ d ^ e ^ f ^ g ^ h)
+*)
 
+(*
 let _ = 
     let printer cin () =
         while true do print_endline (Csp.read cin) done in
@@ -219,4 +222,4 @@ let _ =
             printer (Csp.read_only c);
             generator (Csp.write_poison_only c);
         ]
-
+*)

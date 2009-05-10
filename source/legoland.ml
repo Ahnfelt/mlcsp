@@ -27,21 +27,33 @@
 (* $Id: legoland.ml,v 1.0 2009/05/05 09:00:00 gentauro Exp $ *)
 
 open Csp
-open Csp.Process
-open Csp.Channel
 
-(* let rec idint in1 out () =  *)
+let rec idint inp out () =
+  Csp.write out (Csp.read inp);
+  idint inp out ()
 
-(* let rec succint in1 out () =  *)
+let rec succint inp out () =
+  Csp.write out ((Csp.read inp) + 1);
+  succint inp out ()
 
-let rec plusint in1 in2 out () =
-    let (x, y) = parallel
-      (fun () -> read in1)
-      (fun () -> read in2) in
-      write out (x + y); plusint in1 in2 out ()
+let rec plusint inp1 inp2 out () =
+  let (x, y) = Csp.parallel
+    (fun () -> Csp.read inp1)
+    (fun () -> Csp.read inp2) in
+    Csp.write out (x + y);
+    plusint inp1 inp2 out ()
+      
+let rec delta2int inp out1 out2 () =
+  let x = Csp.read inp in
+  let (y,z) = Csp.parallel
+    (fun () -> Csp.write out1 (x))
+    (fun () -> Csp.write out2 (x)) in
+  delta2int inp out1 out2 ()
 
-(* let rec delta2int in out1 out2 () =  *)
+let rec prefixint n inp out () =
+  Csp.write out (Csp.read (n));
+  idint inp out ()
 
-(* let rec prefixint n in out () =  *)
-
-(* let rec tailint n in out () =  *)
+let rec tailint inp out () =
+  Csp.read inp; (* we drop first number *)
+  idint inp out ()

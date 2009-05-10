@@ -54,6 +54,8 @@ module Csp = struct
 
     module type PROCESS = sig
 
+        val spawn : int -> (int -> unit) -> unit
+
         val fork : (unit -> unit) list -> unit
 
         val parallel : (unit -> 'a) -> (unit -> 'b) -> 'a * 'b
@@ -100,8 +102,8 @@ module Csp = struct
                     v
                     )
                 | Poison -> raise PoisonException
-                ) in
-            with_mutex m aux
+                )
+            in with_mutex m aux
 
         let write (r, m, cr, cw, cd) v = 
             let rec aux m = (
@@ -118,8 +120,8 @@ module Csp = struct
                     aux m
                     )
                 | Poison -> raise PoisonException
-                ) in
-            with_mutex m aux
+                )
+            in with_mutex m aux
 
         let poison (r, m, cr, cw, cd) = with_mutex m (fun m ->
             r := Poison;
@@ -153,8 +155,8 @@ module Csp = struct
             Thread.join t1;
             let extract r = match !r with
                 | Good v -> v
-                | Bad e -> raise e in
-            (extract r1, extract r2)
+                | Bad e -> raise e
+            in (extract r1, extract r2)
             )
             
         let parallel3 f1 f2 f3 = let (v1, (v2, v3)) = parallel f1 (fun () -> parallel f2 f3) in (v1, v2, v3)
@@ -167,9 +169,16 @@ module Csp = struct
      
         let fork fs = let rec aux fs = match fs with
             | f::fs -> ignore (parallel f (fun () -> aux fs))
-            | [] -> () in
-            try aux fs with _ -> ()
+            | [] -> ()
+            in try aux fs with _ -> ()
             
+        let generate_list n f = let rec aux i l = match i with
+            | 0 -> l
+            | i -> aux (i - 1) (f i :: l)
+            in aux n []
+            
+        let spawn n f = fork (generate_list n (fun i -> fun () -> f i))
+        
     end
 
 
@@ -207,8 +216,8 @@ let _ =
     print_endline (a ^ b ^ c ^ d ^ e ^ f ^ g ^ h)
 
 let _ = 
-    let printer cin () =
-        while true do print_endline (Csp.read cin) done in
+    let printer cin i =
+        while true do print_endline (Csp.read cin ^ " from printer #" ^ string_of_int i) done in
     let generator cout () =
         Csp.write cout "1"; 
         Csp.write cout "2"; 
@@ -216,7 +225,7 @@ let _ =
         Csp.poison cout; in
     let c = Csp.channel () in
         Csp.fork [
-            printer (Csp.read_only c);
+            (fun () -> Csp.spawn 10 (printer (Csp.read_only c)));
             generator (Csp.write_poison_only c);
         ]
 

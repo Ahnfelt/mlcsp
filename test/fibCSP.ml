@@ -1,6 +1,7 @@
 (* Fibonacci CSP network *)
 
 open Fib
+open Csp
 
 let rec fibcsp n =
   match n with

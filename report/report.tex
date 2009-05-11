@@ -111,6 +111,7 @@ This secion describes the process primitives \\
 - Captures the return values (functional, not for fork) \\
 - Exception propagation (when all processes are done, not for fork) \\
 - Scope differences from CSP? \\
+- Find out if spawn has an equivalent in CSP. \\
 }
 
 \begin{figure}[h]
@@ -130,6 +131,8 @@ CSP & OCamlCSP \\
 & \quad (fun () $\to$ x := read c1); \\
 & \quad (fun () $\to$ y := read c2) ]; \\
 & write c3 (!x + !y) \\
+& \\
+(no equivalent) & spawn 10 (fun i $\to$ \dots) \\
 \end{tabular}
 \caption{Parallel processes in CSP vs. OCamlCSP}
 \label{channel-parallel}

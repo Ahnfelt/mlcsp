@@ -220,3 +220,6 @@ let _ =
             generator (Csp.write_poison_only c);
         ]
 
+let _ =
+    if object end = object end then print_endline "equal" else print_endline "not equal"
+

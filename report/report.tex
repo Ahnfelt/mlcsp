@@ -3,11 +3,12 @@
 \usepackage[utf8]{inputenc}
 \usepackage{listings}
 \usepackage{graphicx}
+\usepackage{fncylab}
 
 \newcommand{\missing}[1]{
 \begin{tabular}{|p{11cm}|}
 \hline
-\emph{Missing:} \\
+\emph{Missing:} {\scriptsize (things that need to be written or considered)} \\
 \hline
 #1
 \hline
@@ -49,6 +50,9 @@ This might be it's own section or be merged with communication \\
 - Alternation (and read/write/timeout guards) \\
 - Communication scheduling (prioritized/random select) \\
 - More synchronization \\
+- Actions are automatically performed when chosen (no promises) \\
+- Does random (prioritized (shuffle list)) mean fair? \\
+- Consider having a ``poll'' function that does nothing if none of the alternatives are ready \\
 }
 
 \begin{figure}[h]
@@ -84,7 +88,7 @@ This section describes the channels ``end'' capabilities \\
 \begin{figure}[h]
 \centering
 \begin{tabular}{c|c|c|l}
-`Read & `Write & `Poison & function \\
+`Read & `Write & `Poison & Function \\
 \hline
 0 & 0 & 0 & (useless) \\
 0 & 0 & 1 & poison\_only \\
@@ -123,12 +127,12 @@ CSP & OCamlCSP \\
 (imperative representation) & let x = ref 0 in \\
 & let y = ref 0 in \\
 & fork [ \\
-& \quad (fun () $\to$ x := read c1) \\
+& \quad (fun () $\to$ x := read c1); \\
 & \quad (fun () $\to$ y := read c2) ]; \\
 & write c3 (!x + !y) \\
 \end{tabular}
 \caption{Parallel processes in CSP vs. OCamlCSP}
-\label{channel-alternation}
+\label{channel-parallel}
 \end{figure}
 
 \end{document}

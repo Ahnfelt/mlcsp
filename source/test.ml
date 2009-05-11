@@ -3,13 +3,15 @@ open Csp
 
 exception TestException of string
 
-let test_all ts = List.map (fun (n, f) -> try f (); print_endline ("Passed '" ^ n ^ "'") with 
-    | TestException t -> print_endline ("Failed '" ^ n ^ "': " ^ t)
-    | _ -> print_endline ("Failed '" ^ n ^ "': Exception")) ts
+let test_all ts = let failed = ref 0 in print_endline ("TESTS:");
+    List.map (fun (n, f) -> try f (); print_endline ("(passed '" ^ n ^ "')") with 
+    | TestException t -> failed := !failed + 1; print_endline ("FAILED '" ^ n ^ "': " ^ t)
+    | _ -> print_endline ("Failed '" ^ n ^ "': Exception")) ts;
+    if !failed == 0 
+    then print_endline "ALL TESTS PASSED"
+    else print_endline ("FAILED " ^ string_of_int !failed ^ " TEST(s)")
 
 let assert_true c t = if c then () else raise (TestException t)
-
-let assert_contains_all c l = String.contains
 
 
 let _ = test_all [
@@ -30,7 +32,7 @@ let _ = test_all [
         assert_true (List.for_all (fun i -> String.contains s i) l) "Broken communication"
     );
 
-    ("capabilities", fun () ->
+    ("spawn", fun () ->
         let n = ref 0 in
         let printer cin i =
             while true do Csp.read cin; n := !n + 1; done in
@@ -45,6 +47,16 @@ let _ = test_all [
                 generator (Csp.write_poison_only c);
             ];
         assert_true (!n == 3) "Wrong number of iterations"
+    );
+
+    ("capabilities-symbolic", fun () ->
+        (* symbolic test - uncomment to get the type errors *)
+        let c = Csp.channel () in
+        let cr = Csp.read_only c in
+        (* let cx : [ `Read | `Write ] = cr in *) (* type error *)
+        (* let cx : [< `Read | `Write ] = cr in *) (* type error *)
+        (* let cx : [> `Read | `Write ] = cr in *) (* type error *)
+        ()
     );
     ]
 

@@ -45,16 +45,15 @@ let rec plusint inp1 inp2 out () =
       
 let rec delta2int inp out1 out2 () =
   let x = Csp.read inp in
-  let (y,z) = Csp.parallel
-    (fun () -> Csp.write out1 (x))
-    (fun () -> Csp.write out2 (x)) in
-  delta2int inp out1 out2 ()
+  Csp.fork[
+    (fun () -> Csp.write out1 (x));
+    (fun () -> Csp.write out2 (x))
+  ];delta2int inp out1 out2 ()
 
 let rec prefixint n inp out () =
-  Csp.write out (Csp.read (n));
+  Csp.write out (n);
   idint inp out ()
 
 let rec tailint inp out () =
   Csp.read inp; (* we drop first number *)
   idint inp out ()
-

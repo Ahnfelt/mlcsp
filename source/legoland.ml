@@ -28,32 +28,132 @@
 
 open Csp
 
-let rec idint inp out () =
-  Csp.write out (Csp.read inp);
-  idint inp out ()
+let rec terminator i () =
+  terminator i ()
 
-let rec succint inp out () =
-  Csp.write out ((Csp.read inp) + 1);
-  succint inp out ()
+let rec printer i () =
+  let x = Csp.read i in
+    print_endline(string_of_int x);
+    printer i ()
+  
 
-let rec plusint inp1 inp2 out () =
+let rec idint i o () =
+  Csp.write o (Csp.read i);
+  idint i o ()
+
+let rec succint i o () =
+  Csp.write o ((Csp.read i) + 1);
+  succint i o ()
+
+let rec plusint i1 i2 o () =
   let (x, y) = Csp.parallel
-    (fun () -> Csp.read inp1)
-    (fun () -> Csp.read inp2) in
-    Csp.write out (x + y);
-    plusint inp1 inp2 out ()
+    (fun () -> Csp.read i1)
+    (fun () -> Csp.read i2) in
+    Csp.write o (x + y);
+    plusint i1 i2 o ()
       
-let rec delta2int inp out1 out2 () =
-  let x = Csp.read inp in
+let rec delta2int i o1 o2 () =
+  let x = Csp.read i in
   Csp.fork[
-    (fun () -> Csp.write out1 (x));
-    (fun () -> Csp.write out2 (x))
-  ];delta2int inp out1 out2 ()
+    (fun () -> Csp.write o1 (x));
+    (fun () -> Csp.write o2 (x))
+  ];delta2int i o1 o2 ()
 
-let rec prefixint n inp out () =
-  Csp.write out (n);
-  idint inp out ()
+let rec prefixint n i o () =
+  Csp.write o (n);
+  idint i o ()
 
-let rec tailint inp out () =
-  Csp.read inp; (* we drop first number *)
-  idint inp out ()
+let rec tailint i o () =
+  Csp.read i; (* we drop first number *)
+  idint i o ()
+
+let blockingFifo i o () =
+  let c1 = Csp.channel () in
+  let c2 = Csp.channel () in
+  let c3 = Csp.channel () in
+    Csp.fork [
+      (* we need some kind of a fn wrapper to make this pretty :/ *)
+      (fun () -> (while true do (Csp.write c1 (Csp.read i)); done));
+      idint c1 c2;
+      idint c2 c3;
+      (* we need some kind of a fn wrapper to make this pretty :/ *)
+      (fun () -> (while true do (Csp.write o (Csp.read c3)); done))
+    ]
+
+(* Some Simple Networks *)
+
+let numbersInt o () =
+  let c1 = Csp.channel () in
+  let c2 = Csp.channel () in
+  let c3 = Csp.channel () in
+  let c4 = Csp.channel () in
+    Csp.fork [
+      prefixint 0 c3 c1;
+      delta2int c1 c4 c2;
+      succint c2 c3;
+      (* we need some kind of a fn wrapper to make this pretty :/ *)
+      (fun () -> (while true do (Csp.write o (Csp.read c4)); done))
+    ]
+      
+let integrateInt i o () =
+  let c1 = Csp.channel () in
+  let c2 = Csp.channel () in
+  let c3 = Csp.channel () in
+  let c4 = Csp.channel () in
+  let c5 = Csp.channel () in
+    Csp.fork [
+      (* we need some kind of a fn wrapper to make this pretty :/ *)
+      (fun () -> (while true do (Csp.write c1 (Csp.read i)); done));
+      plusint c1 c5 c2;
+      delta2int c2 c3 c4;
+      prefixint 0 c4 c5;
+      (* we need some kind of a fn wrapper to make this pretty :/ *)
+      (fun () -> (while true do (Csp.write o (Csp.read c3)); done))
+    ]
+
+let pairsInt i o () =
+  let c1 = Csp.channel () in
+  let c2 = Csp.channel () in
+  let c3 = Csp.channel () in
+  let c4 = Csp.channel () in
+  let c5 = Csp.channel () in
+    Csp.fork [
+      (* we need some kind of a fn wrapper to make this pretty :/ *)
+      (fun () -> (while true do (Csp.write c1 (Csp.read i)); done));
+      delta2int c1 c2 c3;
+      tailint c2 c4;
+      plusint c3 c4 c5;
+      (* we need some kind of a fn wrapper to make this pretty :/ *)
+      (fun () -> (while true do (Csp.write o (Csp.read c5)); done))
+    ]
+
+(* Some Layered Networks *)
+
+let fibonacciInt o () =
+  let c1 = Csp.channel () in
+  let c2 = Csp.channel () in
+  let c3 = Csp.channel () in
+  let c4 = Csp.channel () in
+  let c5 = Csp.channel () in
+    Csp.fork [
+      prefixint 1 c5 c1 ;
+      prefixint 0 c1 c2 ;
+      delta2int c2 c3 c4;
+      pairsInt c4 c5;
+      (* we need some kind of a fn wrapper to make this pretty :/ *)
+      (fun () -> (while true do (Csp.write o (Csp.read c3)); done))
+    ]
+
+let squaresInt o () =
+  let c1 = Csp.channel () in
+  let c2 = Csp.channel () in
+  let c3 = Csp.channel () in
+    Csp.fork [
+      numbersInt c1;
+      integrateInt c1 c2;      
+      pairsInt c2 c3;
+      (* we need some kind of a fn wrapper to make this pretty :/ *)
+      (fun () -> (while true do (Csp.write o (Csp.read c3)); done))
+    ]
+
+    

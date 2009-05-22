@@ -36,7 +36,6 @@ let rec printer i () =
     print_endline(string_of_int x);
     printer i ()
   
-
 let rec idint i o () =
   Csp.write o (Csp.read i);
   idint i o ()

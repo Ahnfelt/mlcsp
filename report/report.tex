@@ -34,11 +34,11 @@ This section describes the communication primitives \\
 \begin{figure}[h]
 \centering
 \begin{tabular}{l|l|l}
-CSP & OCamlCSP (short) & OCamlCSP (long) \\
+CSP & OCamlCSP \\
 \hline
-$c\,?\,x \to x$ & read c & let x = read c in x \\
-$c\,!\,x \to skip$ & write c x & write c x; () \\
-(no equivalent) & poison c & poison c; () \\
+$c\,?\,x \to P(x)$ & let x = read c in p x \\
+$c\,!\,e \to Q$ & write c e; q () \\
+(no equivalent) & poison c; r () \\
 \end{tabular}
 \caption{Channels in CSP vs. OCamlCSP}
 \label{channel-communication}
@@ -61,17 +61,17 @@ This might be it's own section or be merged with communication \\
 CSP & OCamlCSP \\
 \hline
 & \\
-($c_1\,?\,x \to x \mid c_2\,?\,y \to y$) & random [ \\
-& \quad Read (c1, fun x $\to$ x); \\
-& \quad Read (c2, fun y $\to$ y) ] \\
+($c_1\,?\,x \to P(x) \mid c_2\,?\,y \to Q(y)$) & random [ \\
+& \quad Read (c1, fun x $\to$ p x); \\
+& \quad Read (c2, fun y $\to$ q y) ] \\
 & \\
-($c_1\,?\,x \to x \mid c_2\,!\,a+b \to a+b$) & random [ \\
-& \quad Read (c1, fun x $\to$ x); \\
-& \quad Write (c2, (fun () $\to$ a + b), fun v $\to$ v) ] \\
+($c_1\,?\,x \to P(x) \mid c_2\,!\,a+b \to Q$) & random [ \\
+& \quad Read (c1, fun x $\to$ p x); \\
+& \quad Write (c2, (fun () $\to$ a + b), fun \_ $\to$ q ()) ] \\
 & \\
 (no equivalent) & random [ \\
-& \quad Read (c1, fun x $\to$ x); \\
-& \quad Wait (0.100, fun t $\to$ 0) ] \\
+& \quad Read (c1, fun x $\to$ p x); \\
+& \quad Wait (0.100, fun t $\to$ q ()) ] \\
 \end{tabular}
 \caption{Alternation in CSP vs. OCamlCSP}
 \label{channel-alternation}

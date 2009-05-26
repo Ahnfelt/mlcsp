@@ -28,33 +28,103 @@
 
 open Csp
 
-let rec idint inp out () =
-  Csp.write out (Csp.read inp);
-  idint inp out ()
+let rec terminator i () =
+  Csp.read i;
+  terminator i ()
 
-let rec succint inp out () =
-  Csp.write out ((Csp.read inp) + 1);
-  succint inp out ()
+let rec printer i () =
+  let x = Csp.read i in
+    print_endline(string_of_int x);
+    printer i ()
 
-let rec plusint inp1 inp2 out () =
+let rec idint i o () =
+  Csp.write o (Csp.read i);
+  idint i o ()
+
+let rec succint i o () =
+  Csp.write o ((Csp.read i) + 1);
+  succint i o ()
+
+let rec plusint i1 i2 o () =
   let (x, y) = Csp.parallel
-    (fun () -> Csp.read inp1)
-    (fun () -> Csp.read inp2) in
-    Csp.write out (x + y);
-    plusint inp1 inp2 out ()
+    (fun () -> Csp.read i1)
+    (fun () -> Csp.read i2) in
+    Csp.write o (x + y);
+    plusint i1 i2 o ()
       
-let rec delta2int inp out1 out2 () =
-  let x = Csp.read inp in
-  let (y,z) = Csp.parallel
-    (fun () -> Csp.write out1 (x))
-    (fun () -> Csp.write out2 (x)) in
-  delta2int inp out1 out2 ()
+let rec delta2int i o1 o2 () =
+  let x = Csp.read i in
+  Csp.fork[
+    (fun () -> Csp.write o1 (x));
+    (fun () -> Csp.write o2 (x))
+  ];delta2int i o1 o2 ()
 
-let rec prefixint n inp out () =
-  Csp.write out (Csp.read (n));
-  idint inp out ()
+let rec prefixint n i o () =
+  Csp.write o (n);
+  idint i o ()
 
-let rec tailint inp out () =
-  Csp.read inp; (* we drop first number *)
-  idint inp out ()
+let rec tailint i o () =
+  Csp.read i; (* we drop first number *)
+  idint i o ()
 
+let blockingFifo i o () =
+  let c = Csp.channel () in
+    Csp.fork [
+      idint i c;
+      idint c o;
+    ]
+
+(* Some Simple Networks *)
+
+let numbersInt o () =
+  let c1 = Csp.channel () in
+  let c2 = Csp.channel () in
+  let c3 = Csp.channel () in
+    Csp.fork [
+      prefixint 0 c3 c1;
+      delta2int c1 o c2;
+      succint c2 c3;
+    ]
+      
+let integrateInt i o () =
+  let c1 = Csp.channel () in
+  let c2 = Csp.channel () in
+  let c3 = Csp.channel () in
+    Csp.fork [
+      plusint i c3 c1;
+      delta2int c1 o c2;
+      prefixint 0 c2 c3;
+    ]
+
+let pairsInt i o () =
+  let c1 = Csp.channel () in
+  let c2 = Csp.channel () in
+  let c3 = Csp.channel () in
+    Csp.fork [
+      delta2int i c1 c2;
+      tailint c1 c3;
+      plusint c3 c2 o;
+    ]
+
+(* Some Layered Networks *)
+
+let fibonacciInt o () =
+  let c1 = Csp.channel () in
+  let c2 = Csp.channel () in
+  let c3 = Csp.channel () in
+  let c4 = Csp.channel () in
+    Csp.fork [
+      prefixint 1 c4 c1 ;
+      prefixint 0 c1 c2 ;
+      delta2int c2 o c3;
+      pairsInt c3 c4;
+    ]
+
+let squaresInt o () =
+  let c1 = Csp.channel () in
+  let c2 = Csp.channel () in
+    Csp.fork [
+      numbersInt c1;
+      integrateInt c1 c2;      
+      pairsInt c2 o;
+    ]

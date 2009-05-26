@@ -46,10 +46,10 @@
     pdftoolbar=false,       % show Acrobat's toolbar?
     pdfmenubar=false,       % show Acrobat's menu?
     pdffitwindow=true,      % page fit to window when opened
-    pdftitle={OCamlCSP, project for TOPPS (DIKU)}, % title
+    pdftitle={OCamlCSP. A concurrency library for Ocaml}, % title
     pdfauthor={Joakim Ahnfelt-Rønne - 1986/03/14 - joakim.ahnfelt@gmail.com,
         Ramón Salvador Soto Mathiesen - 1979/05/15 - ramon@diku.dk and
-        Andrzej Filinski - andrzej@diku.dk}, % author
+        Advisor: Andrzej Filinski - andrzej@diku.dk}, % author
     pdfsubject={},   % subject of the document
     pdfnewwindow=true,      % links in new window
     pdfkeywords={keywords}, % list of keywords
@@ -63,10 +63,10 @@
 % Macros
 
 % Opening
-\title{OCamlCSP, project for TOPPS (DIKU)}
+\title{OCamlCSP. A concurrency library for Ocaml}
 \author{Joakim Ahnfelt-Rønne - 1986/03/14 - joakim.ahnfelt@gmail.com \and 
         Ramón Salvador Soto Mathiesen - 1979/05/15 - ramon@diku.dk \and
-        Andrzej Filinski - andrzej@diku.dk}
+        Advisor: Andrzej Filinski - andrzej@diku.dk}
 \date{Tuesday, 5$^{th}$ May 2009}
 
 \begin{document}
@@ -106,17 +106,18 @@ more featured but self contained library with documentation.
 
 \section*{Learning objectives} %Læringsmål.
 \begin{itemize}
- \item API design for concurrency based on CSP in a functional language.
+ \item Designing an API for a CSP-based concurrency library in a functional
+   language.
  \item Implementing the concurrency API in a functional language.
  \item Assessing the API and underlying implementation by comparing
    applications built on top of it with similar applications built on
    top of an existing CSP library.
- \item The focus is on the API design. Efficiency is not a goal.
 \end{itemize}
+The focus is on the API design. Efficiency is not a goal.
 
 \section*{Expected results}
 \begin{itemize}
- \item An API for CSP based concurrent computation in ML.
+ \item An API for CSP-based concurrent computation in ML.
  \item An implementation of the API in the form of a library for OCaml.
  \item An evaluation of the API (and implementation) comparing
    the library with an existing CSP library such as JCSP, PyCSP or C++CSP,
@@ -139,27 +140,27 @@ more featured but self contained library with documentation.
 \end{itemize}
 
 \begin{itemize}
- \item Milestone I: Simple prototype. Design and implementation of a simple API
-   where we can make a simple network, such as the Fibonacci example presented
-   in the course XMP 2008/2009. In order to achieve this we will at least need:
+ \item Milestone I (2009/05/31): Simple prototype. Design and implementation of
+   a simple API where we can make a simple network, such as the Fibonacci
+   example presented in the course XMP 2008/2009. In order to achieve this we
+   will at least need:
    \begin{itemize}
      \item processes.
      \item one-to-one channels.
    \end{itemize}
- \item Milestone II: Final API. In this milestone we should
+ \item Milestone II (2009/06/30): Final API. In this milestone we should
    have the final version of the API. We will have a code stop in order to be
    able to write the final report. When this milestone is reaches we should be
    able to implement the 2D Ising model or similar.
    \begin{itemize}
-     \item poison.
+     \item channel poisoning.
      \item one-to-any, any-to-one and any-to-any channels.
-     \item poison, channel and time guards.
+     \item channel and time guards.
    \end{itemize}
- \item Milestone III: Report + Final API (refactored). In this final
-   milestone we will only make refactoring to the code (change state but not
-   functionality) if we consider so. In the report we will also have the final
-   documentation, appendix, for the API. The date for this milestone will math
-   the end date for the project.
+ \item Milestone III (2009/07/31): Report + Final API (refactored). In this
+   final milestone we will only make refactoring to the code if we consider so.
+   In the report we will also have the final documentation, appendix, for the
+   API. The date for this milestone will math the end date for the project.
 \end{itemize}
 
 % ----------------------------------------------------------------------
@@ -173,7 +174,8 @@ Communicating Sequential Processes\\
 C. A. R. Hoare\\
 Prentice Hall International; (June 24, 2004)\\
 ISBN-10: 0-13-153271-5\\
-ISBN-13: 978-0-13-153271-7
+ISBN-13: 978-0-13-153271-7\\
+http://www.usingcsp.com/cspbook.pdf
 
 \end{thebibliography}
 % ----------------------------------------------------------------------

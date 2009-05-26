@@ -29,13 +29,14 @@
 open Csp
 
 let rec terminator i () =
+  Csp.read i;
   terminator i ()
 
 let rec printer i () =
   let x = Csp.read i in
     print_endline(string_of_int x);
     printer i ()
-  
+
 let rec idint i o () =
   Csp.write o (Csp.read i);
   idint i o ()
@@ -67,16 +68,10 @@ let rec tailint i o () =
   idint i o ()
 
 let blockingFifo i o () =
-  let c1 = Csp.channel () in
-  let c2 = Csp.channel () in
-  let c3 = Csp.channel () in
+  let c = Csp.channel () in
     Csp.fork [
-      (* we need some kind of a fn wrapper to make this pretty :/ *)
-      (fun () -> (while true do (Csp.write c1 (Csp.read i)); done));
-      idint c1 c2;
-      idint c2 c3;
-      (* we need some kind of a fn wrapper to make this pretty :/ *)
-      (fun () -> (while true do (Csp.write o (Csp.read c3)); done))
+      idint i c;
+      idint c o;
     ]
 
 (* Some Simple Networks *)
@@ -85,45 +80,30 @@ let numbersInt o () =
   let c1 = Csp.channel () in
   let c2 = Csp.channel () in
   let c3 = Csp.channel () in
-  let c4 = Csp.channel () in
     Csp.fork [
       prefixint 0 c3 c1;
-      delta2int c1 c4 c2;
+      delta2int c1 o c2;
       succint c2 c3;
-      (* we need some kind of a fn wrapper to make this pretty :/ *)
-      (fun () -> (while true do (Csp.write o (Csp.read c4)); done))
     ]
       
 let integrateInt i o () =
   let c1 = Csp.channel () in
   let c2 = Csp.channel () in
   let c3 = Csp.channel () in
-  let c4 = Csp.channel () in
-  let c5 = Csp.channel () in
     Csp.fork [
-      (* we need some kind of a fn wrapper to make this pretty :/ *)
-      (fun () -> (while true do (Csp.write c1 (Csp.read i)); done));
-      plusint c1 c5 c2;
-      delta2int c2 c3 c4;
-      prefixint 0 c4 c5;
-      (* we need some kind of a fn wrapper to make this pretty :/ *)
-      (fun () -> (while true do (Csp.write o (Csp.read c3)); done))
+      plusint i c3 c1;
+      delta2int c1 o c2;
+      prefixint 0 c2 c3;
     ]
 
 let pairsInt i o () =
   let c1 = Csp.channel () in
   let c2 = Csp.channel () in
   let c3 = Csp.channel () in
-  let c4 = Csp.channel () in
-  let c5 = Csp.channel () in
     Csp.fork [
-      (* we need some kind of a fn wrapper to make this pretty :/ *)
-      (fun () -> (while true do (Csp.write c1 (Csp.read i)); done));
-      delta2int c1 c2 c3;
-      tailint c2 c4;
-      plusint c3 c4 c5;
-      (* we need some kind of a fn wrapper to make this pretty :/ *)
-      (fun () -> (while true do (Csp.write o (Csp.read c5)); done))
+      delta2int i c1 c2;
+      tailint c1 c3;
+      plusint c3 c2 o;
     ]
 
 (* Some Layered Networks *)
@@ -133,26 +113,18 @@ let fibonacciInt o () =
   let c2 = Csp.channel () in
   let c3 = Csp.channel () in
   let c4 = Csp.channel () in
-  let c5 = Csp.channel () in
     Csp.fork [
-      prefixint 1 c5 c1 ;
+      prefixint 1 c4 c1 ;
       prefixint 0 c1 c2 ;
-      delta2int c2 c3 c4;
-      pairsInt c4 c5;
-      (* we need some kind of a fn wrapper to make this pretty :/ *)
-      (fun () -> (while true do (Csp.write o (Csp.read c3)); done))
+      delta2int c2 o c3;
+      pairsInt c3 c4;
     ]
 
 let squaresInt o () =
   let c1 = Csp.channel () in
   let c2 = Csp.channel () in
-  let c3 = Csp.channel () in
     Csp.fork [
       numbersInt c1;
       integrateInt c1 c2;      
-      pairsInt c2 c3;
-      (* we need some kind of a fn wrapper to make this pretty :/ *)
-      (fun () -> (while true do (Csp.write o (Csp.read c3)); done))
+      pairsInt c2 o;
     ]
-
-    

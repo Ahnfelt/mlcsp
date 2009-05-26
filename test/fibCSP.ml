@@ -16,6 +16,8 @@ let rec print inp () =
 let rec fibcsp n = n + 1
 *)
 
+(*
+square of ints also working great after refactoring
 let _ =
   let c = Csp.channel () in
   Csp.fork [
@@ -23,8 +25,11 @@ let _ =
     printer c
   ]
 
+*)
+
 (*
 Juhu ... fibonacci is working great (we need to use big ints)
+
 let _ =
   let c = Csp.channel () in
   Csp.fork [
@@ -61,6 +66,7 @@ let _ =
 
 (*
 numbersInt with blockinFifo
+*)
 
 let _ =
   let c1 = Csp.channel () in
@@ -70,6 +76,11 @@ let _ =
     blockingFifo c1 c2;
     printer c2
   ]
+
+(* 
+working nice :D
+
+let _ = fibcsp (10)
 *)
 
 (*

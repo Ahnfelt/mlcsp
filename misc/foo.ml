@@ -150,5 +150,4 @@ let _ =
     Csp.parallel [
         Csp.forever (fun () -> print_string (Csp.read c));
         Csp.forever (fun () -> Csp.write c ".");
-    ] ();
-
+    ] ()

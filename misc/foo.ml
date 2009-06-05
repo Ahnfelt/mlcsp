@@ -69,8 +69,16 @@ module Csp : CSP = struct
         let signal h = match !h with
             | ((m, c)::_) -> Mutex.lock m; Condition.signal c; Mutex.unlock m
             | [] -> ()
+            
+        let broadcast h = List.iter (fun (m, c) -> Mutex.lock m; Condition.signal c; Mutex.unlock m) (!h)
 
     end
+
+    let finally g f = let v = try f () with e -> g (); raise e in g (); v
+
+    let with_mutex m f =
+        Mutex.lock m;
+        finally (fun () -> Mutex.unlock m) (fun () -> f m)
 
     type 'a channel = {
         mutex: Mutex.t;
@@ -101,12 +109,6 @@ module Csp : CSP = struct
         writers = Happening.create ();
         value = None;
         }
-
-    let finally g f = let v = try f () with e -> g (); raise e in g (); v
-
-    let with_mutex m f =
-        Mutex.lock m;
-        finally (fun () -> Mutex.unlock m) (fun () -> f m)
 
     let rec iterate l = match l with
         | [] -> None

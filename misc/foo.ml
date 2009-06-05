@@ -48,6 +48,10 @@ end
 
 module Csp : CSP = struct
 
+    module Happening = struct
+        
+    end
+
     type 'a channel = {
         mutex: Mutex.t;
         mutable readers: (Mutex.t * Condition.t) list;
@@ -158,11 +162,7 @@ let _ =
     let c = Csp.channel () in
     let c = Csp.channel () in
     Csp.parallel [
-        Csp.forever (fun () -> ignore (Csp.read c));
-        Csp.forever (fun () -> if !v == 0 then raise Foo else Csp.write c !v; v := !v - 1);
-    ] ();
-    Csp.prioritized [
-        Csp.write_guard c 42 (fun _ -> ())
-        Csp.read_guard c (fun v -> print_string (string_of_int v))
+        Csp.forever (fun () -> print_string (Csp.read c));
+        Csp.forever (fun () -> Csp.write c ".");
     ] ()
-    
+

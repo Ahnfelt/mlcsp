@@ -1,4 +1,5 @@
 #!/bin/bash
+clear
 ocamlc -vmthread threads.cma -c ../source/csp.ml
 ocamlc -I '../source/' -c ../source/legoland.ml
 ocamlc -I '../source/' -c fibCSP.ml

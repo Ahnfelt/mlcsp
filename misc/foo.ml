@@ -37,41 +37,41 @@ module type CSP = sig
 
 end
 
-module type HAPPENING = sig
-
-    type t
-    
-    val create : unit -> t
-    
-    val register : t -> (Mutex.t * Condition.t) -> unit
-
-    val unregister : t -> (Mutex.t * Condition.t) -> unit
-    
-    val signal : t -> unit
-
-end
-
-module Happening : HAPPENING = struct
-    
-    type t = ((Mutex.t * Condition.t) list) ref
-    
-    let create () = ref []
-    
-    let register h c = h := (!h) @ [c]
-    
-    let unregister h c = let rec aux l r = match r with
-        | [] -> List.rev l
-        | (x::xs) -> if x = c then List.rev l @ xs else aux (x::l) xs
-        in h := aux [] (!h)
-
-    let signal h = match !h with
-        | ((m, c)::_) -> Mutex.lock m; Condition.signal c; Mutex.unlock m
-        | [] -> ()
-
-end
-
 module Csp : CSP = struct
     
+    module type HAPPENING = sig
+
+        type t
+        
+        val create : unit -> t
+        
+        val register : t -> (Mutex.t * Condition.t) -> unit
+
+        val unregister : t -> (Mutex.t * Condition.t) -> unit
+        
+        val signal : t -> unit
+
+    end
+
+    module Happening : HAPPENING = struct
+        
+        type t = ((Mutex.t * Condition.t) list) ref
+        
+        let create () = ref []
+        
+        let register h c = h := (!h) @ [c]
+        
+        let unregister h c = let rec aux l r = match r with
+            | [] -> List.rev l
+            | (x::xs) -> if x = c then List.rev l @ xs else aux (x::l) xs
+            in h := aux [] (!h)
+
+        let signal h = match !h with
+            | ((m, c)::_) -> Mutex.lock m; Condition.signal c; Mutex.unlock m
+            | [] -> ()
+
+    end
+
     type 'a channel = {
         mutex: Mutex.t;
         mutable readers: Happening.t;
@@ -102,11 +102,11 @@ module Csp : CSP = struct
         value = None;
         }
 
-    let with_mutex m f = (
+    let finally g f = let v = try f () with e -> g (); raise e in g (); v
+
+    let with_mutex m f =
         Mutex.lock m;
-        let v = try f m with e -> Mutex.unlock m; raise e in 
-        Mutex.unlock m;
-        v)
+        finally (fun () -> Mutex.unlock m) (fun () -> f m)
 
     let rec iterate l = match l with
         | [] -> None
@@ -121,22 +121,23 @@ module Csp : CSP = struct
         in with_mutex (Mutex.create ()) (fun m -> 
             let c = Condition.create () in
             List.iter (fun a -> a.acquire m c) l;
-            let v = aux c m in
-            List.iter (fun a -> a.release m c) l;
+            let v = finally (fun () -> List.iter (fun a -> a.release m c) l) (fun () -> aux c m) in
             v)
 
     (* other selection strategies: round_robin, random, same *)
 
-    let guard_match a f g () = 
-        let option_map f v = match v with
+    let guard_attempt a f g () = 
+        match with_mutex a.mutex (fun _ -> g a.value) with
             | Some v -> Some (f v)
             | None -> None
-        in option_map f (with_mutex a.mutex (fun _ -> g a.value))
+
+    let guard_acquire am ah m c = with_mutex am (fun _ -> Happening.register ah (m, c))
+    let guard_release am ah m c = with_mutex am (fun _ -> Happening.unregister ah (m, c))
 
     let read_guard a f = {
-        acquire = (fun m c -> with_mutex a.mutex (fun _ -> Happening.register a.readers (m, c)));
-        release = (fun m c -> with_mutex a.mutex (fun _ -> Happening.unregister a.readers (m, c)));
-        attempt = guard_match a f (fun x -> match x with
+        acquire = guard_acquire a.mutex a.readers;
+        release = guard_release a.mutex a.readers;
+        attempt = guard_attempt a f (fun x -> match x with
             | Some v -> 
                 a.value <- None;
                 Happening.signal a.writers;
@@ -145,16 +146,16 @@ module Csp : CSP = struct
         }
 
     let write_guard a v f = {
-        acquire = (fun m c -> with_mutex a.mutex (fun _ -> Happening.register a.writers (m, c)));
-        release = (fun m c -> with_mutex a.mutex (fun _ -> Happening.unregister a.writers (m, c)));
-        attempt = guard_match a f (fun x -> match x with
+        acquire = guard_acquire a.mutex a.writers;
+        release = guard_release a.mutex a.writers;
+        attempt = guard_attempt a f (fun x -> match x with
             | Some _ -> None
             | None -> 
                 a.value <- Some v;
                 Happening.signal a.readers;
                 Some v)
         }
-        
+
     (* other guard types: time_guard *)
 
     let read a = prioritized [read_guard a (fun v -> v)] ()
@@ -167,8 +168,6 @@ exception Foo
 let rec forever f () = f (); forever f ()
 
 let _ = 
-    let v = ref 200000 in
-    let c = Csp.channel () in
     let c = Csp.channel () in
     Csp.parallel [
         forever (fun () -> print_string (Csp.read c));

@@ -5,17 +5,21 @@ module type CSP = sig
     
     type 'a guard
     (** Represents a guard resulting in a value of type 'a *)
+    
+    type process = unit -> unit
+    (** A shorthand for the process type which really is just a function whose
+        only interesting property is its side effects. *)
 
     val channel : unit -> 'a channel
     (** Creates a new channel *)
     
-    val forever : (unit -> unit) -> (unit -> unit)
-    (** Repeats a process forever *)
+    val forever : process -> process
+    (** Returns a new process that repeats Repeats a process forever *)
     
-    val spawn : int -> (unit -> unit) -> unit -> unit
+    val spawn : int -> process -> process
     (** Runs multiple processes in parallel and returns when they are all done *)
 
-    val parallel : (unit -> unit) list -> unit -> unit
+    val parallel : process list -> process
     (** Runs multiple processes in parallel and returns when they are all done *)
     
     val prioritized : ('a guard) list -> unit -> 'a
@@ -46,8 +50,8 @@ module Csp : CSP = struct
 
     type 'a channel = {
         mutex: Mutex.t;
-        mutable read_conditions: (Mutex.t * Condition.t) list;
-        mutable write_conditions: (Mutex.t * Condition.t) list;
+        mutable readers: (Mutex.t * Condition.t) list;
+        mutable writers: (Mutex.t * Condition.t) list;
         mutable value: 'a option;
         }
 
@@ -56,6 +60,8 @@ module Csp : CSP = struct
         release: Mutex.t -> Condition.t -> unit;
         attempt: unit -> 'a option;
         }
+
+    type process = unit -> unit
 
     let rec forever f () = f (); forever f ()
 
@@ -72,8 +78,8 @@ module Csp : CSP = struct
 
     let channel () = {
         mutex = Mutex.create ();
-        read_conditions = [];
-        write_conditions = [];
+        readers = [];
+        writers = [];
         value = None;
         }
 
@@ -104,18 +110,18 @@ module Csp : CSP = struct
         List.iter (fun a -> a.release m c) l;
         v
 
-    (* other alternate selection strategies: round_robin, random, same *)
+    (* other selection strategies: round_robin, random, same *)
 
     let read_guard a f = {
         acquire = (fun m c -> with_mutex a.mutex (fun _ ->
-            a.read_conditions <- (m, c) :: a.read_conditions));
+            a.readers <- (m, c) :: a.readers));
         release = (fun m c -> with_mutex a.mutex (fun _ ->
-            a.read_conditions <- List.filter ((<>) (m, c)) a.read_conditions));
+            a.readers <- List.filter ((<>) (m, c)) a.readers));
         attempt = (fun () -> option_map f
             (with_mutex a.mutex (fun _ -> match a.value with
                 | Some v -> 
                     a.value <- None;
-                    (match a.write_conditions with
+                    (match a.writers with
                         | ((m, c)::t) -> with_mutex m (fun _ -> Condition.signal c)
                         | [] -> ());
                     Some v
@@ -124,16 +130,16 @@ module Csp : CSP = struct
 
     let write_guard a v f = {
         acquire = (fun m c -> with_mutex a.mutex (fun _ ->
-            a.write_conditions <- (m, c) :: a.write_conditions));
+            a.writers <- (m, c) :: a.writers));
         release = (fun m c -> with_mutex a.mutex (fun _ ->
-            a.write_conditions <- List.filter ((<>) (m, c)) a.write_conditions));
+            a.writers <- List.filter ((<>) (m, c)) a.writers));
         attempt = (fun () -> option_map f
             (with_mutex a.mutex (fun _ -> match a.value with
                 | Some _ -> None
                 | None -> 
                     a.value <- Some v;
-                    (match a.read_conditions with
-                        | ((m, c)::t) -> with_mutex m (fun _ -> Condition.signal c)
+                    (match a.readers with
+                        | ((m, c)::t) -> with_mutex m (fun _ -> Condition.signal c) 
                         | [] -> ());
                     Some v)));
         }
@@ -145,10 +151,18 @@ module Csp : CSP = struct
 
 end
 
+exception Foo
+
 let _ = 
+    let v = ref 200000 in
+    let c = Csp.channel () in
     let c = Csp.channel () in
     Csp.parallel [
-        Csp.forever (fun () -> print_string (Csp.read c));
-        Csp.forever (fun () -> Csp.write c ".");
+        Csp.forever (fun () -> ignore (Csp.read c));
+        Csp.forever (fun () -> if !v == 0 then raise Foo else Csp.write c !v; v := !v - 1);
     ] ();
-
+    Csp.prioritized [
+        Csp.write_guard c 42 (fun _ -> ())
+        Csp.read_guard c (fun v -> print_string (string_of_int v))
+    ] ()
+    

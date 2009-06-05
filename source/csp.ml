@@ -201,3 +201,5 @@ end
     In any case, random may be enough.
 *)
 
+(* (c1?x->skip||c2?x->skip); c3!(x+y) -> P ????? *)
+

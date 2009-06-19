@@ -3,12 +3,14 @@ let global_condition = Condition.create ()
 
 (* Argumenter for poison *)
 
-exception CspException
+exception PoisonException
+exception InternalCspException
 
 type 'a channel_state
     = NobodyWaiting 
     | ReaderWaiting of (int * ('a -> unit)) list
     | WriterWaiting of (int * (unit -> 'a)) list
+    | Poisoned
 
 type 'a channel = ('a channel_state) ref
 
@@ -73,19 +75,23 @@ let read_guard c f = let s = Thread.id (Thread.self ()) in {
         | WriterWaiting ((_, x)::_) -> Some (f (x ()))
         | _ -> None
     );
+    check_poison = (fun () -> match !c with
+        | Poisoned -> raise PoisonException
+        | _ -> ()
+    );
     subscribe = (fun l r ->
         let g = (s, fun v -> transmit l r f v) 
         in match !c with
         | NobodyWaiting -> c := ReaderWaiting [g]
         | ReaderWaiting gs -> c := ReaderWaiting (gs @ [g])
-        | _ -> raise CspException (* Shouldn't ever happen *)
+        | _ -> raise InternalCspException (* Shouldn't ever happen *)
     );
     unsubscribe = (fun () -> match !c with
         | ReaderWaiting gs -> 
             match List.filter (fun (i, _) -> i <> s) gs with
             | [] -> c := NobodyWaiting
             | gs -> c := ReaderWaiting gs
-        | _ -> raise CspException (* Shouldn't ever happen *)
+        | _ -> raise InternalCspException (* Shouldn't ever happen *)
     );
     }
 
@@ -100,14 +106,14 @@ let write_guard c v f = let s = Thread.id (Thread.self ()) in {
         in match !c with
         | NobodyWaiting -> c := WriterWaiting [g]
         | WriterWaiting gs -> c := WriterWaiting (gs @ [g])
-        | _ -> raise CspException (* Shouldn't ever happen *)
+        | _ -> raise InternalCspException (* Shouldn't ever happen *)
     );
     unsubscribe = (fun () -> match !c with
         | WriterWaiting gs -> 
             match List.filter (fun (i, _) -> i <> s) gs with
             | [] -> c := NobodyWaiting
             | gs -> c := WriterWaiting gs
-        | _ -> raise CspException (* Shouldn't ever happen *)
+        | _ -> raise InternalCspException (* Shouldn't ever happen *)
     );
     }
 

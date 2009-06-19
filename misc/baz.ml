@@ -16,6 +16,7 @@ type 'a channel = ('a channel_state) ref
 
 type 'a guard = {
     attempt: unit -> 'a option;
+    check_poison: unit -> bool;
     subscribe: ('a guard) list -> ('a option) ref -> unit;
     unsubscribe: unit -> unit;
     }
@@ -34,7 +35,17 @@ let shuffle l =
         loop n
     in loop (Array.length a); Array.to_list a
 
+let with_mutex m f = (
+    Mutex.lock m; 
+    let v = try f m with e -> Mutex.unlock m; raise e in 
+    Mutex.unlock m;
+    v)
+
 let channel () = ref NobodyWaiting
+
+let poison c = with_mutex global_mutex (fun _ -> 
+    c := Poisoned;
+    Condition.broadcast global_condition)
 
 (* Must be called in a locked context *)
 let rec attempt_all l = match l with
@@ -44,29 +55,39 @@ let rec attempt_all l = match l with
         | None -> attempt_all t
 
 (* Must be called in a locked context *)
+let rec check_poison_all l = match l with
+    | [] -> false
+    | (h::t) -> if h.check_poison () 
+        then true else check_poison_all t
+
+(* Must be called in a locked context *)
 let subscribe_all l r = let rec loop k = match k with
     | [] -> ()
     | (h::t) -> h.subscribe l r; loop t
     in loop l
 
+(* Must be called in a locked context *)
+let rec unsubscribe_all l = match l with
+    | [] -> ()
+    | (h::t) -> (h.unsubscribe (); unsubscribe_all t)
+    
 (* Uses the global lock *)
-let select l =
-    Mutex.lock global_mutex;
+let select l = with_mutex global_mutex (fun m ->
     let l = shuffle l in
     match attempt_all l with
-    | Some v -> (Mutex.unlock global_mutex; v)
+    | Some v -> v
     | None -> let r = ref None in (subscribe_all l r;
-        let rec loop () = match !r with
-        | Some v -> (Mutex.unlock global_mutex; v)
-        | None -> (Condition.wait global_condition global_mutex; loop ())
-        in loop ())
+        let rec loop () = 
+            if check_poison_all l 
+            then (unsubscribe_all l; raise PoisonException) 
+            else match !r with
+            | Some v -> v
+            | None -> (Condition.wait global_condition m; loop ())
+        in loop ()))
 
 let transmit l r f v =
     r := Some (f v);
-    (let rec loop l = match l with
-    | [] -> ()
-    | (h::t) -> h.unsubscribe (); loop t
-    in loop l);
+    unsubscribe_all l;
     Condition.broadcast global_condition
 
 (* Methods must be called in a locked context *)
@@ -76,22 +97,23 @@ let read_guard c f = let s = Thread.id (Thread.self ()) in {
         | _ -> None
     );
     check_poison = (fun () -> match !c with
-        | Poisoned -> raise PoisonException
-        | _ -> ()
+        | Poisoned -> true
+        | _ -> false
     );
     subscribe = (fun l r ->
         let g = (s, fun v -> transmit l r f v) 
         in match !c with
         | NobodyWaiting -> c := ReaderWaiting [g]
         | ReaderWaiting gs -> c := ReaderWaiting (gs @ [g])
-        | _ -> raise InternalCspException (* Shouldn't ever happen *)
+        | Poisoned -> () (* Ignore *)
+        | WriterWaiting _ -> raise InternalCspException (* Shouldn't ever happen *)
     );
     unsubscribe = (fun () -> match !c with
         | ReaderWaiting gs -> 
-            match List.filter (fun (i, _) -> i <> s) gs with
+            (match List.filter (fun (i, _) -> i <> s) gs with
             | [] -> c := NobodyWaiting
-            | gs -> c := ReaderWaiting gs
-        | _ -> raise InternalCspException (* Shouldn't ever happen *)
+            | gs -> c := ReaderWaiting gs)
+        | _ -> ()
     );
     }
 
@@ -101,34 +123,35 @@ let write_guard c v f = let s = Thread.id (Thread.self ()) in {
         | ReaderWaiting ((_, x)::_) -> (x v; Some (f v))
         | _ -> None
     );
+    check_poison = (fun () -> match !c with
+        | Poisoned -> true
+        | _ -> false
+    );
     subscribe = (fun l r -> 
         let g = (s, fun () -> transmit l r f v; v) 
         in match !c with
         | NobodyWaiting -> c := WriterWaiting [g]
         | WriterWaiting gs -> c := WriterWaiting (gs @ [g])
-        | _ -> raise InternalCspException (* Shouldn't ever happen *)
+        | Poisoned -> () (* Ignore *)
+        | ReaderWaiting _ -> raise InternalCspException (* Shouldn't ever happen *)
     );
     unsubscribe = (fun () -> match !c with
         | WriterWaiting gs -> 
-            match List.filter (fun (i, _) -> i <> s) gs with
+            (match List.filter (fun (i, _) -> i <> s) gs with
             | [] -> c := NobodyWaiting
-            | gs -> c := WriterWaiting gs
-        | _ -> raise InternalCspException (* Shouldn't ever happen *)
+            | gs -> c := WriterWaiting gs)
+        | _ -> ()
     );
     }
 
 let read c = select [read_guard c (fun x -> x)]
 let write c v = select [write_guard c v (fun _ -> ())]
 
-(* TODO: Don't ignore exceptions from other threads *)
-(* Consider using the original parallel/fork construct *)
+(* Ignores exceptions (for example, PoisonException) *)
 let parallel fs =
-    match fs with
-    | [] -> ()
-    | [h] -> h ()
-    | (h::t) -> 
-        let ts = List.map (fun f -> Thread.create f ()) t
-        in h (); List.iter Thread.join ts
+    let ts = List.map (fun f -> Thread.create (fun () -> 
+        try f () with PoisonException -> ()) ()) fs
+    in List.iter Thread.join ts
 
 (*
 let _ = 
@@ -195,5 +218,7 @@ let _ =
         ] in print_endline v; loop () in loop);
 
         (let rec loop () = write c2 "2"; print_endline "write 2 d"; loop () in loop);
+
+        (fun () -> Thread.delay 5.0; poison c2);
     ];
 

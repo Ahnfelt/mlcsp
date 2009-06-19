@@ -59,29 +59,28 @@ let select l =
         | None -> (Condition.wait global_condition global_mutex; loop ())
         in loop ())
 
-let transmit l r f v s =
+let transmit l r f v =
     r := Some (f v);
     (let rec loop l = match l with
     | [] -> ()
-    | (h::t) -> h.unsubscribe s; loop t
+    | (h::t) -> h.unsubscribe (); loop t
     in loop l);
     Condition.broadcast global_condition
 
 (* Methods must be called in a locked context *)
-let read_guard c f = {
+let read_guard c f = let s = Thread.id (Thread.self ()) in {
     attempt = (fun () -> match !c with
         | WriterWaiting ((_, x)::_) -> Some (f (x ()))
         | _ -> None
     );
     subscribe = (fun l r ->
-        let s = Thread.id (Thread.self ()) in
-        let g = (s, fun v -> transmit l r f v s) 
+        let g = (s, fun v -> transmit l r f v) 
         in match !c with
         | NobodyWaiting -> c := ReaderWaiting [g]
         | ReaderWaiting gs -> c := ReaderWaiting (gs @ [g])
         | _ -> raise CspException (* Shouldn't ever happen *)
     );
-    unsubscribe = (fun s -> match !c with
+    unsubscribe = (fun () -> match !c with
         | ReaderWaiting gs -> 
             match List.filter (fun (i, _) -> i <> s) gs with
             | [] -> c := NobodyWaiting
@@ -91,20 +90,19 @@ let read_guard c f = {
     }
 
 (* Methods must be called in a locked context *)
-let write_guard c v f = {
+let write_guard c v f = let s = Thread.id (Thread.self ()) in {
     attempt = (fun () -> match !c with
         | ReaderWaiting ((_, x)::_) -> (x v; Some (f v))
         | _ -> None
     );
     subscribe = (fun l r -> 
-        let s = Thread.id (Thread.self ()) in
-        let g = (s, fun () -> transmit l r f v s; v) 
+        let g = (s, fun () -> transmit l r f v; v) 
         in match !c with
         | NobodyWaiting -> c := WriterWaiting [g]
         | WriterWaiting gs -> c := WriterWaiting (gs @ [g])
         | _ -> raise CspException (* Shouldn't ever happen *)
     );
-    unsubscribe = (fun s -> match !c with
+    unsubscribe = (fun () -> match !c with
         | WriterWaiting gs -> 
             match List.filter (fun (i, _) -> i <> s) gs with
             | [] -> c := NobodyWaiting

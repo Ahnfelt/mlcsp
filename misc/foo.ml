@@ -1,5 +1,5 @@
 (* Enable this to get pretty neat debugging output from mutex locking. *)
-
+(*
 module Mutex = struct
     type t = Mutex.t * int * string
     let number = ref 0
@@ -14,7 +14,7 @@ module Condition = struct
     include Condition
     let wait c (m, n, s) = Mutex.print "waiting"; Condition.wait c m; Mutex.print "not waiting"
 end
-
+*)
 (*
 let with_mutex_print s m f =
     let print s = print_string (string_of_int (Thread.id (Thread.self ()))); print_string " "; print_endline s in
@@ -194,9 +194,7 @@ module Csp : CSP = struct
             | None -> 
                 a.value <- Some v;
                 Happening.signal a.readers;
-                print_endline ("(W " ^ string_of_int (Thread.id (Thread.self ()))); 
                 Condition.wait a.condition a.mutex;
-                print_endline ("W) " ^ string_of_int (Thread.id (Thread.self ()))); 
                 Some ())
         }
         
@@ -235,14 +233,22 @@ let _ =
 let _ = 
     let c1 = Csp.channel () in
     let c2 = Csp.channel () in
+    let c3 = Csp.channel () in
     Csp.parallel [
+(*        forever (fun () -> Csp.read c1);
         forever (fun () -> Csp.read c1);
         forever (fun () -> Csp.read c1);
+        forever (fun () -> Csp.read c1);
+        forever (fun () -> Csp.read c1);
+        forever (fun () -> Csp.read c1);
+        forever (fun () -> Csp.read c1);
+        forever (fun () -> Csp.read c1);*)
         forever (fun () -> Csp.write c1 1);
-        forever (fun () -> Csp.write c1 1);
-(*        forever (Csp.prioritized [
+        forever (fun () -> Csp.write c2 1);
+        forever (fun () -> Csp.write c2 1);
+        forever (Csp.prioritized [
             Csp.map_guard (Csp.read_guard c1) (fun v -> print_endline "<c1>") ;
-            Csp.map_guard (Csp.write_guard c2 7) (fun () -> print_endline "<c2>");
-        ]);*)
+            Csp.map_guard (Csp.read_guard c2) (fun v -> print_endline "<c2>") ;
+        ]);
     ] ();
 

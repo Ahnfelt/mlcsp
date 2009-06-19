@@ -15,7 +15,7 @@ type 'a channel = ('a channel_state) ref
 type 'a guard = {
     attempt: unit -> 'a option;
     subscribe: ('a guard) list -> ('a option) ref -> unit;
-    unsubscribe: int -> unit;
+    unsubscribe: unit -> unit;
     }
 
 (* Knuth/Fisher-Yates shuffle *)

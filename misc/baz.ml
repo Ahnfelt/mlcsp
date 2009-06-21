@@ -5,21 +5,37 @@
    hensigtsmæssigt. Det er også muligt at select kun
    skal kaste PoisonException hvis alle dens 
    valgmuligheder er poisoned. *)
+(* Poison er ændret til den alternative opførsel. *)
+(* Burde poison propagere til andre kanaler?
+   Det er nok ikke hensigtsmæssigt, idet der alligevel
+   skal gøres noget specielt når der er flere kanaler
+   i en process end der er i den nuværende select.
+   Alternativt kan processen "huske" alle kanaler den
+   har oprettet eller fået fingre i - dette er dog 
+   næppe muligt i det generelle tilfælde. *)
 (* Overvej conditional guards. *)
+(* Overvej timeout guards *)
 
 module type Csp = sig
     exception PoisonException
-    type 'a channel
+    type ('a, 'b, 'c, 'd) channel
     type 'a guard
-    val channel : unit -> 'a channel
-    val poison : 'a channel -> unit
+    type on and off
+    val channel : unit -> ('a, on, on, on) channel
+    val poison : ('a, _, _, on) channel -> unit
     val select : ('a guard) list -> 'a
-    val read_guard : 'a channel -> ('a -> 'b) -> 'b guard
-    val write_guard : 'a channel -> 'a -> ('a -> 'b) -> 'b guard
-    val read : 'a channel -> 'a
-    val write : 'a channel -> 'a -> unit
+    val read_guard : ('a, on, _, _) channel -> ('a -> 'b) -> 'b guard
+    val write_guard : ('a, _, on, _) channel -> 'a -> ('a -> 'b) -> 'b guard
+    val read : ('a, on, _, _) channel -> 'a
+    val write : ('a, _, on, _) channel -> 'a -> unit
     val parallel : (unit -> unit) list -> unit
     val parallel_collect : (unit -> unit) list -> (unit -> 'a) -> 'a
+    val read_only : ('a, on, _, _) channel -> ('a, on, off, off) channel
+    val read_write_only : ('a, on, on, _) channel -> ('a, on, on, off) channel
+    val read_poison_only : ('a, on, _, on) channel -> ('a, on, off, on) channel
+    val write_only : ('a, _, on, _) channel -> ('a, off, on, off) channel
+    val write_poison_only : ('a, _, on, on) channel -> ('a, off, on, on) channel
+    val poison_only : ('a, _, _, on) channel -> ('a, off, off, on) channel
 end
 
 (* Consider making a toolbox that has parallel_collect and derivatives *)
@@ -43,7 +59,16 @@ module Csp : Csp = struct
         | WriterWaiting of (Condition.t * (unit -> 'a)) list
         | Poisoned
 
-    type 'a channel = ('a channel_state) ref
+    type ('a, 'b, 'c, 'd) channel = ('a channel_state) ref
+
+    type on = unit and off = unit
+
+    let read_only x = x
+    let read_write_only x = x
+    let read_poison_only x = x
+    let write_only x = x
+    let write_poison_only x = x
+    let poison_only x = x
 
     type ('a, 'b) either = Left of 'a | Right of 'b
 
@@ -88,9 +113,9 @@ module Csp : Csp = struct
 
     (* Must be called in a locked context *)
     let rec check_poison_all l = match l with
-        | [] -> false
+        | [] -> true
         | (h::t) -> if h.check_poison () 
-            then true else check_poison_all t
+            then check_poison_all t else false
 
     (* Must be called in a locked context *)
     let subscribe_all l r = let rec loop k = match k with
@@ -275,17 +300,10 @@ let operator f a b () =
         (fun () -> Csp.write b' (Csp.read b));
     ]   (fun () -> f (Csp.read a') (Csp.read b'))
 
-let plus = operator ( + )
-let minus = operator ( - )
-let times = operator ( * )
-let over = operator ( / )
-(* let pair = operator (fun a b -> (a, b)) (* does not type check! *) *)
-
-let pair a b () = 
-    let a' = Csp.channel () in
-    let b' = Csp.channel () in
-    Csp.parallel_collect [
-        (fun () -> Csp.write a' (Csp.read a));
-        (fun () -> Csp.write b' (Csp.read b));
-    ]   (fun () -> (Csp.read a', Csp.read b'))
+(* Won't type check in point-free mode (because of let-polymorphism?) *)
+let plus a b = operator ( + ) a b
+let minus a b = operator ( - ) a b
+let times a b = operator ( * ) a b
+let over a b = operator ( / ) a b
+let pair a b = operator (fun x y -> (x, y)) a b
 

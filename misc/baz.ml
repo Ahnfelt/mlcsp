@@ -18,25 +18,25 @@
 
 module type Csp = sig
     exception PoisonException
-    type ('a, 'b, 'c, 'd) channel
+    type ('a, 'b) channel
     type 'a guard
     type on and off
-    val channel : unit -> ('a, on, on, on) channel
-    val poison : ('a, _, _, on) channel -> unit
+    val channel : unit -> ('a, on * on * on) channel
+    val poison : ('a, _ * _ * on) channel -> unit
     val select : ('a guard) list -> 'a
-    val read_guard : ('a, on, _, _) channel -> ('a -> 'b) -> 'b guard
-    val write_guard : ('a, _, on, _) channel -> 'a -> ('a -> 'b) -> 'b guard
-    val read : ('a, on, _, _) channel -> 'a
-    val write : ('a, _, on, _) channel -> 'a -> unit
+    val read_guard : ('a, on * _ * _) channel -> ('a -> 'b) -> 'b guard
+    val write_guard : ('a, _ * on * _) channel -> 'a -> ('a -> 'b) -> 'b guard
+    val read : ('a, on * _ * _) channel -> 'a
+    val write : ('a, _ * on * _) channel -> 'a -> unit
     val parallel : (unit -> unit) list -> unit
     val parallel_collect : (unit -> unit) list -> (unit -> 'a) -> 'a
-    val read_only : ('a, on, _, _) channel -> ('a, on, off, off) channel
-    val read_write_only : ('a, on, on, _) channel -> ('a, on, on, off) channel
-    val read_poison_only : ('a, on, _, on) channel -> ('a, on, off, on) channel
-    val write_only : ('a, _, on, _) channel -> ('a, off, on, off) channel
-    val write_poison_only : ('a, _, on, on) channel -> ('a, off, on, on) channel
-    val poison_only : ('a, _, _, on) channel -> ('a, off, off, on) channel
-end
+    val read_only : ('a, on * _ * _) channel -> ('a, on * off * off) channel
+    val read_write_only : ('a, on * on * _) channel -> ('a, on * on * off) channel
+    val read_poison_only : ('a, on * _ * on) channel -> ('a, on * off * on) channel
+    val write_only : ('a, _ * on * _) channel -> ('a, off * on * off) channel
+    val write_poison_only : ('a, _ * on * on) channel -> ('a, off * on * on) channel
+    val poison_only : ('a, _ * _ * on) channel -> ('a, off * off * on) channel
+end 
 
 (* Consider making a toolbox that has parallel_collect and derivatives *)
 
@@ -59,7 +59,7 @@ module Csp : Csp = struct
         | WriterWaiting of (Condition.t * (unit -> 'a)) list
         | Poisoned
 
-    type ('a, 'b, 'c, 'd) channel = ('a channel_state) ref
+    type ('a, 'b) channel = ('a channel_state) ref
 
     type on = unit and off = unit
 

@@ -2,6 +2,13 @@ let global_mutex = Mutex.create ()
 let global_condition = Condition.create ()
 
 (* Argumenter for poison *)
+(* Hvad sker der hvis alternativ to er forgiftet, 
+   men alternativ et er klar? Lige nu læser den vidst
+   fra den klare, men det er måske ikke 
+   hensigtsmæssigt. Det er også muligt at select kun
+   skal kaste PoisonException hvis alle dens 
+   valgmuligheder er poisoned. *)
+(* Overvej conditional guards. *)
 
 exception PoisonException
 exception InternalCspException

@@ -36,7 +36,6 @@ module type Csp = sig
     val write_only : ('a, _ * on * _) channel -> ('a, off * on * off) channel
     val write_poison_only : ('a, _ * on * on) channel -> ('a, off * on * on) channel
     val poison_only : ('a, _ * _ * on) channel -> ('a, off * off * on) channel
-    val hold_only : ('a, _ * _ * _) channel -> ('a, off * off * off) channel
 end 
 
 (* Consider making a toolbox that has parallel_collect and derivatives *)
@@ -62,6 +61,8 @@ module Csp : Csp = struct
 
     type ('a, 'b) channel = ('a channel_state) ref
 
+    type ('a, 'b) either = Left of 'a | Right of 'b
+
     type on = unit and off = unit
 
     let read_only x = x
@@ -70,8 +71,6 @@ module Csp : Csp = struct
     let write_only x = x
     let write_poison_only x = x
     let poison_only x = x
-
-    type ('a, 'b) either = Left of 'a | Right of 'b
 
     let global_mutex = Mutex.create ()
 

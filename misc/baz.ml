@@ -36,6 +36,7 @@ module type Csp = sig
     val write_only : ('a, _ * on * _) channel -> ('a, off * on * off) channel
     val write_poison_only : ('a, _ * on * on) channel -> ('a, off * on * on) channel
     val poison_only : ('a, _ * _ * on) channel -> ('a, off * off * on) channel
+    val hold_only : ('a, _ * _ * _) channel -> ('a, off * off * off) channel
 end 
 
 (* Consider making a toolbox that has parallel_collect and derivatives *)

@@ -1,0 +1,52 @@
+(* Næste step: eksempel på concurrency, rapport *)
+
+(* Random er godt, men tildbyd evt. priSelect el. lign til at man selv 
+   kan implementere de andre. Kom med eksemplet om at når to modsatte
+   priSelects møder hinanden er det svært at definere hvad "fair" er. *)
+
+(* Argumenter for hvorfor man ikke kan binde external events til en kanal
+   (man kan ikke forhindre brugeren i at trykke på tastaturet bare fordi
+   der ikke er nogen der er klar til at læse). Men man kan implementere 
+   det buffered i en process. *)
+
+(* Trådløs på KUA: topps2/ti4t6tee *)
+
+(* Occam: http://www.wotug.org/occam/documentation/oc21refman.pdf
+   (se især kapitlet om ALT - det ser ud som om deres definition af 
+   PRI ALT er selvmodsigende...) *)
+
+(* C++CSP: http://www.twistedsquare.com/Intro-C++CSP.pdf *)
+
+(* Static guarentee of correct one2one etc. usage is not possible in
+   OCaml's type checker (linear checking?). *)
+
+(* Beskriv evt. hvordan man kunne undgå den globale lock (f.eks. ved at
+   have en lås for hver kanal og altid tage låsene i rækkefølge). *)
+
+(* Gør med poison som i PyCSP. Ditto for propagation. *)
+
+(* Husk at kanaler kan sendes rundt (i modsætning til i CSP),
+   men at vores processer ikke er first class. *)
+
+(* Argumenter for poison *)
+(* Hvad sker der hvis alternativ to er forgiftet, 
+   men alternativ et er klar? Lige nu læser den vidst
+   fra den klare, men det er måske ikke 
+   hensigtsmæssigt. Det er også muligt at select kun
+   skal kaste PoisonException hvis alle dens 
+   valgmuligheder er poisoned. *)
+(* Poison er ændret til den alternative opførsel. *)
+(* Burde poison propagere til andre kanaler?
+   Det er nok ikke hensigtsmæssigt, idet der alligevel
+   skal gøres noget specielt når der er flere kanaler
+   i en process end der er i den nuværende select.
+   Alternativt kan processen "huske" alle kanaler den
+   har oprettet eller fået fingre i - dette er dog 
+   næppe muligt i det generelle tilfælde. *)
+(* Overvej conditional guards!!! *)
+(* Overvej timeout guards *)
+(* Hvad betyder priselect? *)
+
+(* Consider making a toolbox that has parallel_collect and derivatives *)
+
+

@@ -1,25 +1,5 @@
 (* Compile with: ocamlc -vmthread threads.cma -o csp csp.mli csp.ml *)
 
-(* Argumenter for poison *)
-(* Hvad sker der hvis alternativ to er forgiftet, 
-   men alternativ et er klar? Lige nu læser den vidst
-   fra den klare, men det er måske ikke 
-   hensigtsmæssigt. Det er også muligt at select kun
-   skal kaste PoisonException hvis alle dens 
-   valgmuligheder er poisoned. *)
-(* Poison er ændret til den alternative opførsel. *)
-(* Burde poison propagere til andre kanaler?
-   Det er nok ikke hensigtsmæssigt, idet der alligevel
-   skal gøres noget specielt når der er flere kanaler
-   i en process end der er i den nuværende select.
-   Alternativt kan processen "huske" alle kanaler den
-   har oprettet eller fået fingre i - dette er dog 
-   næppe muligt i det generelle tilfælde. *)
-(* Overvej conditional guards. *)
-(* Overvej timeout guards *)
-
-(* Consider making a toolbox that has parallel_collect and derivatives *)
-
 exception PoisonException
 
 type 'a concrete_guard = {
@@ -86,9 +66,9 @@ let rec attempt_all l = match l with
 
 (* Must be called in a locked context *)
 let rec check_poison_all l = match l with
-    | [] -> true
+    | [] -> false
     | (h::t) -> if h.check_poison () 
-        then check_poison_all t else false
+        then true else check_poison_all t
 
 (* Must be called in a locked context *)
 let subscribe_all l r = let rec loop k = match k with
@@ -105,7 +85,9 @@ let rec unsubscribe_all l = match l with
 let select l = with_mutex global_mutex (fun m ->
     let s = Condition.create () in
     let l = List.map (fun x -> x s) (shuffle l) in
-    match attempt_all l with
+    if l = [] or check_poison_all l 
+    then (unsubscribe_all l; raise PoisonException) 
+    else match attempt_all l with
     | Some v -> v
     | None -> let r = ref None in (subscribe_all l r;
         let rec loop () = 

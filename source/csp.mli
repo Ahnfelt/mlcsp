@@ -1,7 +1,7 @@
 (** This is a concurrency library modelled after Communicating 
     Sequential Processes by C. A. R. Hoare and inspired by
-    libraries such as JCSP, C++CSP and PyCSP. It provides 
-    any-to-any synchronous channels with alternation,
+    libraries such as JCSP, C++CSP and PyCSP, as well as Occam. 
+    It provides any-to-any synchronous channels with alternation,
     poisoning and permissions. It also provides primitives for
     starting processes. *)
 
@@ -45,7 +45,10 @@ val select : ('a guard) list -> 'a
     the corresponding CSP construct, which only specifies 
     that an arbitrary one will be chosen. For any single
     channel, processes that are waiting to read or write
-    are also served on a first come, first served basis. *)
+    are also served on a first come, first served basis.
+    If there are no guards in the list or if at least one
+    of the guards are accociated with a poisoned channel,
+    PoisonException is thrown. *)
 
 val read_guard : ('a, on * _ * _) channel -> ('a -> 'b) -> 'b guard
 (** A read guard becomes ready when there is somebody waiting 

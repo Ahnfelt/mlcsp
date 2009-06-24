@@ -45,13 +45,6 @@ type 'a t = ('a, on * on * on) channel
 
 type ('a, 'b) either = Left of 'a | Right of 'b
 
-let read_only x = x
-let read_write_only x = x
-let read_poison_only x = x
-let write_only x = x
-let write_poison_only x = x
-let poison_only x = x
-
 let global_mutex = Mutex.create ()
 
 (* Knuth/Fisher-Yates shuffle *)
@@ -145,7 +138,7 @@ let read_guard c f s = {
     );
     unsubscribe = (fun () -> match !c with
         | ReaderWaiting gs -> 
-            (match List.filter (fun (i, _) -> i <> s) gs with
+            (match List.filter (fun (i, _) -> i != s) gs with
             | [] -> c := NobodyWaiting
             | gs -> c := ReaderWaiting gs)
         | _ -> ()
@@ -169,7 +162,7 @@ let write_guard c v f s = {
     );
     unsubscribe = (fun () -> match !c with
         | WriterWaiting gs -> 
-            (match List.filter (fun (i, _) -> i <> s) gs with
+            (match List.filter (fun (i, _) -> i != s) gs with
             | [] -> c := NobodyWaiting
             | gs -> c := WriterWaiting gs)
         | _ -> ()
@@ -191,4 +184,11 @@ let parallel_collect fs f =
     match !r with
     | Left e -> raise e
     | Right v -> v
+
+let read_only x = x
+let read_write_only x = x
+let read_poison_only x = x
+let write_only x = x
+let write_poison_only x = x
+let poison_only x = x
 

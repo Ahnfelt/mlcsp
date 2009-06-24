@@ -52,7 +52,7 @@ val read_guard : ('a, on * _ * _) channel -> ('a -> 'b) -> 'b guard
     to write on the channel. *)
 
 val write_guard : ('a, _ * on * _) channel -> 'a -> ('a -> 'b) -> 'b guard
-(** A read guard becomes ready when there is somebody waiting 
+(** A write guard becomes ready when there is somebody waiting 
     to read on the channel. *)
 
 val poison : ('a, _ * _ * on) channel -> unit

@@ -98,6 +98,7 @@ let select l = with_mutex global_mutex (fun m ->
             | None -> (Condition.wait s m; loop ())
         in loop ()))
 
+(* Must be called in a locked context *)
 let transmit l r f v s =
     r := Some (f v);
     unsubscribe_all l;

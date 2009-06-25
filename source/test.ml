@@ -23,6 +23,6 @@ let _ =
             Csp.write_guard c2 "c 2" (s "c write 2");
         ] in print_endline v; loop () in loop);
         
-        (fun () -> Thread.delay 5.0; Csp.poison c2)
+        (*fun () -> Thread.delay 5.0; Csp.poison c2*)
     ]
 

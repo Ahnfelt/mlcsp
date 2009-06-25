@@ -1,9 +1,6 @@
 digraph g {
     NobodyWaiting -> ReaderWaiting [label=read]
-    NobodyWaiting -> Poisoned [label=poison]
     NobodyWaiting -> WriterWaiting [label=write]
-    ReaderWaiting -> Poisoned [label=poison]
-    WriterWaiting -> Poisoned [label=poison]
     ReaderWaiting -> NobodyWaiting [label=write]
     WriterWaiting -> NobodyWaiting [label=read]
 }

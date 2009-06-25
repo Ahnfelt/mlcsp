@@ -3,6 +3,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage{listings}
 \usepackage{graphicx}
+%\usepackage{tkz-graph}
 
 \newcommand{\missing}[1]{
 \begin{tabular}{|p{11cm}|}
@@ -16,78 +17,91 @@
 
 \begin{document}
 
-\section{Channels}
-\missing{
-This section is a short introduction to channels \\
-- Explanation for people who don't know CSP \\
-- Possibly a figure with boxes and lines as a metaphor for processes and channels \\
-}
+\section{Interface}
 
-\subsection{Communication}
-\missing{
-This section describes the communication primitives \\
-- Synchronization (might be the trickiest part to get right) \\
-- Read, Write, Poision \\
-}
 
-\begin{figure}[h]
-\centering
-\begin{tabular}{l|l|l}
-CSP & OCamlCSP \\
-\hline
-$c\,?\,x \to P(x)$ & let x = read c in p x \\
-$c\,!\,e \to Q$ & write c e; q () \\
-(no equivalent) & poison c; r () \\
-\end{tabular}
-\caption{Channels in CSP vs. OCamlCSP}
-\label{channel-communication}
-\end{figure}
+\section{Implementation}
 
-\subsection{Alternation}
-\missing{
-This might be it's own section or be merged with communication \\
-- Alternation (and read/write/timeout guards) \\
-- Communication scheduling (prioritized/random select) \\
-- More synchronization \\
-- Actions are automatically performed when chosen (no promises) \\
-- Does random (prioritized (shuffle list)) mean fair? \\
-- Consider having a ``poll'' function that does nothing if none of the alternatives are ready \\
-}
+\subsection{Channels}
+A one to one channel is a channel that only allows one procees to read from it and one process 
+to write to it. It may be implemented as a state machine as shown in figure \ref{channel-state}.
+When the channel is in the NobodyWaiting state and a process tries to read from the channel,
+it enters the ReaderWaiting state. When a writer comes along and tries to write to a channel
+in this state, it returns to the NobodyWaiting state, transfers the message, and only then
+allows the two processes to continue. The WriterWaiting state works in much the same way.
+
+From any state, the channel might be poisoned and enter the Poisoned state. If it was in the
+ReaderWaiting or the WriterWaiting state, the waiting process will wake up and throw a special
+exception. Any further attempts to read from or write to the channel will result in this 
+exception being thrown again.
 
 \begin{figure}[h]
 \centering
-\begin{tabular}{l|l}
-CSP & OCamlCSP \\
-\hline
-& \\
-($c_1\,?\,x \to P(x) \mid c_2\,?\,y \to Q(y)$) & random [ \\
-& \quad Read (c1, fun x $\to$ p x); \\
-& \quad Read (c2, fun y $\to$ q y) ] \\
-& \\
-($c_1\,?\,x \to P(x) \mid c_2\,!\,a+b \to Q$) & random [ \\
-& \quad Read (c1, fun x $\to$ p x); \\
-& \quad Write (c2, (fun () $\to$ a + b), fun \_ $\to$ q ()) ] \\
-& \\
-(no equivalent) & random [ \\
-& \quad Read (c1, fun x $\to$ p x); \\
-& \quad Wait (0.100, fun t $\to$ q ()) ] \\
-\end{tabular}
-\caption{Alternation in CSP vs. OCamlCSP}
-\label{channel-alternation}
+\includegraphics[width=0.6\textwidth]{channel-state.png}
+\caption{Simplified channel state (poison and multi-read/write not shown)}
+\label{channel-state}
 \end{figure}
 
-\subsection{Capabilities}
+For any to any channels that places no restrictions on the number of processes that can read
+from or write to it, we simply extend the above to keep a queue of readers (when in the 
+ReaderWaiting state) or writers (when in the WriterWaiting state).
+
+The choice of using a queue gives a stronger guarentee than CSP gives, namely that no processes
+will be starved. By starvation we mean to say that a process waiting to read or write on the
+channel can be blocked indefinately even though an infinite number of messages is transmitted
+over the channel. This would happen with a stack if another process is always ready to read or 
+write again before the channel was ready to accomodate the starving process. The starving process
+would always be put behind the eager process with a stack, but with a queue, the starving process
+will always advance in the queue every time a message is transmitted, guarenteeing that it will
+eventually get it's turn.
+
+In order to only wake up the waiting process, each process has it's own condition variable that
+it waits on. Additionally, readers have a function that takes in a value and performs a side 
+effect, while writers have a function that performs a side effect and produces a value. The side
+effect for both is to set it's internal reference to the transmitted value (instead of None),
+remove it from all the channels it's listening on and wake up the process.
+
+We use a lock that is global to the library, in order to protect the channel and processes from
+concurrent mutation. This lock is only ever taken when first trying to read from a channel, or
+right after a process has been woken up. We claim that this won't lead to performance degradation,
+since OCaml's threads only provides concurrency though time-sharing \cite{ocaml-threads}.
+
 \missing{
-This section describes the channels ``end'' capabilities \\
-- Phantom types (with polymorphic variants, informal: channel ends) \\
-- Capabilities can only be taken away, not added \\
-- All (useful) capability combinations are covered \\
+- How do you get rid of this lock? (useful for porting). It is hard because you don't know which
+channels you will touch before you have chosen a target process to transmit to/from. If you knew
+that, you could simply take their locks in some well defined order (thus avoiding deadlock). \\
 }
+
+\begin{verbatim}
+type 'a channel_state
+    = NobodyWaiting 
+    | ReaderWaiting of (Condition.t * ('a -> unit)) list
+    | WriterWaiting of (Condition.t * (unit -> 'a)) list
+    | Poisoned
+
+type ('a, 'b) channel = ('a channel_state) ref
+\end{verbatim}
+
+The phantom type 'b is used for the channel permissions. This is enforced solely via the type
+system, and is represented with a product of three booleans values: read * write * poison.
+Reading, writing and poisoning are initially enabled for a channel, but handles with less 
+permissions can be obtained through the functions shown in figure \ref{channel-permissions}. 
+Permissions can only be taken away, not gained, which is evident from the types of the 
+functions, for example: 
+
+\begin{verbatim}
+val read_poison_only : ('a, on * _ * on) channel -> 
+                       ('a, on * off * on) channel
+\end{verbatim}
+
+Apart from the type, all of these functions are simply identity functions. We provide a
+type alias \texttt{'a t = ('a, on * on * on) channel} for people who don't want to write the
+longer (often optional) type annotations that the permission types incur.
 
 \begin{figure}[h]
 \centering
 \begin{tabular}{c|c|c|l}
-`Read & `Write & `Poison & Function \\
+Read & Write & Poison & Function \\
 \hline
 0 & 0 & 0 & (useless) \\
 0 & 0 & 1 & poison\_only \\
@@ -98,43 +112,137 @@ This section describes the channels ``end'' capabilities \\
 1 & 1 & 0 & read\_write\_only \\
 1 & 1 & 1 & (default) \\
 \end{tabular}
-\caption{Channel end capabilities}
-\label{channel-capabilities}
+\caption{Channel permissions}
+\label{channel-permissions}
 \end{figure}
 
-\section{Processes}
-\missing{
-This secion describes the process primitives \\
-- Lambda functions (closures that capture channels) \\
-- Joining \\
-- Captures the return values (functional, not for fork) \\
-- Exception propagation (when all processes are done, not for fork) \\
-- Scope differences from CSP? \\
-- Find out if spawn has an equivalent in CSP. \\
-}
 
-\begin{figure}[h]
-\centering
-\begin{tabular}{l|l}
-CSP & OCamlCSP \\
-\hline
-& \\
-($c_1\,?\,x \to skip \parallel c_2\,?\,y \to skip$); $c_3\,!\,x + y$ & let (x, y) = parallel \\
-& \quad (fun () $\to$ read c1) \\
-& \quad (fun () $\to$ read c2) \\
-& in write c3 (x + y) \\
-& \\
-(imperative representation) & let x = ref 0 in \\
-& let y = ref 0 in \\
-& fork [ \\
-& \quad (fun () $\to$ x := read c1); \\
-& \quad (fun () $\to$ y := read c2) ]; \\
-& write c3 (!x + !y) \\
-& \\
-(no equivalent) & spawn 10 (fun i $\to$ \dots) \\
-\end{tabular}
-\caption{Parallel processes in CSP vs. OCamlCSP}
-\label{channel-parallel}
-\end{figure}
+% \section{Channels}
+% \missing{
+% This section is a short introduction to channels \\
+% - Explanation for people who don't know CSP \\
+% - Possibly a figure with boxes and lines as a metaphor for processes and channels \\
+% }
+% 
+% \subsection{Communication}
+% \missing{
+% This section describes the communication primitives \\
+% - Synchronization (might be the trickiest part to get right) \\
+% - Read, Write, Poision \\
+% }
+% 
+% \begin{figure}[h]
+% \centering
+% \begin{tabular}{l|l|l}
+% CSP & OCamlCSP \\
+% \hline
+% $c\,?\,x \to P(x)$ & let x = read c in p x \\
+% $c\,!\,e \to Q$ & write c e; q () \\
+% (no equivalent) & poison c; r () \\
+% \end{tabular}
+% \caption{Channels in CSP vs. OCamlCSP}
+% \label{channel-communication}
+% \end{figure}
+% 
+% \subsection{Alternation}
+% \missing{
+% This might be it's own section or be merged with communication \\
+% - Alternation (and read/write/timeout guards) \\
+% - Communication scheduling (prioritized/random select) \\
+% - More synchronization \\
+% - Actions are automatically performed when chosen (no promises) \\
+% - Does random (prioritized (shuffle list)) mean fair? \\
+% - Consider having a ``poll'' function that does nothing if none of the alternatives are ready \\
+% }
+% 
+% \begin{figure}[h]
+% \centering
+% \begin{tabular}{l|l}
+% CSP & OCamlCSP \\
+% \hline
+% & \\
+% ($c_1\,?\,x \to P(x) \mid c_2\,?\,y \to Q(y)$) & random [ \\
+% & \quad Read (c1, fun x $\to$ p x); \\
+% & \quad Read (c2, fun y $\to$ q y) ] \\
+% & \\
+% ($c_1\,?\,x \to P(x) \mid c_2\,!\,a+b \to Q$) & random [ \\
+% & \quad Read (c1, fun x $\to$ p x); \\
+% & \quad Write (c2, (fun () $\to$ a + b), fun \_ $\to$ q ()) ] \\
+% & \\
+% (no equivalent) & random [ \\
+% & \quad Read (c1, fun x $\to$ p x); \\
+% & \quad Wait (0.100, fun t $\to$ q ()) ] \\
+% \end{tabular}
+% \caption{Alternation in CSP vs. OCamlCSP}
+% \label{channel-alternation}
+% \end{figure}
+% 
+% \subsection{Capabilities}
+% \missing{
+% This section describes the channels ``end'' capabilities \\
+% - Phantom types (with polymorphic variants, informal: channel ends) \\
+% - Capabilities can only be taken away, not added \\
+% - All (useful) capability combinations are covered \\
+% }
+% 
+% \begin{figure}[h]
+% \centering
+% \begin{tabular}{c|c|c|l}
+% `Read & `Write & `Poison & Function \\
+% \hline
+% 0 & 0 & 0 & (useless) \\
+% 0 & 0 & 1 & poison\_only \\
+% 0 & 1 & 0 & write\_only \\
+% 0 & 1 & 1 & write\_poison\_only \\
+% 1 & 0 & 0 & read\_only \\
+% 1 & 0 & 1 & read\_poison\_only \\
+% 1 & 1 & 0 & read\_write\_only \\
+% 1 & 1 & 1 & (default) \\
+% \end{tabular}
+% \caption{Channel end capabilities}
+% \label{channel-capabilities}
+% \end{figure}
+% 
+% \section{Processes}
+% \missing{
+% This secion describes the process primitives \\
+% - Lambda functions (closures that capture channels) \\
+% - Joining \\
+% - Captures the return values (functional, not for fork) \\
+% - Exception propagation (when all processes are done, not for fork) \\
+% - Scope differences from CSP? \\
+% - Find out if spawn has an equivalent in CSP. \\
+% }
+% 
+% \begin{figure}[h]
+% \centering
+% \begin{tabular}{l|l}
+% CSP & OCamlCSP \\
+% \hline
+% & \\
+% ($c_1\,?\,x \to skip \parallel c_2\,?\,y \to skip$); $c_3\,!\,x + y$ & let (x, y) = parallel \\
+% & \quad (fun () $\to$ read c1) \\
+% & \quad (fun () $\to$ read c2) \\
+% & in write c3 (x + y) \\
+% & \\
+% (imperative representation) & let x = ref 0 in \\
+% & let y = ref 0 in \\
+% & fork [ \\
+% & \quad (fun () $\to$ x := read c1); \\
+% & \quad (fun () $\to$ y := read c2) ]; \\
+% & write c3 (!x + !y) \\
+% & \\
+% (no equivalent) & spawn 10 (fun i $\to$ \dots) \\
+% \end{tabular}
+% \caption{Parallel processes in CSP vs. OCamlCSP}
+% \label{channel-parallel}
+% \end{figure}
+
+
+\subsection{Alternation}
+
+
+\subsection{Processes}
+
 
 \end{document}

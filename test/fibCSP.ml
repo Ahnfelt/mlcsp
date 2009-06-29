@@ -3,6 +3,7 @@
 open Csp
 open Legoland
 
+
 (*
 some local crap
 
@@ -20,7 +21,7 @@ let rec fibcsp n = n + 1
 square of ints also working great after refactoring
 let _ =
   let c = Csp.channel () in
-  Csp.fork [
+  Csp.parallel [
     squaresInt c;
     printer c
   ]
@@ -29,14 +30,14 @@ let _ =
 
 (*
 Juhu ... fibonacci is working great (we need to use big ints)
+*)
 
 let _ =
   let c = Csp.channel () in
-  Csp.fork [
+  Csp.parallel [
     fibonacciInt c;
     printer c
   ]
-*)
 
 (*
 pairsInt with numbersInt
@@ -44,7 +45,7 @@ pairsInt with numbersInt
 let _ =
   let c1 = Csp.channel () in
   let c2 = Csp.channel () in
-  Csp.fork [
+  Csp.parallel [
     numbersInt c1;
     pairsInt c1 c2;
     printer c2
@@ -57,7 +58,7 @@ integrateInt with numbersInt
 let _ =
   let c1 = Csp.channel () in
   let c2 = Csp.channel () in
-  Csp.fork [
+  Csp.parallel [
     numbersInt c1;
     integrateInt c1 c2;
     printer c2
@@ -66,16 +67,17 @@ let _ =
 
 (*
 numbersInt with blockinFifo
-*)
 
 let _ =
   let c1 = Csp.channel () in
   let c2 = Csp.channel () in
-  Csp.fork [
+  Csp.parallel [
     numbersInt c1;
     blockingFifo c1 c2;
     printer c2
   ]
+*)
+
 
 (* 
 working nice :D
@@ -99,7 +101,7 @@ pretty nice with fork
 
 let _ =
   let c = Csp.channel () in
-  Csp.fork [
+  Csp.parallel [
     numbers c 1;
     printer c
   ]

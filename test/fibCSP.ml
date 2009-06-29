@@ -3,7 +3,6 @@
 open Csp
 open Legoland
 
-
 (*
 some local crap
 
@@ -31,13 +30,6 @@ let _ =
 (*
 Juhu ... fibonacci is working great (we need to use big ints)
 *)
-
-let _ =
-  let c = Csp.channel () in
-  Csp.parallel [
-    fibonacciInt c;
-    printer c
-  ]
 
 (*
 pairsInt with numbersInt

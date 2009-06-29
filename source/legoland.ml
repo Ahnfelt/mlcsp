@@ -29,7 +29,8 @@
 open Big_int
 open Csp
 
-let bi x = big_int_of_int x
+let bii x = big_int_of_int x
+let sbi x = string_of_big_int x
 let (++) x y = add_big_int x y
 
 let rec terminator i () =
@@ -38,8 +39,7 @@ let rec terminator i () =
 
 let rec printer i () =
   let x = Csp.read i in
-    (* print_endline(string_of_int x); *)
-    print_endline(string_of_big_int x);
+    print_endline(sbi x);
     printer i ()
 
 let rec idint i o () =
@@ -47,7 +47,7 @@ let rec idint i o () =
   idint i o ()
 
 let rec succint i o () =
-  Csp.write o (Csp.read i ++ bi 1);
+  Csp.write o (Csp.read i ++ bii 1);
   succint i o ()
 
 let rec plusint i1 i2 o () =
@@ -89,7 +89,7 @@ let numbersInt o () =
   let c2 = Csp.channel () in
   let c3 = Csp.channel () in
     Csp.parallel [
-      prefixint (bi 0) c3 c1;
+      prefixint (bii 0) c3 c1;
       delta2int c1 o c2;
       succint c2 c3;
     ]
@@ -101,7 +101,7 @@ let integrateInt i o () =
     Csp.parallel [
       plusint i c3 c1;
       delta2int c1 o c2;
-      prefixint (bi 0) c2 c3;
+      prefixint (bii 0) c2 c3;
     ]
 
 let pairsInt i o () =
@@ -122,8 +122,8 @@ let fibonacciInt o () =
   let c3 = Csp.channel () in
   let c4 = Csp.channel () in
     Csp.parallel [
-      prefixint (bi 1) c4 c1 ;
-      prefixint (bi 0) c1 c2 ;
+      prefixint (bii 1) c4 c1 ;
+      prefixint (bii 0) c1 c2 ;
       delta2int c2 o c3;
       pairsInt c3 c4;
     ]

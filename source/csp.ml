@@ -91,11 +91,11 @@ let select l = with_mutex global_mutex (fun m ->
     | Some v -> v
     | None -> let r = ref None in (subscribe_all l r;
         let rec loop () = 
-            if check_poison_all l 
-            then (unsubscribe_all l; raise PoisonException) 
-            else match !r with
+            match !r with
             | Some v -> v
-            | None -> (Condition.wait s m; loop ())
+            | None -> if check_poison_all l 
+                then (unsubscribe_all l; raise PoisonException) 
+                else (Condition.wait s m; loop ())
         in loop ()))
 
 (* Must be called in a locked context *)
@@ -110,7 +110,7 @@ let read_guard c f s = {
         | WriterWaiting ((_, x)::_) -> Some (f (x ()))
         | _ -> None
     );
-    check_poison = (fun () -> !c == Poisoned);
+    check_poison = (fun () -> !c = Poisoned);
     subscribe = (fun l r ->
         let g = (s, fun v -> transmit l r f v s) 
         in match !c with
@@ -134,7 +134,7 @@ let write_guard c v f s = {
         | ReaderWaiting ((_, x)::_) -> (x v; Some (f v))
         | _ -> None
     );
-    check_poison = (fun () -> !c == Poisoned);
+    check_poison = (fun () -> !c = Poisoned);
     subscribe = (fun l r -> 
         let g = (s, fun () -> transmit l r f v s; v) 
         in match !c with

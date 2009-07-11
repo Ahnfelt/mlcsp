@@ -17,22 +17,24 @@ let spliturl url =
             raise Not_found
 
 (* read everything pending in the socket *)
-let readall socket o =
+let sendall socket o =
     let buffer = String.create 512 in
     let rec loop () =
         let count = (Unix.recv socket buffer 0 512 [])
         in if count = 0 then () else begin
+            print_endline "<<";
             Csp.write o (String.sub buffer 0 count);
+            print_endline ">>";
             loop ()
         end
-    in loop()
+    in loop ()
 
 (* write everything to a socket *)
 let writeall socket s =
     Unix.send socket s 0 (String.length s) []
 
 (* get the contents of an arbitrary URL page *)
-let http_download_process url o () = poison_finally [o] (fun () ->
+let http_download_process o url () = poison_finally [o] (fun () ->
     let (hostname, rest) = spliturl url in
     let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     let hostinfo = Unix.gethostbyname hostname in
@@ -40,17 +42,51 @@ let http_download_process url o () = poison_finally [o] (fun () ->
     let _ = Unix.connect socket (Unix.ADDR_INET (server_address, 80)) in
     let ss = "GET " ^ rest ^ " HTTP/1.0\r\nHost: " ^ hostname ^ "\r\n\r\n" in
         ignore (writeall socket ss);
-        readall socket o;
+        sendall socket o;
+        Csp.poison o;
         Unix.close socket)
+
+(* create a server on a given port, and invokes the given function whenever anybody makes a request *)
+let socket_listener_process port f () =
+    let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+    Unix.setsockopt socket Unix.SO_REUSEADDR true;
+    let hostinfo = Unix.gethostbyname "localhost" in
+    let server_address = hostinfo.Unix.h_addr_list.(0) in
+        ignore (Unix.bind socket (Unix.ADDR_INET (server_address, port)));
+        Unix.listen socket 10;
+        let rec loop () = let (d, _) = Unix.accept socket in
+            Csp.parallel [
+                f (Unix.in_channel_of_descr d, Unix.out_channel_of_descr d);
+                loop;
+            ]
+        in loop ()
 
 (* END code modified from http://www.brool.com/index.php/ocaml-sockets *)
 
-let _ = 
-    let c = Csp.channel () in
-    Csp.parallel [
-        http_download_process "http://dikurevy.dk/~phillip/revy/smack_my_bits_up_1280x720.m2t" c;
-        (fun () -> while true do
-            print_string (string_of_int (String.length (Csp.read c)))
-        done);
-    ]
+let http_request_process (ic, oc) () =
+    let input_header ic = let rec loop l = 
+            let s = input_line ic in
+            if s = "" || s = "\r" then l else loop (s::l)
+        in List.rev (loop []) in
+    let a = List.hd (input_header ic) in
+    let r = Str.regexp "^GET \\([^ \r\n]+\\)" in
+    if Str.string_match r a 0 
+    then begin
+        let u = Str.matched_group 1 a in
+        let c = Csp.channel () in
+        Csp.parallel [
+            http_download_process c u;
+            (fun () -> while true do
+                print_endline "--";
+                let s = Csp.read c in
+                print_endline "**";
+                print_endline s;
+                output_string oc s;
+                flush oc
+            done)
+        ]
+    end else raise Not_found
 
+let _ = 
+    socket_listener_process 8080 http_request_process ()
+    

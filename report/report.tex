@@ -19,6 +19,31 @@
 
 \section{Interface}
 
+\subsection{Design}
+
+\subsection{Comparison}
+
+\begin{tabular}{l|l}
+CSP & OCamlCSP \\
+\hline
+$c!e \to P$ & \texttt{write c e; P} \\
+\hline
+$c?x \to P(x)$ & \texttt{P (read c)} \\
+\hline
+$(a?x \to P(x)\ |\ b!e \to Q)$ 
+&\verb|select [ read_guard a (fun x -> P(x)) ;| \\
+&\verb|         write_guard b e (fun _ -> Q) ]|\\
+\hline
+$P \parallel Q$ 
+&\verb|parallel [ (fun () -> P) ;| \\
+&\verb|           (fun () -> Q) ]| \\
+\end{tabular}
+
+\missing{
+- Occam \\
+- PyCSP/JCSP/C++CSP \\
+- Event \\
+}
 
 \section{Implementation}
 
@@ -30,17 +55,17 @@ it enters the ReaderWaiting state. When a writer comes along and tries to write 
 in this state, it returns to the NobodyWaiting state, transfers the message, and only then
 allows the two processes to continue. The WriterWaiting state works in much the same way.
 
-From any state, the channel might be poisoned and enter the Poisoned state. If it was in the
-ReaderWaiting or the WriterWaiting state, the waiting process will wake up and throw a special
-exception. Any further attempts to read from or write to the channel will result in this 
-exception being thrown again.
-
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.6\textwidth]{channel-state.png}
 \caption{Simplified channel state (poison and multi-read/write not shown)}
 \label{channel-state}
 \end{figure}
+
+From any state, the channel might be poisoned and enter the Poisoned state. If it was in the
+ReaderWaiting or the WriterWaiting state, the waiting process will wake up and throw a special
+exception. Any further attempts to read from or write to the channel will result in this 
+exception being thrown again.
 
 For any to any channels that places no restrictions on the number of processes that can read
 from or write to it, we simply extend the above to keep a queue of readers (when in the 
@@ -240,6 +265,15 @@ Read & Write & Poison & Function \\
 
 
 \subsection{Alternation}
+
+
+
+\missing{
+- Occam does not seem to sufficiently describe PRI ALT when two processes with inverse priorities
+on the same two channels use it (in the manual). This is why we don't support it. \\
+- Consider supporting something a bit like PRI ALT anyway since it's easier to build on top of
+than the current randomized select. \\
+}
 
 
 \subsection{Processes}

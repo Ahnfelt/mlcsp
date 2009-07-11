@@ -85,19 +85,15 @@ val parallel : (unit -> unit) list -> unit
 (** Runs a list of functions as processes in parallel.
     It will only return once all these processes have finished. *)
 
-val parallel_collect : (unit -> unit) list -> (unit -> 'a) -> 'a
-(** Like parallel, but the extra function is also executed in 
-    parallel with the others, and it's return value or thrown
-    exception will be returned or thrown from the whole construct. *)
-
 (** {[(* Read from two channels in parallel and sum the values. *)
-let parallel_add c1 c2 () = 
-    let c1' = Csp.channel () in
-    let c2' = Csp.channel () in
-    Csp.parallel_collect [
-        (fun () -> Csp.write c1' (Csp.read c1));
-        (fun () -> Csp.write c2' (Csp.read c2));
-    ]   (fun () -> Csp.read c1' + Csp.read c2') ]} *)
+let parallel_add i1 i2 o () = while true do
+    let i1o = Csp.channel () in
+    let i2o = Csp.channel () in
+    Csp.parallel [
+        (fun () -> Csp.write i1o (Csp.read c1));
+        (fun () -> Csp.write i2o (Csp.read c2));
+        (fun () -> Csp.write o (Csp.read i1o + Csp.read i2o));
+    ] done ]} *)
 
 
 (** {6 Channel permissions} 

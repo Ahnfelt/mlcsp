@@ -3,8 +3,7 @@ port = (ARGV[0] || 4040).to_i
 s =  (ARGV[1] || 0).to_i
 server = TCPServer.new('localhost', port)
 while (session = server.accept)
-  g = session.gets
-  f = g.split(" ")[1]
+  f = session.gets.split(" ")[1]
   p = "mp3" + f
   if File.exist?(p)
     e = File.extname(f)

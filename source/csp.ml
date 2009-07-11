@@ -156,17 +156,22 @@ let read c = select [read_guard c (fun x -> x)]
 let write c v = select [write_guard c v (fun _ -> ())]
 
 let parallel fs = let fs = shuffle fs in
-    let ts = List.map (fun f -> Thread.create (fun () -> 
+    let ts = List.map (fun f -> Thread.create (fun () ->
         try f () with PoisonException -> ()) ()) fs
     in List.iter Thread.join ts
 
-let parallel_collect fs f =
-    let r = ref (Left PoisonException) in
-    let f () = try r := Right (f ()) with e -> r := Left e in
-    parallel (f::fs);
-    match !r with
-    | Left e -> raise e
-    | Right v -> v
+(* TODO: Hvorfor opfører dette sig anderledes?
+let parallel fs =
+    let rec loop fs ts = match fs with
+    | [] -> List.iter Thread.join ts
+    | [f] -> (try f () with
+        | PoisonException -> loop [] ts
+        | e -> print_endline (Printexc.to_string e); loop [] ts)
+    | (f::l) -> let t = Thread.create 
+        (fun () -> try f () with PoisonException -> ()) ()
+        in loop l (t::ts)
+    in loop (shuffle fs) []
+*)
 
 let read_only x = x
 let read_write_only x = x

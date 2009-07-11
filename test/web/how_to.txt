@@ -1,0 +1,4 @@
+You execute the webserver like this:
+ruby server.rb 4040 3
+
+where 4040 is a Tcp port and 3 is the amount of time divided by 1000 you want the server to sleep when reading files. 3 is about 40 Kb/s download and 6 is about 80 Kb/s.

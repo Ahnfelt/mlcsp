@@ -2,3 +2,11 @@ You execute the webserver like this:
 ruby server.rb 4040 3
 
 where 4040 is a Tcp port and 3 is the amount of time divided by 1000 you want the server to sleep when reading files. 3 is about 40 Kb/s download and 6 is about 80 Kb/s.
+
+p.s.: in order to generate mp3 files you can do this:
+
+./_dl_mp3_from_feed.sh http://www.learnitalianpod.com/category/beginner/feed mp3
+
+and rename to pretty from the mp3 folder:
+
+_rename_std_mp3.sh

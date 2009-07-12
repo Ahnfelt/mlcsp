@@ -160,7 +160,7 @@ let parallel fs = let fs = shuffle fs in
         try f () with PoisonException -> ()) ()) fs
     in List.iter Thread.join ts
 
-(* TODO: Hvorfor opfører dette sig anderledes?
+(* TODO: Hvorfor opfoerer dette sig anderledes?
 let parallel fs =
     let rec loop fs ts = match fs with
     | [] -> List.iter Thread.join ts

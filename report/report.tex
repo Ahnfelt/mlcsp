@@ -1,10 +1,53 @@
-\documentclass[11pt,oneside,a4paper]{article}
-\usepackage[english]{babel}
+\documentclass[a4paper,12pt]{article}
+%\usepackage{fullpage}
+%\usepackage{a4wide}
 \usepackage[utf8]{inputenc}
+\usepackage[danish, english]{babel}
+
+% Nice looking font
+%\usepackage[upright]{palatino}
+
+% In order to highlight code
+\usepackage[pdftex]{color}
 \usepackage{listings}
+
+% For graphics support
+\usepackage{epsfig}
 \usepackage{graphicx}
+\usepackage{subfigure}
+
+% Math support
+\usepackage{amsmath}
+
+% In order to include pdf
+\usepackage{pdfpages}
+
+% Graf support
 %\usepackage{tkz-graph}
 
+% Pdf section support
+\usepackage{hyperref}
+\hypersetup{
+    bookmarks=true,         % show bookmarks bar?
+    unicode=false,          % non-Latin characters in Acrobat's bookmarks
+    pdftoolbar=false,       % show Acrobat's toolbar?
+    pdfmenubar=false,       % show Acrobat's menu?
+    pdffitwindow=true,      % page fit to window when opened
+    pdftitle={OCamlCSP. A concurrency library for Ocaml}, % title
+    pdfauthor={Joakim Ahnfelt-Rønne - 1986/03/14 - joakim.ahnfelt@gmail.com,
+        Ramón Salvador Soto Mathiesen - 1979/05/15 - ramon@diku.dk and
+        Advisor: Andrzej Filinski - andrzej@diku.dk}, % author
+    pdfsubject={},   % subject of the document
+    pdfnewwindow=true,      % links in new window
+    pdfkeywords={keywords}, % list of keywords
+    colorlinks=false,       % false: boxed links; true: colored links
+    linkcolor=red,          % color of internal links
+    citecolor=green,        % color of links to bibliography
+    filecolor=magenta,      % color of file links
+    urlcolor=cyan           % color of external links
+}
+
+% Macros
 \newcommand{\missing}[1]{
 \begin{tabular}{|p{11cm}|}
 \hline
@@ -15,13 +58,34 @@
 \end{tabular}
 }
 
+
+% Opening
+\title{OCamlCSP. A concurrency library for Ocaml}
+\author{Joakim Ahnfelt-Rønne - 1986/03/14 - joakim.ahnfelt@gmail.com \and 
+        Ramón Salvador Soto Mathiesen - 1979/05/15 - ramon@diku.dk \and
+        \\ Advisor: Andrzej Filinski - andrzej@diku.dk}
+\date{31$^{st}$ July 2009}
+
 \begin{document}
 
-\section{Interface}
+\maketitle
+\newpage
+\tableofcontents
 
-\subsection{Design}
+% Line breaks between paragraphs instead of indentation
+\parindent=0pt
+\parskip=8pt plus 2pt minus 4pt
 
-\subsection{Comparison}
+\newpage
+\section{Introduction}
+
+\section{Analysis}
+
+\subsection{Interface}
+
+\subsubsection{Design}
+
+\subsubsection{Comparison}
 
 \begin{tabular}{l|l}
 CSP & OCamlCSP \\
@@ -45,7 +109,9 @@ $P \parallel Q$
 - Event \\
 }
 
+
 \section{Implementation}
+
 
 \subsection{Channels}
 A one to one channel is a channel that only allows one procees to read from it and one process 
@@ -263,10 +329,7 @@ Read & Write & Poison & Function \\
 % \label{channel-parallel}
 % \end{figure}
 
-
 \subsection{Alternation}
-
-
 
 \missing{
 - Occam does not seem to sufficiently describe PRI ALT when two processes with inverse priorities
@@ -275,8 +338,53 @@ on the same two channels use it (in the manual). This is why we don't support it
 than the current randomized select. \\
 }
 
-
 \subsection{Processes}
 
+\section{Test}
+
+\section{Conclusion}
+
+\appendix
+\newpage
+\section{Appendix: Source code}
+\label{appendixSrc}
+% ----------------------------------------------------------------------
+% At skrive "%" betyder at man kommenterer ligesom som // i C, Java, osv
+% ----------------------------------------------------------------------
+% set up listing environment with C syntax hightlight
+\definecolor{stringcolor}{rgb}{0.50,0.00,0.50}      %
+\definecolor{commentcolor}{rgb}{0.00,0.50,0.00}     %
+\definecolor{keywordcolor}{rgb}{0.00,0.00,1.00}     %
+\definecolor{idcolor}{rgb}{0.00,0.00,0.00}          %
+% with \lstset one can predefine parameters for listings
+\lstset{language=ML,basicstyle=\ttfamily,keywordstyle=\color{keywordcolor},
+        commentstyle={\color{commentcolor}\itshape},
+        stringstyle={\color{stringcolor}},
+        identifierstyle=\color{idcolor},numbers=left,
+        xleftmargin=2em,% framerule=0.8pt,
+        stepnumber=1,frame=tlrb,showstringspaces=false,
+        firstnumber=1,numberstyle=\ttfamily, breaklines}
+% ----------------------------------------------------------------------
+
+\scriptsize
+\subsection{API}
+\label{appendixAPI}
+\subsubsection{Interface (.mli)}
+\lstinputlisting{../source/csp.mli}
+\subsubsection{Source (.ml)}
+\lstinputlisting{../source/csp.ml}
+\subsection{CSP Library (Legoland)}
+\lstinputlisting{../source/legoland.ml}
+\normalsize
+
+\newpage
+\section{Appendix: Test}
+\scriptsize
+\subsection{Milestone I. Fibonacci}
+\lstinputlisting{../test/fibCSP.ml}
+
+\subsection{Milestone II. Webproxy}
+\lstinputlisting{../source/sockets.ml}
+\normalsize
 
 \end{document}

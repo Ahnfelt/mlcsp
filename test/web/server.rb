@@ -1,6 +1,6 @@
 require 'socket'
 port = (ARGV[0] || 4040).to_i
-s =  (ARGV[1] || 0).to_i
+s =  (ARGV[1] || 0.0).to_f
 server = TCPServer.new('localhost', port)
 while (session = server.accept)
   f = session.gets.split(" ")[1]

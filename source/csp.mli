@@ -85,6 +85,9 @@ val parallel : (unit -> unit) list -> unit
 (** Runs a list of functions as processes in parallel.
     It will only return once all these processes have finished. *)
 
+val fork : (unit -> unit) -> unit
+(** Spawns a process and returns immediatly. *)
+
 (** {[(* Read from two channels in parallel and sum the values. *)
 let parallel_add i1 i2 o () = while true do
     let i1o = Csp.channel () in

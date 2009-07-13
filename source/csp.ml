@@ -160,6 +160,9 @@ let parallel fs = let fs = shuffle fs in
         try f () with PoisonException -> ()) ()) fs
     in List.iter Thread.join ts
 
+let fork f = ignore (Thread.create 
+    (fun () -> try f () with PoisonException -> ()) ())
+
 (* TODO: Hvorfor opfoerer dette sig anderledes?
 let parallel fs =
     let rec loop fs ts = match fs with

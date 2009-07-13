@@ -1,7 +1,38 @@
-(* BEGIN code modified from http://www.brool.com/index.php/ocaml-sockets *)
+module Table = Map.Make(String)
 
-let finally f g = (try f () with e -> g (); raise e); g ()
-let poison_finally l f = finally f (fun () -> List.iter Csp.poison l)
+module Cspx = struct
+    let write_file f i () =
+        let io = try open_out_bin f with e -> (Csp.poison i; raise e) in
+        try
+            while true do
+                output_string io (Csp.read i);
+                flush io
+            done
+        with e -> (close_out_noerr io; Csp.poison i; raise e)
+
+    let read_file f o () =
+        let io = try open_in_bin f with e -> (Csp.poison o; raise e) in
+        let size = 512 in
+        let b = String.create size in
+        try let rec read_chunk s = match s with
+            | 0 -> Csp.poison o; close_in io
+            | _ -> Csp.write o (String.sub b 0 s); read_chunk (input io b 0 size)
+            in read_chunk (input io b 0 size)
+        with e -> (close_in_noerr io; Csp.poison o; raise e)
+
+    let read_lines f o () =
+        let io = try open_in_bin f with e -> (Csp.poison o; raise e) in
+        try while true do Csp.write o (input_line io) done
+        with e -> (close_in_noerr io; Csp.poison o; raise e)
+
+    let delta c c1 c2 () = try while true do
+            let v = Csp.read c in
+            Csp.parallel [
+                (fun () -> Csp.write c1 v);
+                (fun () -> Csp.write c2 v);
+            ]
+        done with e -> (Csp.poison c; Csp.poison c1; Csp.poison c2; raise e)
+end
 
 (* split an url into the (hostname, index) *)
 let spliturl url =
@@ -25,7 +56,7 @@ let sendall socket o =
     in loop ()
 
 (* get the contents of an arbitrary URL page *)
-let http_download_process o url () = poison_finally [o] (fun () ->
+let http_download_process o url () = try
     let (hostname, port, rest) = spliturl url in
     let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     let hostinfo = Unix.gethostbyname hostname in
@@ -34,7 +65,49 @@ let http_download_process o url () = poison_finally [o] (fun () ->
     let ss = "GET " ^ rest ^ " HTTP/1.0\r\nHost: " ^ hostname ^ "\r\n\r\n" in
         ignore (Unix.send socket ss 0 (String.length ss) []);
         sendall socket o;
-        Unix.close socket)
+        Unix.close socket;
+        Csp.poison o
+    with _ -> Csp.poison o
+
+let url_process url c () = 
+    let c1 = Csp.channel () in
+    let c2 = Csp.channel () in
+    let c3 = Csp.channel () in
+    let c4 = Csp.channel () in try
+    let f = Filename.temp_file "csp" "proxy" in
+    Csp.parallel [
+        http_download_process c1 url;
+        Cspx.delta c1 c2 c3;
+        (fun () -> Csp.write c c2);
+        Cspx.write_file f c3
+    ];
+    let rec loop () = 
+        let c4 = Csp.channel () in
+        Csp.parallel [
+            Cspx.read_file f c4;
+            (fun () -> (try Csp.write c c4 with Csp.PoisonException -> ()); loop ())
+        ]
+    in loop ()
+    with e -> (Csp.poison c1; Csp.poison c2; Csp.poison c3; Csp.poison c4; raise e)
+
+let cache_process i o () =
+    let cache table url = 
+        try (table, Table.find url table)
+        with Not_found -> begin
+            print_endline ("not found " ^ url);
+            print_endline (string_of_int (Thread.id (Thread.self ())));
+            let c = Csp.channel () in
+            Csp.fork (url_process url c);
+            (Table.add url c table, c)
+        end in
+    let rec loop t =
+        let u = Csp.read i in
+        let (t', c') = cache t u in
+        Csp.write o (Csp.read c');
+        loop t'
+    in loop Table.empty
+
+let cache_rpc o i u = Csp.write o u; Csp.read i
 
 (* create a server on a given port, and invokes the given function whenever anybody makes a request *)
 let socket_listener_process port f () =
@@ -44,48 +117,39 @@ let socket_listener_process port f () =
     let server_address = hostinfo.Unix.h_addr_list.(0) in
         ignore (Unix.bind socket (Unix.ADDR_INET (server_address, port)));
         Unix.listen socket 10;
+        let ci = Csp.channel () in
+        let co = Csp.channel () in
         let rec loop () = let (d, _) = Unix.accept socket in
             Csp.parallel [
-                f (Unix.in_channel_of_descr d, Unix.out_channel_of_descr d);
+                f (cache_rpc ci co) (Unix.in_channel_of_descr d) (Unix.out_channel_of_descr d);
                 loop;
             ]
-        in loop ()
+        in Csp.parallel [
+            cache_process ci co;
+            loop;
+        ]
 
-(* END code modified from http://www.brool.com/index.php/ocaml-sockets *)
-
-let http_request_process (ic, oc) () =
-    let input_header ic = let rec loop l = 
-            let s = input_line ic in
+let http_request_process rpc ic oc () =
+    let input_header j = let rec loop l = 
+            let s = input_line j in
             if s = "" || s = "\r" then l else loop (s::l)
         in List.rev (loop []) in
     let a = List.hd (input_header ic) in
     let r = Str.regexp "^GET \\([^ \r\n]+\\)" in
     if Str.string_match r a 0 then begin
         let u = Str.matched_group 1 a in
-        let c = Csp.channel () in
-        Csp.parallel [
-            http_download_process c u;
-            (fun () -> while true do
-                let s = Csp.read c in
-                output_string oc s;
-                flush oc
-            done)
-        ];
+        let c = rpc u in
+        while true do
+            let s = Csp.read c in
+            output_string oc s;
+            flush oc
+        done;
         close_out oc
     end else raise Not_found
 
 let _ = 
     socket_listener_process 8080 http_request_process ()
 
-(* API to consider:
-    write_process s c
-        reads everything from channel c and writes it to socket s,
-        closes socket on poison.
-    read_process s c
-        reads everything from socket s and writes it to channel c,
-        closes socket on poison.
-    line_process s c
-        reads lines from socket s and writes them to channel c
-        closes socket on poison.
-*)
+(* TODO: Implement Csp.propagate c that poisons on process exit *)
+(* TODO: Consider RPC abstraction on top of it or whatever *)
 

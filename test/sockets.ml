@@ -94,8 +94,6 @@ let cache_process i o () =
     let cache table url = 
         try (table, Table.find url table)
         with Not_found -> begin
-            print_endline ("not found " ^ url);
-            print_endline (string_of_int (Thread.id (Thread.self ())));
             let c = Csp.channel () in
             Csp.fork (url_process url c);
             (Table.add url c table, c)

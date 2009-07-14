@@ -15,8 +15,8 @@ let _ =
   let c1 = Csp.channel () in
   let c2 = Csp.channel () in
       Csp.parallel [
-        (* numbersInt c1; *)
-        fibonacciInt c1;
+        numbersInt c1;
+        (* fibonacciInt c1; *)
         (* (fun () -> for x = 1 to 44 do Csp.write c1 (bii x) done); *)
         stop 42 c1 c2;
         printer c2

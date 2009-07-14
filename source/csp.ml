@@ -155,13 +155,39 @@ let write_guard c v f s = {
 let read c = select [read_guard c (fun x -> x)]
 let write c v = select [write_guard c v (fun _ -> ())]
 
+module Table = Map.Make(struct type t = int let compare = compare end)
+
+let thread_id () = Thread.id (Thread.self ())
+
+let thread_local = ref (Table.add (thread_id ()) [] Table.empty)
+
+let propagate c = 
+    with_mutex global_mutex (fun _ -> 
+        let i = thread_id () in
+        let l = Table.find i !thread_local in 
+        let l' = (fun () -> poison c) :: l in
+        thread_local := Table.add i l' !thread_local);
+    c
+
+let thread_function f () = 
+    with_mutex global_mutex (fun _ -> 
+        thread_local := Table.add (thread_id ()) [] !thread_local);
+    let finialize () = 
+        let i = thread_id () in
+        let l = with_mutex global_mutex (fun _ -> 
+            let l' = Table.find i !thread_local in
+            thread_local := Table.remove i !thread_local;
+            l') in
+        List.iter (fun f -> f ()) l;
+    in try f (); finialize () with 
+    | PoisonException -> finialize ()
+    | e -> finialize (); raise e
+
 let parallel fs = let fs = shuffle fs in
-    let ts = List.map (fun f -> Thread.create (fun () ->
-        try f () with PoisonException -> ()) ()) fs
+    let ts = List.map (fun f -> Thread.create (thread_function f) ()) fs
     in List.iter Thread.join ts
 
-let fork f = ignore (Thread.create 
-    (fun () -> try f () with PoisonException -> ()) ())
+let fork f = ignore (Thread.create (thread_function f) ())
 
 (* TODO: Hvorfor opfoerer dette sig anderledes?
 let parallel fs =

@@ -166,8 +166,7 @@ let propagate c =
         let i = thread_id () in
         let l = Table.find i !thread_local in 
         let l' = (fun () -> poison c) :: l in
-        thread_local := Table.add i l' !thread_local);
-    c
+        thread_local := Table.add i l' !thread_local)
 
 let thread_function f () = 
     with_mutex global_mutex (fun _ -> 

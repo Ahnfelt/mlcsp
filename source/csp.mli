@@ -61,7 +61,7 @@ val write_guard : ('a, _ * on * _) channel -> 'a -> ('a -> 'b) -> 'b guard
 val poison : ('a, _ * _ * on) channel -> unit
 (** Poisons the channel. *)
 
-val propagate : ('a, 'b * 'c * on) channel -> ('a, 'b * 'c * on) channel
+val propagate : ('a, 'b * 'c * on) channel -> unit
 (** Automatically poisons the channel when the process dies. *)
 
 val read : ('a, on * _ * _) channel -> 'a

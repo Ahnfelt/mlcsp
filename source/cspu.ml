@@ -1,5 +1,3 @@
-module Csp = struct module Utilities = struct
-
 (* Quite broken still *)
 
 let poison_list l fn () = 
@@ -58,6 +56,4 @@ let _ =
         read_lines "test.txt" c;
         printer c;
     ]
-
-end end
 

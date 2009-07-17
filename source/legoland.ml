@@ -1,6 +1,6 @@
 (* $Id: legoland.ml,v 1.0 2009/05/05 09:00:00 gentauro Exp $ *)
 
-open Csp.Utilities
+open Cspu
 
 (* abbreviations *)
 let bii = Big_int.big_int_of_int

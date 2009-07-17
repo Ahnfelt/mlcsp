@@ -41,6 +41,9 @@ let spliturl url =
             let host = Str.matched_group 2 url in
             let port = try Str.matched_group 3 url with Not_found -> "80" in 
             let index = try Str.matched_group 4 url with Not_found -> "/" in 
+              print_endline("Debug: " ^ host);
+              print_endline("Debug: " ^ port);
+              print_endline("Debug: " ^ index);
             (host, int_of_string port, index)
         else raise Not_found
 

@@ -1,15 +1,29 @@
 (* $Id: legoland.ml,v 1.0 2009/05/05 09:00:00 gentauro Exp $ *)
 
-let bii x = Big_int.big_int_of_int x
-let sbi x = Big_int.string_of_big_int x
-let (++) x y = Big_int.add_big_int x y
+(* move to CSP.Utilities *)
+let poison_list l fn () = 
+  try fn () with Csp.PoisonException -> List.iter (fun f -> f ()) l
+
+(* move to CSP.Utilities *)
+let poison_channel c () =
+  Csp.poison c
+
+(* move to CSP.Utilities *)
+let raise_poison () =
+  raise Csp.PoisonException
+
+(* abbreviations *)
+let bii = Big_int.big_int_of_int
+let sbi = Big_int.string_of_big_int
+let (++) = Big_int.add_big_int
+let pc = poison_channel
 
 let rec terminator i () =
-  try
+  try 
     Csp.read i;
     terminator i ()
   with Csp.PoisonException -> Csp.poison i
-
+    
 let rec printer i () =
   try
     let x = Csp.read i in
@@ -32,25 +46,26 @@ let rec succint i o () =
 let rec plusint i1 i2 o () =
   let i1' = Csp.channel () in
   let i2' = Csp.channel () in
-    try
-      Csp.parallel [
-        (fun () -> Csp.write i1' (Csp.read i1));
-        (fun () -> Csp.write i2' (Csp.read i2));
-        (fun () -> Csp.write o (Csp.read i1' ++ Csp.read i2'));
-      ];
-      plusint i1 i2 o ()
-  with Csp.PoisonException ->
-    Csp.poison i1; Csp.poison i2; Csp.poison o;
-    Csp.poison i1'; Csp.poison i2'
-
+  let pl = poison_list [pc i1; pc i2; pc o; pc i1'; pc i2'] in
+    Csp.parallel [
+      pl (fun () -> Csp.write i1' (Csp.read i1));
+      pl (fun () -> Csp.write i2' (Csp.read i2));
+      pl (fun () -> Csp.write o (Csp.read i1' ++ Csp.read i2'))
+    ];
+    if (Csp.poisoned o || Csp.poisoned i1 || Csp.poisoned i2)
+    then pl ignore () else plusint i1 i2 o ()
+      
 let rec delta2int i o1 o2 () =
+  let pl = poison_list [pc i; pc o1; pc o2;] in
   try
     let x = Csp.read i in
       Csp.parallel[
-        (fun () -> Csp.write o1 (x));
-        (fun () -> Csp.write o2 (x))
+        pl (fun () -> Csp.write o1 (x));
+        pl (fun () -> Csp.write o2 (x));
       ];delta2int i o1 o2 ()
-  with Csp.PoisonException -> Csp.poison i; Csp.poison o1; Csp.poison o2
+  with Csp.PoisonException -> pl raise_poison ()
+
+(*pl ignore ()*)
 
 let rec prefixint n i o () =
   try

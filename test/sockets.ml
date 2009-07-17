@@ -148,6 +148,3 @@ let http_request_process rpc ic oc () =
 let _ = 
     socket_listener_process 8080 http_request_process ()
 
-(* TODO: Implement Csp.propagate c that poisons on process exit *)
-(* TODO: Consider RPC abstraction on top of it or whatever *)
-

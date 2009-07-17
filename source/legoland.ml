@@ -1,16 +1,6 @@
 (* $Id: legoland.ml,v 1.0 2009/05/05 09:00:00 gentauro Exp $ *)
 
-(* move to CSP.Utilities *)
-let poison_list l fn () = 
-  try fn () with Csp.PoisonException -> List.iter (fun f -> f ()) l
-
-(* move to CSP.Utilities *)
-let poison_channel c () =
-  Csp.poison c
-
-(* move to CSP.Utilities *)
-let raise_poison () =
-  raise Csp.PoisonException
+open Csp.Utilities
 
 (* abbreviations *)
 let bii = Big_int.big_int_of_int

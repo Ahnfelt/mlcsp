@@ -57,6 +57,9 @@ let poison c = with_mutex global_mutex (fun _ ->
     | _ -> ());
     c := Poisoned)
 
+let poisoned c =
+  with_mutex global_mutex (fun _ -> !c == Poisoned)
+
 (* Must be called in a locked context *)
 let rec attempt_all l = match l with
     | [] -> None

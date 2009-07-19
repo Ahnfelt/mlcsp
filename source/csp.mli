@@ -102,24 +102,36 @@ let parallel_add i1 i2 o () = while true do
     ] done ]} *)
 
 
-(** {6 Channel permissions} 
+(** {6 Channel permissions}
     The channel permissions control what you can do through a 
     handle. These are enforced statically by the type system.
     Each of the functions return a handle that only has the
     advertised permissions, and none of them add new permissions. *)
 
-val read_only : ('a, on * _ * _) channel -> ('a, on * off * off) channel
+val read_only : 
+    ('a, on * _   * _  ) channel -> 
+    ('a, on * off * off) channel
 
-val read_write_only : ('a, on * on * _) channel -> ('a, on * on * off) channel
+val read_write_only : 
+    ('a, on * on * _  ) channel -> 
+    ('a, on * on * off) channel
 
-val read_poison_only : ('a, on * _ * on) channel -> ('a, on * off * on) channel
+val read_poison_only : 
+    ('a, on * _   * on) channel -> 
+    ('a, on * off * on) channel
 
-val write_only : ('a, _ * on * _) channel -> ('a, off * on * off) channel
+val write_only : 
+    ('a, _   * on * _  ) channel -> 
+    ('a, off * on * off) channel
 
-val write_poison_only : ('a, _ * on * on) channel -> ('a, off * on * on) channel
+val write_poison_only : 
+    ('a, _   * on * on) channel -> 
+    ('a, off * on * on) channel
 
-val poison_only : ('a, _ * _ * on) channel -> ('a, off * off * on) channel
-
+val poison_only : 
+    ('a, _   * _   * on) channel -> 
+    ('a, off * off * on) channel
+    
 (** {[(* Chosing permissions on a "need to know" basis. *)
 let rec counter c n () = 
     if n == 0 then Csp.poison c else begin

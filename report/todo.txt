@@ -7,10 +7,49 @@ Grue: Højest 10 linjer: Hvad handler rapporten om? Hvilke resultater er opnået
 
 Introduction:
 -------------
-"Motivation"
+- Why don't we use or extend Event?
+- Motivating goal(?): Web proxy
 
 Analysis:
 ---------
+- For each feature:
+    - What does CSP do (if at all)?
+    - What does the different CSP libraries do?
+    - How would we want to write it in OCaml?
+    - How can we write it in OCaml? If it's worse, why?
+- Select:
+    - Why aren't it's arguments processes like in CSP?
+    - Why do we not have a time guard?
+    - Why do we not implement priSelect? (is it meaningless?)
+    - Why is shuffle-select sufficient?
+    - Wouldn't priSelect better allow other kinds of select to be built on top?
+- Processes and channels
+    - Process "prototypes" are simply functions (unit -> unit).
+    - Running processes are not values (just like in CSP).
+    - Channels are values and can be sent over channels (unlike in CSP??? research!).
+    - Parallel = spawn processes, then join them.
+    - Why didn't we stick with parallel2, 3, etc?
+    - (in1 ? x --> SKIP || in2 ? y --> SKIP); out ! p + q
+    - Internal channels instead.
+    - Show how parallel2 etc. can be implemented on top of the library.
+    - Why do we have fork?
+    - Why do we have parallel? (and not some other construct?)
+    - Why no one2one etc. channels? Can't be checked statically in OCaml (type system).
+    - Some libraries has altchannel, but all our channels can do everything.
+- Minimalism
+    - Only put things in the Csp module that *has* to be there.
+    - Why are channels there? (integral part of Csp)
+    - Why are parallel and fork there? (Fits into the CSP vocabulary? Fork?)
+    - Why are channel rights there? (Maybe hard to implement outside?)
+    - Why is poison there? (Maybe hard to implement outside?)
+- Poison
+    - Why is it interesting?
+    - How should it work?
+    - Why have a manual poison check (poisoned)?
+    - Why can't we propagate it automatically?
+    - When is it desirable to do so?
+    - What does PyCSP do?
+    - What could we have done? Propagate, finally, poison_list, try-catch.
 
 
 Implementation:

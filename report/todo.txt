@@ -52,8 +52,24 @@ Analysis:
     - What does PyCSP do?
     - What could we have done? Propagate, finally, poison_list, try-catch.
 
+
 Implementation:
 ---------------
+-Global mutex (no parallelismo due to garbage collector).
+-Individual condition variables.
+-List of records with functions to hide type variable? Avoid high order
+polymorphism.
+-Mutex + condition + threads.
+-Process
+-Channels
+-Select
+-Guards
+-Poison
+-Identity function for rights (channel rights) + phantom types.
+-Random in shuffle, argument that based on probability that all process would
+be run at some point.
+-With_mutex
+-Read + write shorthand for select.
 
 Test:
 -----
@@ -63,7 +79,30 @@ Test:
 -Any2any channels.
 -Fibonacci with poison (Milestone I).
 -WebProxy (Milestone II).
--Why haven't we made the Ising model
+-Why haven't we made the Ising model as we mention in synopsis.
+-Commsmark as in PyCSP?
+-Non-blocking IO.
 
 Conclusion:
 -----------
+-What we have and what we can do:
+ * An implemented and tested API that works as intentioned (look at synopsis).
+ * It's Small, precise and well documented.
+ * We can do same kind of applications as the other CSP libraries but our is
+   type-strong at compiler time. For example if our print component expects a
+   string message but if the previous proccess sends an array we will not be
+   able to compile and hereby execute the application. On the other hand with
+   PyCSP we can have our application running for a day an just at the end when
+   we need to send the string to the printer with the final result we send an
+   array an the application crashes. (kig på om eksempel holder).
+ * Usefull for IO-bound concurrency.
+-What we don't have:
+ * True parallelism in Ocaml threads, look at the french guy mail.
+ * A limit on amount of user threads around ~15.000, set by ocaml for each
+   application, you can run several application where each get that upperbound.
+-Possible extensions:
+ * Implement distribution through sockets as mentioned in synopsis, this way
+   we could achieve paralelism:
+   ~How would the process be started?
+   ~How would the process syncronize?
+   ~Avoid stop-the-world. Best case? Ok case?

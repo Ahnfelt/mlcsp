@@ -7,7 +7,7 @@ Grue: Højest 10 linjer: Hvad handler rapporten om? Hvilke resultater er opnået
 
 Introduction:
 -------------
-"Motivation" -> (slides)
+"Motivation" ?? false
 
 Analysis:
 ---------
@@ -17,3 +17,13 @@ Implementation:
 
 Test:
 -----
+-Amout of threads that can be spawned.
+-Parallel [-] and fork.
+-Guards.
+-Any2any channels.
+-Fibonacci with poison (Milestone I).
+-WebProxy (Milestone II).
+-Why haven't we made the Ising model
+
+Conclusion:
+-----------

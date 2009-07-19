@@ -102,7 +102,7 @@ let parallel_add i1 i2 o () = while true do
     ] done ]} *)
 
 
-(** {6 Channel permissions} 
+(** {6 Channel permissions}
     The channel permissions control what you can do through a 
     handle. These are enforced statically by the type system.
     Each of the functions return a handle that only has the
@@ -131,7 +131,7 @@ val write_poison_only :
 val poison_only : 
     ('a, _   * _   * on) channel -> 
     ('a, off * off * on) channel
-
+    
 (** {[(* Chosing permissions on a "need to know" basis. *)
 let rec counter c n () = 
     if n == 0 then Csp.poison c else begin

@@ -69,14 +69,29 @@
 \begin{document}
 
 \maketitle
+
+\newpage
+
+\selectlanguage{danish}
+\begin{abstract}
+% Grue: Højest 10 linjer: Hvad handler rapporten om? Hvilke resultater er
+% opnået?
+Her på dansk
+\end{abstract}
+
+\selectlanguage{english}
+\begin{abstract}
+Here in english
+\end{abstract}
+
 \newpage
 \tableofcontents
+\newpage
 
 % Line breaks between paragraphs instead of indentation
 \parindent=0pt
 \parskip=8pt plus 2pt minus 4pt
 
-\newpage
 \section{Introduction}
 
 \section{Analysis}
@@ -380,11 +395,11 @@ than the current randomized select. \\
 \newpage
 \section{Appendix: Test}
 \scriptsize
-\subsection{Milestone I. Fibonacci}
+\subsection{Fibonacci}
 \lstinputlisting{../test/fibCSP.ml}
 
-\subsection{Milestone II. Webproxy}
-\lstinputlisting{../source/sockets.ml}
+\subsection{Webproxy}
+\lstinputlisting{../test/proxyCSP.ml}
 \normalsize
 
 \end{document}

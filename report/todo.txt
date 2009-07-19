@@ -1,0 +1,19 @@
+TODO Report:
+============
+
+Abstract:
+---------
+Grue: Højest 10 linjer: Hvad handler rapporten om? Hvilke resultater er opnået?
+
+Introduction:
+-------------
+"Motivation" -> (slides)
+
+Analysis:
+---------
+
+Implementation:
+---------------
+
+Test:
+-----

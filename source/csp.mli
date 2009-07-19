@@ -50,11 +50,13 @@ val select : ('a guard) list -> 'a
     of the guards are accociated with a poisoned channel,
     PoisonException is thrown. *)
 
-val read_guard : ('a, on * _ * _) channel -> ('a -> 'b) -> 'b guard
+val read_guard : ('a, on * _ * _) channel -> 
+    ('a -> 'b) -> 'b guard
 (** A read guard becomes ready when there is somebody waiting 
     to write on the channel. *)
 
-val write_guard : ('a, _ * on * _) channel -> 'a -> ('a -> 'b) -> 'b guard
+val write_guard : ('a, _ * on * _) channel -> 
+    'a -> ('a -> 'b) -> 'b guard
 (** A write guard becomes ready when there is somebody waiting 
     to read on the channel. *)
 

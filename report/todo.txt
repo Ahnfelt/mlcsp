@@ -69,6 +69,7 @@ polymorphism.
 be run at some point.
 -With_mutex
 -Read + write shorthand for select.
+-Evt. alternativ implementation som wrapper til event.
 
 Test:
 -----
@@ -78,9 +79,10 @@ Test:
 -Any2any channels.
 -Fibonacci with poison (Milestone I).
 -WebProxy (Milestone II).
--Why haven't we made the Ising model as we mention in synopsis.
+-Why haven't we made the Ising model as we mention in synopsis. (No parallelism)
 -Commsmark as in PyCSP?
 -Non-blocking IO.
+-Evt. implementere proxy i PyCSP eller finde et andet program at sammenligne med.
 
 Conclusion:
 -----------

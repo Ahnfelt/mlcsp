@@ -96,6 +96,8 @@ Here in english
 
 \section{Analysis}
 
+
+
 \subsection{Interface}
 
 \subsubsection{Design}
@@ -221,128 +223,6 @@ Read & Write & Poison & Function \\
 \caption{Channel permissions}
 \label{channel-permissions}
 \end{figure}
-
-
-% \section{Channels}
-% \missing{
-% This section is a short introduction to channels \\
-% - Explanation for people who don't know CSP \\
-% - Possibly a figure with boxes and lines as a metaphor for processes and channels \\
-% }
-% 
-% \subsection{Communication}
-% \missing{
-% This section describes the communication primitives \\
-% - Synchronization (might be the trickiest part to get right) \\
-% - Read, Write, Poision \\
-% }
-% 
-% \begin{figure}[h]
-% \centering
-% \begin{tabular}{l|l|l}
-% CSP & OCamlCSP \\
-% \hline
-% $c\,?\,x \to P(x)$ & let x = read c in p x \\
-% $c\,!\,e \to Q$ & write c e; q () \\
-% (no equivalent) & poison c; r () \\
-% \end{tabular}
-% \caption{Channels in CSP vs. OCamlCSP}
-% \label{channel-communication}
-% \end{figure}
-% 
-% \subsection{Alternation}
-% \missing{
-% This might be it's own section or be merged with communication \\
-% - Alternation (and read/write/timeout guards) \\
-% - Communication scheduling (prioritized/random select) \\
-% - More synchronization \\
-% - Actions are automatically performed when chosen (no promises) \\
-% - Does random (prioritized (shuffle list)) mean fair? \\
-% - Consider having a ``poll'' function that does nothing if none of the alternatives are ready \\
-% }
-% 
-% \begin{figure}[h]
-% \centering
-% \begin{tabular}{l|l}
-% CSP & OCamlCSP \\
-% \hline
-% & \\
-% ($c_1\,?\,x \to P(x) \mid c_2\,?\,y \to Q(y)$) & random [ \\
-% & \quad Read (c1, fun x $\to$ p x); \\
-% & \quad Read (c2, fun y $\to$ q y) ] \\
-% & \\
-% ($c_1\,?\,x \to P(x) \mid c_2\,!\,a+b \to Q$) & random [ \\
-% & \quad Read (c1, fun x $\to$ p x); \\
-% & \quad Write (c2, (fun () $\to$ a + b), fun \_ $\to$ q ()) ] \\
-% & \\
-% (no equivalent) & random [ \\
-% & \quad Read (c1, fun x $\to$ p x); \\
-% & \quad Wait (0.100, fun t $\to$ q ()) ] \\
-% \end{tabular}
-% \caption{Alternation in CSP vs. OCamlCSP}
-% \label{channel-alternation}
-% \end{figure}
-% 
-% \subsection{Capabilities}
-% \missing{
-% This section describes the channels ``end'' capabilities \\
-% - Phantom types (with polymorphic variants, informal: channel ends) \\
-% - Capabilities can only be taken away, not added \\
-% - All (useful) capability combinations are covered \\
-% }
-% 
-% \begin{figure}[h]
-% \centering
-% \begin{tabular}{c|c|c|l}
-% `Read & `Write & `Poison & Function \\
-% \hline
-% 0 & 0 & 0 & (useless) \\
-% 0 & 0 & 1 & poison\_only \\
-% 0 & 1 & 0 & write\_only \\
-% 0 & 1 & 1 & write\_poison\_only \\
-% 1 & 0 & 0 & read\_only \\
-% 1 & 0 & 1 & read\_poison\_only \\
-% 1 & 1 & 0 & read\_write\_only \\
-% 1 & 1 & 1 & (default) \\
-% \end{tabular}
-% \caption{Channel end capabilities}
-% \label{channel-capabilities}
-% \end{figure}
-% 
-% \section{Processes}
-% \missing{
-% This secion describes the process primitives \\
-% - Lambda functions (closures that capture channels) \\
-% - Joining \\
-% - Captures the return values (functional, not for fork) \\
-% - Exception propagation (when all processes are done, not for fork) \\
-% - Scope differences from CSP? \\
-% - Find out if spawn has an equivalent in CSP. \\
-% }
-% 
-% \begin{figure}[h]
-% \centering
-% \begin{tabular}{l|l}
-% CSP & OCamlCSP \\
-% \hline
-% & \\
-% ($c_1\,?\,x \to skip \parallel c_2\,?\,y \to skip$); $c_3\,!\,x + y$ & let (x, y) = parallel \\
-% & \quad (fun () $\to$ read c1) \\
-% & \quad (fun () $\to$ read c2) \\
-% & in write c3 (x + y) \\
-% & \\
-% (imperative representation) & let x = ref 0 in \\
-% & let y = ref 0 in \\
-% & fork [ \\
-% & \quad (fun () $\to$ x := read c1); \\
-% & \quad (fun () $\to$ y := read c2) ]; \\
-% & write c3 (!x + !y) \\
-% & \\
-% (no equivalent) & spawn 10 (fun i $\to$ \dots) \\
-% \end{tabular}
-% \caption{Parallel processes in CSP vs. OCamlCSP}
-% \label{channel-parallel}
-% \end{figure}
 
 \subsection{Alternation}
 

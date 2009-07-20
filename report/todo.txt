@@ -7,8 +7,10 @@ Grue: Højest 10 linjer: Hvad handler rapporten om? Hvilke resultater er opnået
 
 Introduction:
 -------------
-- Why don't we use or extend Event?
-- Motivating goal(?): Web proxy
+- Is the project full implemented?
+- "Forudsætninger" from the reader.
+- What can the reader expect in this report
+- (Motivating goal(?): Web proxy) ???
 
 Analysis:
 ---------
@@ -107,3 +109,7 @@ Conclusion:
    ~How would the process be started?
    ~How would the process syncronize?
    ~Avoid stop-the-world. Best case? Ok case?
+- Why don't we use or extend Event? (very similar ... almost a clone). With this
+project we wanted to learn how to design/implement an API. Read synopsis where
+we set focus on the design of the API.
+

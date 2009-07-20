@@ -1,11 +1,25 @@
 (* Some Simple Networks *)
 
-open Csp
 open Legoland
 
+let _ = print_endline "Numbers from [0..41]:"
+
 let _ =
-  let c = Csp.channel () in
+  let c1 = Csp.channel () in
+  let c2 = Csp.channel () in
   Csp.parallel [
-    numbersInt c;
-    printer c
+    numbersInt c1;
+    stop 42 c1 c2;
+    printer c2
+  ]
+
+let _ = print_endline "Squares from [1..41]:"
+
+let _ =
+  let c1 = Csp.channel () in
+  let c2 = Csp.channel () in
+  Csp.parallel [
+    squaresInt c1;
+    stop 42 c1 c2;
+    printer c2
   ]

@@ -1,6 +1,8 @@
 (* Fibonacci CSP network *)
 
 open Legoland
+
+let _ = print_endline "Fibonacci numbers [1..42]:"
       
 let _ = 
   let c1 = Csp.channel () in

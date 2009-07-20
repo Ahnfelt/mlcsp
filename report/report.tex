@@ -110,8 +110,42 @@ Here in english
 \parskip=8pt plus 2pt minus 4pt
 
 \section{Introduction}
+This project is a complete, designed and implemented, API for a CSP-based
+concurrency library in a functional language, in this case Ocaml\cite{?}.
+
+We have achieved our three primary goals we set at the beginning:
+\begin{itemize}
+ \item \textbf{Designing an API for a CSP-based concurrency library in a
+     functional language}. Because our main focus was on the API design, most of
+   the {\it Section} \ref{analysis} is related to this.
+ \item \textbf{Implementing the concurrency API in a functional language.} A
+   complete description on how we implemendted the API based on the limitations
+   of the chosen language?, use of a global lock. For more information look in
+   the {\it Section} \ref{implementation}.
+ \item \textbf{Assessing the API and underlying implementation by comparing
+     applications built on top of it with similar applications built on top of
+     an existing CSP library}. We have made a simple CSP network, Fibonacci,
+   and a more complex, Webproxy, in order to test the API. The application are
+   similar to the applications we have made for one of the other CSP libraries.
+   A full description on how these applications are build and how to compile-run
+   can be seen in the {\it Section} \ref{test}.
+\end{itemize}
+
+The resulting API source code and documentation can be seen in the Appendix
+\ref{appendixSrc} and \ref{appendixDoc}. A online version is also avaliable at:
+
+\begin{center}
+http://github.com/Ahnfelt/mlcsp/
+\end{center}
+
+About the possible extensions to this API, we got wise on that we cannot
+implement true parallelism through system threads, see at {\it Section
+\ref{analysis}} for more information, but how we ``maybe'' can implement
+parallelism with distribution through sockets, see {\it Section 
+\ref{conclusion}}.
 
 \section{Analysis}
+\label{analysis}
 \missing{
 - Are CSP channels any2any and bidirectional? \\
 - Are CSP channels names or values? \\
@@ -272,6 +306,7 @@ $P \parallel Q$
 
 
 \section{Implementation}
+\label{implementation}
 
 
 \subsection{Channels}
@@ -381,7 +416,108 @@ than the current randomized select. \\
 
 \section{Test}
 
+\label{test}
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    	File name &
+	Description &
+	Expected Output &
+	Run \\
+    \hline
+    	maxthreads.ml &
+        &
+        &
+	OK \\
+    \hline
+    	nonblocking.ml &
+        &
+        &
+	OK \\
+    \hline
+    	commstime.ml ??? &
+        &
+        &
+	OK \\
+    \hline
+    	ssn.ml (numbers 0$\ldots$41) &
+        &
+        &
+	OK \\
+    \hline
+    	ssn.ml (squares 0$\ldots$41) &
+        &
+        &
+	OK \\
+    \hline
+\end{tabular} 
+\caption{Test table ...}
+\label{testtable}
+\end{table}
+
+\subsection{Fibonacci}
+
+
+\subsection{Webproxy}
+
+
 \section{Conclusion}
+\label{conclusion}
+
+If we compare how Brian Vinter teaches CSP\cite{vinter}:
+\begin{center}
+\begin{verbatim}
+PairsInt (in, out) = Delta2Int (in, a, c) || 
+                     TailInt (a, b) || 
+                     PlusInt (b, c, out) 
+\end{verbatim}
+\end{center}
+
+versus how we implement the simple network:
+
+\begin{verbatim}
+let pairsInt i o () =
+  let a = Csp.channel () in
+  let b = Csp.channel () in
+  let c = Csp.channel () in
+    Csp.parallel [
+      delta2int i a c;
+      tailint a b;
+      plusint b c o;
+    ]
+\end{verbatim}
+
+We can see that there is almost no difference beside the {\it parallel operator}
+and definition of the channel variables.
+
+% ----------------------------------------------------------------------
+% Bibliography
+% ----------------------------------------------------------------------
+\begin{thebibliography}{99}
+
+\bibitem[Hoare 04]{hoare}
+:\\
+Communicating Sequential Processes\\
+C. A. R. Hoare\\
+Prentice Hall International; (June 24, 2004)\\
+ISBN-10: 0-13-153271-5\\
+ISBN-13: 978-0-13-153271-7\\
+http://www.usingcsp.com/cspbook.pdf
+
+\bibitem[Vinter, CSP]{vinter}
+:\\
+Threading\\
+Brian Vinter\\
+Department of Computer Science. University of Copenhagen\\
+http://isis.ku.dk/kurser/blob.aspx?feltid=224185\\
+Last visited: $20^{th}$ july 2009
+
+
+
+\end{thebibliography}
+% ----------------------------------------------------------------------
+
 
 \appendix
 \newpage
@@ -399,8 +535,16 @@ than the current randomized select. \\
 \lstinputlisting{../source/legoland.ml}
 \normalsize
 
+\section{Appendix: Documentation}
+\label{appendixDoc}
+\begin{center}
+  \includepdf[pages=-]{../docs/csp.pdf}
+\end{center}
+
+
 \newpage
 \section{Appendix: Test}
+\label{appendixTest}
 \scriptsize
 \subsection{Fibonacci}
 \lstinputlisting{../test/fibCSP.ml}

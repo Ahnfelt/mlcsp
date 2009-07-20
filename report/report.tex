@@ -88,7 +88,6 @@
 \maketitle
 
 \newpage
-
 \selectlanguage{danish}
 \begin{abstract}
 % Grue: Højest 10 linjer: Hvad handler rapporten om? Hvilke resultater er
@@ -96,6 +95,7 @@
 Her på dansk
 \end{abstract}
 
+\newpage
 \selectlanguage{english}
 \begin{abstract}
 Here in english
@@ -417,37 +417,36 @@ than the current randomized select. \\
 \section{Test}
 
 \label{test}
-\begin{table}[ht]
+\begin{table}[!ht]
 \centering
-\begin{tabular}{|c|c|c|c|}
+\begin{tabular}{|p{3cm}|p{4.0cm}|p{4.0cm}|c|}
     \hline
     	File name &
 	Description &
 	Expected Output &
 	Run \\
     \hline
-    	maxthreads.ml &
+    	maxthreads.ml (user thread) &
+        The application creates as many threads as possible, once it reaches
+        about 15.000 it stops spawning more threads (deadlock ?).&
         &
+	FAIL \\
+    \hline
+    	maxthreads.ml (system thread) &
+        The application creates as many threads as possible, once it reaches
+        about 100 it stops spawning more threads (deadlock ?).&
         &
-	OK \\
+	FAIL \\
     \hline
     	nonblocking.ml &
-        &
-        &
-	OK \\
-    \hline
-    	commstime.ml ??? &
-        &
+        We run to processes in parallel. The first process whats for user input
+        and the second process after a seconds delay reads the first line from
+        the its own source code file and writes the line to stdout.&
         &
 	OK \\
     \hline
-    	ssn.ml (numbers 0$\ldots$41) &
-        &
-        &
-	OK \\
-    \hline
-    	ssn.ml (squares 0$\ldots$41) &
-        &
+    	commstime.ml &
+        A benchmark application used by Brian Vinter to measure PyCSP vs JCSP.&
         &
 	OK \\
     \hline
@@ -505,7 +504,16 @@ ISBN-10: 0-13-153271-5\\
 ISBN-13: 978-0-13-153271-7\\
 http://www.usingcsp.com/cspbook.pdf
 
-\bibitem[Vinter, CSP]{vinter}
+
+\bibitem[Vinter, PyCSP]{vinterpycsp}
+:\\
+PyCSP. The beginning of a CSP library for Python\\
+Brian Vinter\\
+Department of Computer Science. University of Copenhagen\\
+http://isis.ku.dk/kurser/blob.aspx?feltid=224718\\
+Last visited: $20^{th}$ july 2009
+
+\bibitem[Vinter, CSP]{vintercsp}
 :\\
 Threading\\
 Brian Vinter\\
@@ -535,6 +543,7 @@ Last visited: $20^{th}$ july 2009
 \lstinputlisting{../source/legoland.ml}
 \normalsize
 
+\newpage
 \section{Appendix: Documentation}
 \label{appendixDoc}
 \begin{center}

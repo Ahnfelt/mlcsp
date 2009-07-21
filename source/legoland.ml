@@ -1,5 +1,3 @@
-(* $Id: legoland.ml,v 1.0 2009/05/05 09:00:00 gentauro Exp $ *)
-
 open Cspu
 
 (* abbreviations *)
@@ -8,79 +6,88 @@ let sbi = Big_int.string_of_big_int
 let (++) = Big_int.add_big_int
 let pc = poison_channel
 
-let rec terminator i () =
+let terminator i () =
   let pl = poison_list [pc i] in
-  try 
-    Csp.read i;
-    terminator i ()
+  try
+    while true do
+      Csp.read i;
+    done
   with Csp.PoisonException -> pl raise_poison ()
 
-let rec stop n i o () =
+let stop n i o () =
   let pl = poison_list [pc i; pc o] in
-  match n with
-    | 0 -> pl raise_poison();
-    | _ ->
-        try 
-          Csp.write o (Csp.read i);
-          stop (n-1) i o ()
-        with Csp.PoisonException -> pl raise_poison ()
+  try
+    for j = 1 to n do
+      Csp.write o (Csp.read i);
+    done;
+    pl raise_poison ()
+  with Csp.PoisonException -> pl raise_poison ()
     
-let rec printer i () =
+let printer i () =
   let pl = poison_list [pc i] in
   try
+    while true do
     let x = Csp.read i in
       print_endline(sbi x);
-      printer i ()
+    done
   with Csp.PoisonException -> pl raise_poison ()
         
-let rec idint i o () =
+let idint i o () =
   let pl = poison_list [pc i; pc o] in
   try
-    Csp.write o (Csp.read i);
-    idint i o ()
+    while true do
+      Csp.write o (Csp.read i);
+    done
   with Csp.PoisonException -> pl raise_poison ()
 
 let rec succint i o () =
   let pl = poison_list [pc i; pc o] in
   try
-    Csp.write o (Csp.read i ++ bii 1);
-    succint i o ()
+    while true do
+      Csp.write o (Csp.read i ++ bii 1);
+    done
   with Csp.PoisonException -> pl raise_poison ()
 
-let rec plusint i1 i2 o () =
+let plusint i1 i2 o () =
   let i1' = Csp.channel () in
   let i2' = Csp.channel () in
   let pl = poison_list [pc i1; pc i2; pc o; pc i1'; pc i2'] in
-    Csp.parallel [
-      pl (fun () -> Csp.write i1' (Csp.read i1));
-      pl (fun () -> Csp.write i2' (Csp.read i2));
-      pl (fun () -> Csp.write o (Csp.read i1' ++ Csp.read i2'))
-    ];
-    if(Csp.poisoned o ||Csp.poisoned i1||Csp.poisoned i2)
-    then pl raise_poison () else plusint i1 i2 o ()
+    while true do
+      Csp.parallel [
+        pl (fun () -> Csp.write i1' (Csp.read i1));
+        pl (fun () -> Csp.write i2' (Csp.read i2));
+        pl (fun () -> Csp.write o (Csp.read i1' ++ Csp.read i2'))
+      ];
+      if Csp.poisoned o || Csp.poisoned i1 || Csp.poisoned i2
+      then pl raise_poison ()      
+    done
       
 let rec delta2int i o1 o2 () =
   let pl = poison_list [pc i; pc o1; pc o2;] in
   try
-    let x = Csp.read i in
-      Csp.parallel[
-        pl (fun () -> Csp.write o1 x);
-        pl (fun () -> Csp.write o2 x);
-      ];delta2int i o1 o2 ()
+    while true do
+      let x = Csp.read i in
+        Csp.parallel[
+          pl (fun () -> Csp.write o1 x);
+          pl (fun () -> Csp.write o2 x);
+        ];
+    done
   with Csp.PoisonException -> pl raise_poison ()
 
-let rec prefixint n i o () =
+let prefixint n i o () =
   let pl = poison_list [pc i; pc o] in
   try
     Csp.write o (n);
     idint i o ()
   with Csp.PoisonException -> pl raise_poison ()
 
-let rec tailint i o () =
+let tailint i o () =
   let pl = poison_list [pc i; pc o] in
   try
     Csp.read i; (* we drop first number *)
-    idint i o ()
+    while true do
+      idint i o ()
+    done
   with Csp.PoisonException -> pl raise_poison ()
 
 let blockingFifo i o () =

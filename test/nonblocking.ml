@@ -1,5 +1,3 @@
-(* ocamlc -vmthread threads.cma unix.cma nonblocking.ml -o nonblocking && ./nonblocking *)
-
 open Unix
 
 (* Waits for user input *)

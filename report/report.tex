@@ -151,15 +151,91 @@ parallelism with distribution through sockets, see {\it Section
 - Are CSP channels names or values? \\
 - Why don't we provide CSP events? \\
 - References to CSP and CSP libraries. \\
+- What do we do about shared state?\\
+- Compare with the Event library.\\
+- More introduction.\\
 }
 
-We would like our programs to resemble CSP in structure. In order to do that, we must
-provide the synchronous bidirectional channels, alternation and processes.
+The CSP theory is concerned with processes that communicate solely by synchronous 
+events. Synchronous channels are built on top of the basic abstraction, and this is
+what most implementations (including \cite{occam}, \cite{c++csp}, \cite{jcsp} and 
+\cite{pycsp}) provide for communication. 
+Additionally, it is possible to wait for communication from multiple sources at once.
 
-For each construct, we are going to look at how it's done in CSP and CSP libraries,
-how we would like to write it in OCaml, and what the semantics should be.
+For each construct, we are going to look at how it's done in CSP and in the 
+existing CSP libraries, how we would like to write it in OCaml, and what the 
+semantics should be.
 
-\subsection{Send \& receive}
+\subsection{Processes}
+\missing{
+- More about the lack of parallelism.\\
+}
+
+Processes can be run in parallel in CSP using the $\parallel$ operator:
+\[P \parallel Q\]
+The semantics of this is that the two processes $P$ and $Q$ are run in parallel. They
+may communicate with each other. If put in front of another process in a sequence, all
+processes running in parallel must finish before the next process can take any steps.
+
+In PyCSP running two processes in parallel looks like this:
+\begin{verbatim}
+Parallel(P, Q)
+\end{verbatim}
+Where $P$ and $Q$ must be specified as $Process$ instances. It runs the processes in
+parallel and returns when they have all stopped executing. Since Python does not offer
+a literal syntax for such objects that can be used in a expression, the processes must
+be defined elsewhere. The API for C++CSP and JCSP are similar, although Java does offer
+object literals. In all cases the object literals only expose a \emph{run} method. 
+It is unclear what happens if this method is called twice on the same instance 
+(especially if the instance is used twice in the same parallel-construct).
+
+To avoid undefined behaviour we use functions to represent process definitions. There is 
+nothing special about the functions except that they have the type $unit \to unit$. OCaml 
+allows us to treat the functions as values, which means we can pass them around and use 
+them as arguments for our parallel construct:
+
+\begin{verbatim}
+parallel [P; Q]
+\end{verbatim}
+
+However, since OCaml has anonymous functions, we can define the process directly inside
+the parallel construct, which is often convenient for small processes. The processes
+are then run in parallel, and there is no way to get a handle to a \emph{running} process
+through our API.
+
+Sometimes it is useful to define a function that starts a process as a side effect, but
+returns before the process has finished. This corresponds to running the process in 
+parallel with \emph{the rest of the program}. Since we don't have continuations, we 
+provide the special purpose function \emph{fork} that simply starts a process and returns
+immediatly. JCSP does something similar with their \emph{ProcessManager}, but provides a
+\emph{stop} method that will terminate the process. It has since been deprecated because
+it is unsafe to terminate a running process from the outside. There is not much else to 
+do with a handle to a process, so we avoid returning a handle to it at all.
+
+We don't provide a special construct for sequence, since OCaml has a perfectly fine 
+sequence operatoer built in, and executing a list of processes in sequence is a simple
+matter of iterating over it and invoking each one. We also don't provide a way to specify 
+the stack size for a process, because the stack grows dynamically in OCaml user threads, 
+and there is little reason to use system threads (see section \ref{implementation}).
+
+Note that the library \emph{does not provide parallel execution}; it only provides 
+perceived concurrency (see section \ref{implementation}).
+
+\subsection{Channels}
+\missing{
+- Why don't we have broadcasts or any2all?\\
+}
+
+Channels are the only means of communication between processes that we provide directly.
+In PyCSP, C++CSP and JCSP, channels are created by constructing an instance of a channel
+class. Our channels correspond to their \emph{any2any} channels, meaning that any number
+of processes can send on and receive from a channel, that any message sent over it
+has exactly one sender and one receiver, and that these communicate synchronously.
+
+Creating a channel is just a call to a function which returns the new channel:
+\begin{verbatim}
+let c = channel ()
+\end{verbatim}
 
 Two of the basic constructs for CSP channels are send and receive:
 \[c\,!\,e \to P\]
@@ -185,7 +261,7 @@ they are names in CSP. JCSP and C++CSP are similar.
 The obvious way to look like CSP is to define operators ! and ? that works like the
 CSP counterpart. However, it is not possible in OCaml to declare that the right hand 
 side of the question mark introduces a binding. It is also not desireable to redefine
-the special ! operator that is used for dereferencing mutable references in OCaml.
+the ! operator that is used for dereferencing mutable references in OCaml.
 
 We therefore have to decide between methods and functions. The OCaml standard library
 primarily uses functions to provide it's functionality, and few if any other ML 
@@ -200,20 +276,26 @@ write c e; P
 let x = read c in Q(x)
 \end{verbatim}
 
-We are going to define the semantics of these in the next section.
+It is possible to transmit any OCaml value over a channel, including impure functions and mutable 
+state. Sharing mutable state between processes should only be done with caution however, since it 
+requires additional synchronization beyond the scope of this library. The remaining semantic 
+details of the channels are explained in the following section.
 
 \subsection{Alternation}
 \missing{
-- Wot? No chicken?\\
+- PriSelect (not there because it's not well defined).\\
+- FairSelect (what problem does this actually solve?).\\
+- Polling or skip guards (can be implemented as a process). \\
+- Time guards (can be implemented as a process). \\
 }
 
-External choice in CSP looks like this:
-\[(c_1\,?\,x \to P(x)\ |\ c_2\,?\,x \to Q(y)\ |\ c_3\,!\,e \to R)\]
-Where there may be any number of processes separated by vertical bars.
-The semantics is that the whole process becomes whichever of the listed processes 
-that can take a step first. 
+Alternation corresponds to \emph{external choice} in CSP, which uses the $|$ operator:
+\[c_1\,?\,x \to P(x)\ |\ c_2\,?\,x \to Q(y)\ |\ c_3\,!\,e \to R\]
+The semantics is that once one or more of the alternatives can take a step, then
+an arbitrary one of these is chosen to take a step, and then the whole process acts as 
+the remainder of the chosen alternative.
 
-In PyCSP it looks like (where \texttt{in1 = c1.read}, \texttt{in2 = c2.read}, \texttt{out3 = c3.write}):
+In PyCSP it looks like (where in1 = c1.read, in2 = c2.read, out3 = c3.write):
 \begin{verbatim}
 s = Alternative(in1, in2, out3).priSelect()
 if s == in1:
@@ -233,10 +315,10 @@ of the guard, which you can then switch on. In both cases, you have to \emph{pro
 chosen channel, or the behaviour will be undefined.
 
 Starting from CSP's syntax, we might want to write something like \texttt{(A | B | C)}, where $A$, $B$
-and $C$ are processes. If we consider processes functions of type $unit \to unit$ for this purpose, 
-one might define an operator $|$ that takes two processes and returns the result of the one that is 
-chosen. The problem with this is that it is very hard in plain OCaml to inspect functions at runtime to 
-see which one of them can take a step.
+and $C$ are processes. If we consider process definitions functions of type $unit \to unit$ for this 
+purpose, one might define an operator $|$ that takes two processes and returns the result of the one that 
+is chosen. The problem with this is that it is very hard in plain OCaml to inspect functions at runtime 
+to see which one of them can take a step.
 
 Instead we make the first step inspectable by providing \emph{guards}, which is also the route taken by
 the other libraries. However, we would like to avoid relying promises and idioms to obtain the 
@@ -245,65 +327,57 @@ of an operator in order to provide a more natural syntax for alternation with mo
 
 \begin{verbatim}
 select [
-    read_guard c1 (fun x -> P(x));
-    read_guard c2 (fun y -> Q(y));
-    write_guard c3 e (fun _ -> R);
+    read_guard c1 P(x);
+    read_guard c2 Q(y);
+    write_guard c3 e R;
 ]
 \end{verbatim}
-Note that select also returns the result of the chosen action, which is particularily convenient if you
-are reading and don't care which channel the value comes from.
+Where $P(x)$ and $Q(x)$ are functions that take the read value as a parameter, and $R$ takes the written 
+value. Anonymous functions can be used to give it the appearence of a control construct. Note that select 
+also returns the result of the chosen action, which is particularily convenient if you are reading and 
+don't care which channel the value comes from.
 
 In CSP, any process that can take a step may be chosen arbitrarily. However, if the same list of 
 alternatives is used in a loop, this might lead to starvation. If one of the guards is always ready,
-an arbitrary choice can be to chose this every time. This means that any other guards that are ready
-will be skipped indefinatly, and thus be starved.
+an arbitrary choice can be to chose this one every time. This means that any other guards that are 
+ready will be skipped indefinatly, and thus be starved.
 
 We solve this by prioritizing the guards in a random order each time select is called. That way the
-chance that a ready guard is not taken approaches zero as the number calls to select grows. Note that
-this is also a valid implementation of the arbitrary choice, which we don't provide separatly.
+chance that a ready guard is not taken approaches zero as the number of calls to select grows. Note 
+that this is also a valid behaviour of the arbitrary choice, which we don't provide separatly.
 
-\subsection{Poison}
+The \emph{read} and \emph{write} functions are semantically equivalent to a select that has exactly 
+one guard.
+
+The semantics of the select so far is to block until one of the guards become ready. The obvious
+way to define a select with no guards at all is therefore to block indefinatly, causing a deadlock.
+Preferably, the thread would not take up any further resources in this case (since it's trivial to 
+detect), and thus we attempt to terminate the thread by throwing an exception. If stack traces are
+enabled, and the empty select is an error, this might also provide the programmer with more information
+to determine where the error occured.
+
+We do not provide any API for internal choice, since OCaml has plenty of control structures built-in.
+In JCSP and C++CSP you can provide a list of flags that specify if a guard is active or inactive. We
+do not provide this as it is just as easy to simply filter the list of guards.
+
+\subsection{Termination of process networks}
 \missing{
-What happens if some but not all alternatives in a select is poisoned? \\
+- What happens if some but not all alternatives in a select is poisoned? \\
+- Automatic poison propagation (PyCSP has it by relflection)\\
+- Read up on CSP interrupts and see if they could provide safe termination and propagation.\\
 }
 
-\subsection{Omitted}
+Since no practical applications run forever, safe termination of process networks should be considered.
+One way to implement this is to send a special termination message. However, that requires insertion of 
+termination logic for every communication where the process might receive a termination message.
+Additionally, if the reader wants to terminate the writer, it might require a dedicated channel 
+just for termination messages.
+
+\subsection{Permissions}
 \missing{
-- Internal choice, ``enabled'' array.\\
-- Sequence.\\
-- Polling. \\
-- PriSelect.\\
-- FairSelect from C++CSP? What is that. See C++csp/doc/guide2.html.1 \\
+- Permissions.\\
+- Purely implemented in the type system.\\
 }
-
-\subsection{Interface}
-
-\subsubsection{Design}
-
-\subsubsection{Comparison}
-
-\begin{tabular}{l|l}
-CSP & OCamlCSP \\
-\hline
-$c!e \to P$ & \texttt{write c e; P} \\
-\hline
-$c?x \to P(x)$ & \texttt{P (read c)} \\
-\hline
-$(a?x \to P(x)\ |\ b!e \to Q)$ 
-&\verb|select [ read_guard a (fun x -> P(x)) ;| \\
-&\verb|         write_guard b e (fun _ -> Q) ]|\\
-\hline
-$P \parallel Q$ 
-&\verb|parallel [ (fun () -> P) ;| \\
-&\verb|           (fun () -> Q) ]| \\
-\end{tabular}
-
-\missing{
-- Occam \\
-- PyCSP/JCSP/C++CSP \\
-- Event \\
-}
-
 
 \section{Implementation}
 \label{implementation}

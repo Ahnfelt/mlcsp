@@ -49,32 +49,57 @@
 
 % Macros
 \newcommand{\missing}[1]{
-\begin{tabular}{|p{11cm}|}
-\hline
-\emph{Missing:} {\scriptsize (things that need to be written or considered)} \\
-\hline
-#1
-\hline
-\end{tabular}
+  \begin{tabular}{|p{11cm}|}
+    \hline
+    \emph{Missing:} {\scriptsize (things that need to be written or considered)} \\
+    \hline
+    #1
+    \hline
+  \end{tabular}
 }
 
-% ----------------------------------------------------------------------
-% At skrive "%" betyder at man kommenterer ligesom som // i C, Java, osv
-% ----------------------------------------------------------------------
-% set up listing environment with C syntax hightlight
-\definecolor{stringcolor}{rgb}{0.50,0.00,0.50}      %
-\definecolor{commentcolor}{rgb}{0.00,0.50,0.00}     %
-\definecolor{keywordcolor}{rgb}{0.00,0.00,1.00}     %
-\definecolor{idcolor}{rgb}{0.00,0.00,0.00}          %
-% with \lstset one can predefine parameters for listings
-\lstset{language=ML,basicstyle=\ttfamily,keywordstyle=\color{keywordcolor},
-        commentstyle={\color{commentcolor}\itshape},
-        stringstyle={\color{stringcolor}},
-        identifierstyle=\color{idcolor},numbers=left,
+\newcommand{\runtest}[1]{
+  \footnotesize
+  \framebox[14.5cm][l]{#1}
+  \normalsize
+}
+
+\newcommand{\includecode}[2]{
+  \definecolor{stringcolor}{rgb}{0.50,0.00,0.50}      %
+  \definecolor{commentcolor}{rgb}{0.00,0.50,0.00}     %
+  \definecolor{keywordcolor}{rgb}{0.00,0.00,1.00}     %
+  \definecolor{idcolor}{rgb}{0.00,0.00,0.00}          %
+  \lstset{language=ML,basicstyle=\ttfamily,keywordstyle=\color{keywordcolor},
+    commentstyle={\color{commentcolor}\itshape},
+    stringstyle={\color{stringcolor}},
+    identifierstyle=\color{idcolor},numbers=left,
+    xleftmargin=2em,% framerule=0.8pt,
+    stepnumber=1,frame=tlrb,showstringspaces=false,
+    firstnumber=1,numberstyle=\ttfamily, breaklines}
+
+  \normalsize
+  #1:
+  \scriptsize
+  \lstinputlisting{#2}
+  \normalsize
+}
+
+\newcommand{\includeoutput}[2]{
+\definecolor{allblackcolor}{rgb}{0.00,0.00,0.00}      %
+\lstset{basicstyle=\ttfamily,keywordstyle=\color{allblackcolor},
+        commentstyle={\color{allblackcolor}\itshape},
+        stringstyle={\color{allblackcolor}},
+        identifierstyle=\color{allblackcolor},numbers=left,
         xleftmargin=2em,% framerule=0.8pt,
-        stepnumber=1,frame=tlrb,showstringspaces=false,
+        stepnumber=0,frame=tlrb,showstringspaces=false,
         firstnumber=1,numberstyle=\ttfamily, breaklines}
-% ----------------------------------------------------------------------
+
+  \normalsize
+  #1:
+  \scriptsize
+  \lstinputlisting{#2}
+  \normalsize
+}
 
 % Opening
 \title{OCamlCSP - a concurrency library for Ocaml}
@@ -489,56 +514,115 @@ than the current randomized select. \\
 \subsection{Processes}
 
 \section{Test}
-
 \label{test}
-\begin{table}[!ht]
-\centering
-\begin{tabular}{|p{3cm}|p{4.0cm}|p{4.0cm}|c|}
+One of the goals for this project was that we needed to implement a simple
+network on top of the API, Fibonacci, and a more complex network, The Ising 2D
+Model.
+
+Because Ocaml doesn't have support for parallelism, as mentioned in the Analysis
+Section\ref{?}, we decided to make a Webproxy, with a build in cache.
+
+But before we made this two applications we needed to now the limitations of
+Ocamls Thread library and IO Library.
+
+A detailed description on how to run the test can be seen in
+Appendix \ref{appendixTest}.
+
+\subsection{Performance}
+
+%\begin{table}[ht]
+%\centering
+\begin{tabular}{|p{3cm}|p{8.5cm}|c|}
     \hline
     	File name &
 	Description &
-	Expected Output &
-	Run \\
+	Result \\
     \hline
     	maxthreads.ml (user thread) &
         The application creates as many threads as possible, once it reaches
         about 15.000 it stops spawning more threads (deadlock ?).&
-        &
 	FAIL \\
     \hline
     	maxthreads.ml (system thread) &
         The application creates as many threads as possible, once it reaches
         about 100 it stops spawning more threads (deadlock ?).&
-        &
 	FAIL \\
     \hline
     	nonblocking.ml &
         We run to processes in parallel. The first process whats for user input
         and the second process after a seconds delay reads the first line from
         the its own source code file and writes the line to stdout.&
-        &
 	OK \\
     \hline
     	commstime.ml &
         A benchmark application used by Brian Vinter to measure PyCSP vs JCSP.&
-        &
 	OK \\
     \hline
-\end{tabular} 
-\caption{Test table ...}
-\label{testtable}
-\end{table}
+  \end{tabular} 
+%\caption{The first three test checks Ocaml implementation of the Thread library
+%  and I/O. In the last test, we compare OcamlCSP vs PyCSP.}
+%\label{testtable}
+%\end{table}
+
+\subsubsection*{Maxthreads}
+In this test we try to find an upperbound of how many threads we can create,
+user threads or system threads. In the first case when using user threads we
+find that after creating between 15.000 - 20.000 threads the application
+freezes. We are not able to find any kind of documentation that can helps us
+verify that it's a deadlock or a maximum number of threads allowed for an
+application to create. If we run the test several times, we will see that
+each application will be able to create about those 15.000 - 20.000 threads.
+
+In case it's a limitation in Ocaml, we could by implementing sockets always
+start $n$ times the application and make them comunicate over sockets so we
+could achieve the number of threads as we desire.
+
+In the second test based on maxthreads, we use system threads and as before
+the application freezes but just after creating about 100 threads.
+
+
+\subsubsection*{Nonblocking}
+To implement the Webproxy we need to know if one of the processes is waiting
+to recieve a chunck of data, if it block the IO until it has recieved the data
+or if another process that is also waiting for a chunck.
+
+We discovered that Ocaml support non-blocking IO so it will be no problem have
+several clients waiting to recieve data from our Webproxy. An example could
+be a client that connects over the Webproxy to a very slow website. The website
+can only deliver a small amount of data every second. If another client that
+also connects over the Webproxy to a fast website. While the first client
+waits to recieve data from the webserver, the second client can read chunks
+of data from the fast website.
+
+
+\subsubsection*{Commstime}
+Even though we don't set focus on performance and optimization, we still wanted
+to implement the Commstime\cite{vinterpycsp} process that's used to compare
+PyCSP against JCSP.
+
+The only change we made to the code is that we use {\it Unix.gettimeofday} in
+order to get the same time precision as Pythons {\it time.time} has. By running
+both application on the same computer\footnote{Macbook Pro 2,6 GHz Core 2 Duo
+4GB RAM. Mac OS 10.5.7}, we achieve a execution time that it's about twenty
+times faster.
+
 
 \subsection{Fibonacci}
 
+TODO: A picture of network (made with tkiz) goes here !!!
+
+... under test running fibonacci we discovered that our components weren't tail
+recursive so we get a Stack overflow when we reached the 75.000 iteration. We
+solve it by using while true ...
 
 \subsection{Webproxy}
 
+TODO: A picture of network (made with tkiz) goes here !!!
 
 \section{Conclusion}
 \label{conclusion}
 
-If we compare how Brian Vinter teaches CSP\cite{vinter}:
+If we compare how Brian Vinter teaches CSP\cite{vintercsp}:
 \begin{center}
 \begin{verbatim}
 PairsInt (in, out) = Delta2Int (in, a, c) || 
@@ -567,6 +651,7 @@ and definition of the channel variables.
 % ----------------------------------------------------------------------
 % Bibliography
 % ----------------------------------------------------------------------
+\newpage
 \begin{thebibliography}{99}
 
 \bibitem[Hoare 04]{hoare}
@@ -600,7 +685,6 @@ Last visited: $20^{th}$ july 2009
 \end{thebibliography}
 % ----------------------------------------------------------------------
 
-
 \appendix
 \newpage
 \section{Appendix: Source code}
@@ -609,13 +693,13 @@ Last visited: $20^{th}$ july 2009
 \scriptsize
 \subsection{API}
 \label{appendixAPI}
-\subsubsection{Interface (.mli)}
-\lstinputlisting{../source/csp.mli}
-\subsubsection{Source (.ml)}
-\lstinputlisting{../source/csp.ml}
-\subsection{CSP Library (Legoland)}
-\lstinputlisting{../source/legoland.ml}
-\normalsize
+\includecode{csp.mli}{../source/csp.mli}
+\includecode{csp.ml}{../source/csp.ml}
+\subsection{A CSP Utility Library}
+\includecode{cspu.ml}{../source/cspu.ml}
+\subsection{A CSP Component Library (Legoland)}
+\includecode{legoland.ml}{../source/legoland.ml}
+
 
 \newpage
 \section{Appendix: Documentation}
@@ -628,12 +712,78 @@ Last visited: $20^{th}$ july 2009
 \newpage
 \section{Appendix: Test}
 \label{appendixTest}
-\scriptsize
-\subsection{Fibonacci}
-\lstinputlisting{../test/fibCSP.ml}
+\subsection{Performance}
 
+\subsubsection{Maxthreads}
+\includecode{maxthreads.ml}{../test/maxthreads.ml}
+\runtest{ocamlc -vmthread unix.cma threads.cma maxthreads.ml -o maxthreads \&\&
+  ./maxthreads}
+\includeoutput{userMaxThreads.txt}{test/userMaxThreads.txt}
+\runtest{ocamlc -thread unix.cma threads.cma maxthreads.ml -o maxthreads \&\&
+  ./maxthreads}
+\includeoutput{sysMaxThreads.txt}{test/sysMaxThreads.txt}
+
+\newpage
+\subsubsection{Nonblocking}
+\includecode{nonblocking.ml}{../test/nonblocking.ml}
+\runtest{ocamlc -vmthread threads.cma unix.cma nonblocking.ml -o nonblocking
+  \&\& ./nonblocking}
+\includeoutput{nonblocking.txt}{test/nonblocking.txt}
+
+\subsubsection{Commstime}
+\includecode{commstime.ml}{../test/commstime.ml}
+\runtest{./buildCommstime.sh \&\& ./commstime}
+\includeoutput{ocamlcsp\_commstime.txt}{test/ocamlcsp_commstime.txt}
+\includeoutput{pycsp\_commstime.txt}{test/pycsp_commstime.txt}
+
+\subsection{Fibonacci}
+\includecode{fibCSP.ml}{../test/fibCSP.ml}
+\runtest{./buildFibCSP.sh \&\& ./buildFibCSP}
+\newpage
+\includeoutput{fibonacci.txt}{test/fibonacci.txt}
+
+\newpage
 \subsection{Webproxy}
-\lstinputlisting{../test/proxyCSP.ml}
-\normalsize
+\includecode{proxyCSP.ml}{../test/proxyCSP.ml}
+\includecode{server.rb}{../test/web/server.rb}
+Start two sequential webservers (ruby):
+
+\runtest{ruby server.rb 4040 0.1 \&}
+
+\runtest{ruby server.rb 4041 0.3 \&}
+
+
+Start the webproxy:
+
+\runtest{./buildProxy.sh \&\& ./proxyCSP \&}
+
+
+Add the webproxy to the terminal session:
+
+\runtest{export http\_proxy=http://localhost:8080}
+
+
+Retrieve the file foo.mp3 from the first webserver:
+
+\runtest{wget http://localhost:4040/foo.mp3}
+\includeoutput{proxy\_get\_file\_first\_time.txt}{
+  test/proxy_get_file_first_time.txt}
+
+
+Retrieve the file foo.mp3 again from the first webserver (cache):
+
+\runtest{wget http://localhost:4040/foo.mp3}
+
+\includeoutput{proxy\_get\_file\_second\_time.txt}{
+  test/proxy_get_file_second_time.txt}
+
+
+Retrieve concurrent the files bar.mp3 and foo.mp3 from the two webservers:
+
+\includeoutput{proxy\_same\_time\_bar.txt}{
+  test/proxy_same_time_bar.txt}
+\includeoutput{proxy\_same\_time\_foo.txt}{
+  test/proxy_same_time_foo.txt}
+
 
 \end{document}

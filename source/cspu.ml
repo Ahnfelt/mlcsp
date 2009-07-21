@@ -1,5 +1,3 @@
-(* Quite broken still *)
-
 let poison_list l fn () = 
   try fn () with Csp.PoisonException -> List.iter (fun f -> f ()) l
 

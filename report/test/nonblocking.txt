@@ -1,0 +1,4 @@
+read from stdin
+read from file
+open Unix
+

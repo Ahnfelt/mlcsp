@@ -1,13 +1,11 @@
 open Cspu
 open Legoland
 
-let _ = print_endline "Commstime"
-
 let consumer i () =
   let pl = poison_list [pc i] in
   let n = 5000 in
-  let ts = Unix.time in
-  let _ = Csp.read i in
+  (* let ts = Unix.time in *)
+  let ts = Unix.gettimeofday in
   let t1 = ts () in
     for j = 0 to n do
       Csp.read i

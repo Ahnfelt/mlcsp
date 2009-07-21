@@ -1,12 +1,9 @@
 (*  
-    ocamlc -vmthread unix.cma threads.cma maxthreads.ml -o maxthreads && ./maxthreads
-    -> about 20000 VM threads, then enters a deadlock-like state.
+    -> about 15000 - 20000 VM threads, then enters a deadlock-like state.
     -> the memory usage is minimal
-    
-    ocamlc -thread unix.cma threads.cma maxthreads.ml -o maxthreads && ./maxthreads
-    -> about 400 system threads, then crashes with an exception.
-*)
 
+    -> about a 100 system threads, then it crashes with an exception.
+*)
 let loop () = while true do () done
 
 let _ =

@@ -27,8 +27,7 @@ let printer i () =
   let pl = poison_list [pc i] in
   try
     while true do
-    let x = Csp.read i in
-      print_endline(sbi x);
+      print_endline(sbi (Csp.read i));
     done
   with Csp.PoisonException -> pl raise_poison ()
         

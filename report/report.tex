@@ -23,7 +23,7 @@
 \usepackage{pdfpages}
 
 % Graf support
-%\usepackage{tkz-graph}
+\usepackage{tkz-graph}
 
 % Pdf section support
 \usepackage{hyperref}
@@ -448,7 +448,7 @@ effect for both is to set it's internal reference to the transmitted value (inst
 remove it from all the channels it's listening on and wake up the process.
 
 We use a lock that is global to the library, in order to protect the channel and processes from
-concurrent mutation. This lock is only ever taken when first trying to read from a channel, or
+concurrent mutation. This lock is only taken when first trying to read from a channel, or
 right after a process has been woken up. We claim that this won't lead to performance degradation,
 since OCaml's threads only provides concurrency though time-sharing \cite{ocaml-threads}.
 
@@ -606,18 +606,85 @@ both application on the same computer\footnote{Macbook Pro 2,6 GHz Core 2 Duo
 4GB RAM. Mac OS 10.5.7}, we achieve a execution time that it's about twenty
 times faster.
 
-
+\newpage
 \subsection{Fibonacci}
+\begin{figure}[htp]
+  \begin{center}
+    \begin{tikzpicture}[node distance   = 4 cm]
+      \GraphInit[vstyle=Normal]
+      \tikzset{LabelStyle/.style =   {draw}}
+      \Vertex{FibonacciInt}
+      \EA(FibonacciInt){Stop}
+      \EA(Stop){Printer}
+      \tikzstyle{EdgeStyle}=[->]
+      \Edge[label=c1](FibonacciInt)(Stop)
+      \Edge[label=c2](Stop)(Printer)
+    \end{tikzpicture}
+% \begin{center}
+%   \includegraphics[width=14.0cm,keepaspectratio=true]{figures/fibonacci.pdf}
+% \end{center}
+% \caption{Representation of the CSP network.}
+% \label{figurefibonacci}
+  \end{center}
+  \caption{Pretty nice ...}
+\end{figure}
 
-TODO: A picture of network (made with tkiz) goes here !!!
+This test, once we have implemented all the {\it Legoland}\cite{vintercsp}
+components, was a very easy and straight forward task. Even though that it
+looks like this network doesn't do much it was very useful to discover that
+our first implementation didn't work correctly.
 
-... under test running fibonacci we discovered that our components weren't tail
-recursive so we get a Stack overflow when we reached the 75.000 iteration. We
-solve it by using while true ...
+Another thing was that we implemented our {\it Legoland} components as
+recursive function, but not tail-recursive, after running this application
+for a lot of iteration, about 75.000, we began to get messages of stack
+overflow. Once we rewrote the components from recursive to using {\it while true
+do} we was able to run more than a 1.000.000 iterations, We supouse we can
+run even more but we didn't test it out.
+
+A description on how this simple network works can be seen in Figure\ref{?}
+where we use the {\it Legoland fibonacciInt} component running in parallel
+with a {\it stop} component which, ensures that the network shuts down correctly
+after the number of iterations given as the first parameter, and a {\it printer}
+component which prints out to the screen the Fibonacci numbers.
+
 
 \subsection{Webproxy}
 
 TODO: A picture of network (made with tkiz) goes here !!!
+
+\subsection{Channel permisions and alternation}
+
+One of the features this API has is that you have the possibility to set 
+read/write/poision permissions on the channels. With this test we will
+demostrate where this is useful. What we do is that we have to components
+that just counts integers. When the second counter reaches $20$ we want
+to poison the whole network. But we have sat the first count to only count
+to 10 and it will shutdown the hole network through the {\it stop}
+component from the {\it Legoland} library. But this is a problem, we don't
+want the first counter to shut down the network so we add {\it write\_only}
+to counter components output channel. This will result in a compiler error
+because the {\it stop} component once it's poisoned it propagates the poison
+to all the other channels, but we have just defined our output channel to
+only allow write.
+
+We now make a {\it custom\_stop} component which only propagates poison to
+the input channel. We are now able to compile and run the application knowing
+that our first counter will never shutdown our network through poison.
+
+Even though we don't allow to propagate poison whenever the second counter
+reaches it's number and poison the printer component. Then when the first
+counter will write over the {\it custom\_stop} component, it will actually
+raise a {\it PoisonException} which will be progated back to the counter
+ensuring that all of the processes terminate and hereby ensuring that network
+shuts down correctly.
+
+Besides the channel permision we also added a small {\it guard} test which read
+from the two counters whenever one of them is ready. By setting the first
+counter to only send 5 numbers, we can actually check that when setting the
+second counter to the double we can see that the {\it custom\_printer} component
+will see if any of the to {\it read\_guards} are ready to read from the counters
+and because one stop early it will keep reading from the second.
+
 
 \section{Conclusion}
 \label{conclusion}
@@ -784,6 +851,17 @@ Retrieve concurrent the files bar.mp3 and foo.mp3 from the two webservers:
   test/proxy_same_time_bar.txt}
 \includeoutput{proxy\_same\_time\_foo.txt}{
   test/proxy_same_time_foo.txt}
+
+\newpage
+\subsection{Channel permisions and alternation}
+\includecode{permission.ml}{../test/permission.ml}
+\runtest{./buildPermission.sh \&\& ./buildPermission}
+\includeoutput{alternation\_permision\_error.txt}{
+  test/alternation_permision_error.txt}
+\includeoutput{alternation\_permision\_one\_guard.txt}{
+  test/alternation_permision_one_guard.txt}
+\includeoutput{alternation\_permision\_poison.txt}{
+  test/alternation_permision_poison.txt}
 
 
 \end{document}

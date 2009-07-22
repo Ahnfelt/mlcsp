@@ -1,0 +1,7 @@
+File "permission.ml", line 36, characters 18-37:
+Error: This expression has type
+         (Big_int.big_int, Csp.off * Csp.on * Csp.off) Csp.channel
+       but an expression was expected of type
+         (Big_int.big_int, Csp.off * Csp.on * Csp.on) Csp.channel
+File "_none_", line 1, characters 0-1:
+Error: Cannot find file permission.cmo

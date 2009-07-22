@@ -172,13 +172,12 @@ parallelism with distribution through sockets, see {\it Section
 \section{Analysis}
 \label{analysis}
 \missing{
-- Are CSP channels any2any and bidirectional? \\
-- Are CSP channels names or values? \\
-- Why don't we provide CSP events? \\
-- References to CSP and CSP libraries. \\
 - What do we do about shared state?\\
 - Compare with the Event library.\\
 - More introduction.\\
+- Mention that we don't use OCaml's object model.\\
+- Compare more with Occam.\\
+- Mention that channels are typed.\\
 }
 
 The CSP theory is concerned with processes that communicate solely by synchronous 
@@ -220,7 +219,7 @@ allows us to treat the functions as values, which means we can pass them around 
 them as arguments for our parallel construct:
 
 \begin{verbatim}
-parallel [P; Q]
+Csp.parallel [P; Q]
 \end{verbatim}
 
 However, since OCaml has anonymous functions, we can define the process directly inside
@@ -235,7 +234,7 @@ provide the special purpose function \emph{fork} that simply starts a process an
 immediatly. JCSP does something similar with their \emph{ProcessManager}, but provides a
 \emph{stop} method that will terminate the process. It has since been deprecated because
 it is unsafe to terminate a running process from the outside. There is not much else to 
-do with a handle to a process, so we avoid returning a handle to it at all.
+do with such a handle, so we avoid returning one at all.
 
 We don't provide a special construct for sequence, since OCaml has a perfectly fine 
 sequence operatoer built in, and executing a list of processes in sequence is a simple
@@ -247,19 +246,16 @@ Note that the library \emph{does not provide parallel execution}; it only provid
 perceived concurrency (see section \ref{implementation}).
 
 \subsection{Channels}
-\missing{
-- Why don't we have broadcasts or any2all?\\
-}
 
-Channels are the only means of communication between processes that we provide directly.
+As in CSP, channels are the only means of communication between processes that we provide.
 In PyCSP, C++CSP and JCSP, channels are created by constructing an instance of a channel
 class. Our channels correspond to their \emph{any2any} channels, meaning that any number
-of processes can send on and receive from a channel, that any message sent over it
-has exactly one sender and one receiver, and that these communicate synchronously.
+of processes can send on and receive from a channel. However, any any message has exactly 
+one sender and one receiver, and communication is synchronous.
 
 Creating a channel is just a call to a function which returns the new channel:
 \begin{verbatim}
-let c = channel ()
+let c = Csp.channel ()
 \end{verbatim}
 
 Two of the basic constructs for CSP channels are send and receive:
@@ -295,10 +291,10 @@ exstensible inheritance hierachy for channels, we choose functions for the task.
 We use the \textbf{let in} construct to provide binding.
 
 \begin{verbatim}
-write c e; P
+Csp.write c e; P
 \end{verbatim}
 \begin{verbatim}
-let x = read c in Q(x)
+let x = Csp.read c in Q(x)
 \end{verbatim}
 
 It is possible to transmit any OCaml value over a channel, including impure functions and mutable 
@@ -351,10 +347,10 @@ intended behaviour. We therefore make the action an integral part of each guard.
 of an operator in order to provide a more natural syntax for alternation with more than two choices.
 
 \begin{verbatim}
-select [
-    read_guard c1 P(x);
-    read_guard c2 Q(y);
-    write_guard c3 e R;
+Csp.select [
+    Csp.read_guard c1 P(x);
+    Csp.read_guard c2 Q(y);
+    Csp.write_guard c3 e R;
 ]
 \end{verbatim}
 Where $P(x)$ and $Q(x)$ are functions that take the read value as a parameter, and $R$ takes the written 
@@ -368,8 +364,13 @@ an arbitrary choice can be to chose this one every time. This means that any oth
 ready will be skipped indefinatly, and thus be starved.
 
 We solve this by prioritizing the guards in a random order each time select is called. That way the
-chance that a ready guard is not taken approaches zero as the number of calls to select grows. Note 
-that this is also a valid behaviour of the arbitrary choice, which we don't provide separatly.
+chance that a ready guard is not taken approaches zero as the number of calls to select grows.
+
+If multiple processes repeatily wait to act on the same channel, and one process is chosen every time,
+the other processes will be starved. We solve this by serving processes wating on any given channel
+on a first come, first served basis.
+
+Note that this is also a valid behaviour of the arbitrary choice, which we don't provide separatly.
 
 The \emph{read} and \emph{write} functions are semantically equivalent to a select that has exactly 
 one guard.
@@ -387,24 +388,70 @@ do not provide this as it is just as easy to simply filter the list of guards.
 
 \subsection{Termination of process networks}
 \missing{
-- What happens if some but not all alternatives in a select is poisoned? \\
 - Automatic poison propagation (PyCSP has it by relflection)\\
-- Read up on CSP interrupts and see if they could provide safe termination and propagation.\\
+- Why have a function to check if a channel is poisoned (it's almost useless)?\\
+- What about common design patterns for propagate poison?\\
 }
 
-Since no practical applications run forever, safe termination of process networks should be considered.
-One way to implement this is to send a special termination message. However, that requires insertion of 
-termination logic for every communication where the process might receive a termination message.
-Additionally, if the reader wants to terminate the writer, it might require a dedicated channel 
-just for termination messages.
+Since no practical applications run forever, termination of process networks should be considered.
+Interruption of the process from an external source is an obvious but poor choice, since it does not
+allow the process to clean up and propagate the termination to it's subprocesses.
+
+Another way to implement this is to send a special termination message. However, that requires 
+insertion of termination logic for every communication where the process might receive a termination 
+message. Additionally, if the readers want to terminate the writers of a channel, it will often 
+require a dedicated channel just for termination messages.
+
+If there are multiple processes that listen on a channel, it would also be hard to ensure that they had
+all received the termination message before the process sending it shuts down. To keep track of this you
+might need to know the number of processes that are listening or are going to listen on the channel, 
+which might not even be possible to determine. The process that wants to send the terminating process 
+could loop forever, repeating the termination message to anybody who read from the channel, but then 
+that process could never shut down.
+
+In PyCSP, JCSP and C++CSP, a channel may be \emph{poisoned}. Once a channel has been poisoned, reading
+from or writing to that channel causes an exception. The exception may be handled, thus allowing the
+process to clean up, propagate the poison, or even ignore the poisoning. That way, the process remains
+in control of it's own lifespan. A channel that has been poisoned can never become unpoisoned.
+We provide the same construct:
+
+\begin{verbatim}
+Csp.poison c 
+\end{verbatim}
+
+Read and write guards become ready if their channel is poisoned, and an alternation may thus chose to 
+throw a PoisonException if one or more of it's guards' channels are poisoned.
+
+In order to shut down process networks, which may have intrnal subnetworks, it is nessecary to propagate
+the poison to the other processes in the network. As mentioned, this can be done in the handler for
+PoisonException. PyCSP automatically poisons channels that are arguments to process constructors. In 
+many cases this is the desired behaviour. JCSP and C++CSP do not provide it, and neither do we due to
+technical issues (see section \ref{implementation}).
 
 \subsection{Permissions}
-\missing{
-- Permissions.\\
-- Purely implemented in the type system.\\
-}
+
+PyCSP, JCSP and C++CSP provide a concept called \emph{channel ends}, which are handles to channels
+though which you can only read or only write (or some other set of permissions). This is useful for
+specifying what a process might do with a channel, so unintended use of a channel can be caught
+early.
+
+We provide this through a set of functions, each of which takes a channel returns a handle with only
+a specific set of permissions:
+
+\begin{verbatim}
+let i = Csp.read_only c
+\end{verbatim}
+
+It is a compile time error to attempt to write to or poison the returned handle. The permissions are 
+provided purely through the type system, and none of the functions can add permissions. 
+See secion \ref{implementation} for the complete set.
 
 \section{Implementation}
+\missing{
+- Mention that we do everything within OCaml's type system.\\
+- Mention why we can't have parallelism.\\
+- Describe why we cannot provide automatic poison propagation.\\
+}
 \label{implementation}
 
 
@@ -448,8 +495,8 @@ effect for both is to set it's internal reference to the transmitted value (inst
 remove it from all the channels it's listening on and wake up the process.
 
 We use a lock that is global to the library, in order to protect the channel and processes from
-concurrent mutation. This lock is only ever taken when first trying to read from a channel, or
-right after a process has been woken up. We claim that this won't lead to performance degradation,
+concurrent mutation. This lock is only taken when first trying to read from a channel, or right 
+after a process has been woken up. We claim that this won't lead to performance degradation,
 since OCaml's threads only provides concurrency though time-sharing \cite{ocaml-threads}.
 
 \missing{

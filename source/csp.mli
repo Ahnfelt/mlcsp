@@ -67,12 +67,12 @@ val poisoned : ('a, _ * _ * _) channel -> bool
 (** Checks if a channel is poisoned *)
 
 val read : ('a, on * _ * _) channel -> 'a
-(** Receives a value from the channel. 
-    Equivalent to [select [read_guard c (fun x -> x)]]. *)
+(** Receives a value from the channel. [read c] is
+    equivalent to [select [read_guard c (fun x -> x)]]. *)
 
 val write : ('a, _ * on * _) channel -> 'a -> unit
-(** Sends a value via the channel.
-    Equivalent to [select [write_guard c v (fun _ -> ())]]. *)
+(** Sends a value via the channel. [write c] is
+    equivalent to [select [write_guard c v (fun _ -> ())]]. *)
 
 (** {[(* Alternation. *)
 Csp.select [

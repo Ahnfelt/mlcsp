@@ -1,0 +1,130 @@
+Ting der først kan gøres til sidst, men som skal gøres:
+* resume
+* konklusion
+
+Generelle ting:
+
+* argumenter mere for hvorfor vi har gjort som vi har gjort
+  i API-et
+* flere kodeeksempler i API design
+* ret alle P(x) til (fun () -> ...) eller lignende
+* vær præcis med forskellen på CSP processes, unix og threads.
+* husk alle missing-tingene
+* stavefejl
+  - it's -> its i ejefald
+
+Ting der kan gøres nu (ikke prioriteret endnu):
+
+* mere ingenørmessig introduktion
+  - forklar hvilket problem der er blevet løst
+    - concurrency (og api der ville understøtte parallelisme)
+    - inspireret af CSP-biblioteker
+  - sig at vi ikke har parallelisme
+  - men at vi har concurrency med non-blocking IO
+  - eksempler på hvad man kunne bygge med biblioteket
+  - fjern formalia og lav evt. et afsnit til det i konklusionen
+
+* ret teksten så der ikke står at processer er unit->unit
+  - skriv alt det følgende i process-afsnittet
+  - processer er vilkårlige ml-udtryk, men bundet i funktioner
+    for at undgå at sideeffekter bliver udført før tid.
+  - argumenter hvorfor vi ikke har parallel2 eller parallellist
+  - argumenter hvorfor vi har/ikke har spawn
+    - flad eller hirakisk processmodel?
+  - "object literals" giver ikke mening, slet eller give eksempel
+  - pointer at parallel tager en liste af vilkårlig størrelse
+
+* alternation
+  - vi har *guarded processes* og ikke guards, ret det!
+  - argumenter hvorfor vi har guarded processes og ikke bare guards
+  - forklar at guarded processes i select skal returnere det samme
+  - argumenter for hvorfor man skal betale for shuffle selv når man
+    ikke bruger det
+    - giver fail-fast
+    - men gør det mindre sandsynligt at programmet opfører sig på
+      samme måde hver gang
+  - alt hvad der står i missing
+    - giv et eksempel på den korte version af pycsp's alternation
+      eller slet det
+  - internal choice ER IKKE if/enabled - ret det!
+  - vis hvad man kan gøre i ML for at filtrere en liste af guards
+
+* beskriv at processer bruger en shared-memory model
+  - og at man derfor kan bruge OCaml's scoping-regler
+  - at man skal undgå at dele mutable state, men at vi ikke
+    kan garantere dette via typesystemet
+
+* poison og termination
+  - fjern "since no apps run forever" eller brug "most don't"
+    eller "few do".
+  - drop afsnittet om interruption
+    - nedlukning af "subnetværk" er kun et problem hvis det
+      skulle have kommunikeret med omverdnen først
+    - men vores kan skrive til filer uden om biblioteket
+  - hvad er en pycsp process constructor? hvad gør pycsp præcist?
+    - evt. eksempel
+
+* permissions
+  - skriv at den 
+  - skriv om remove_read vs write_poison_only
+  - skriv i analysen at en måde at channel rights kunne være et 
+    dynamisk tjek, og skriv fordele og ulemper (f.eks. at man 
+    ikke kan have en liste af kanaler med forskellige rights?).
+
+* implementation
+  - giv eksempler fra implementationens kode og vær præcis
+  - flyt channel-state op så den kommer tidligere og beskriv
+    funktionerne a -> unit og unit -> a
+  - beskriv alternation meget grundigt
+  - skriv også her at vi bruger user threads og at ocaml har
+    non-blocking IO
+
+* test
+  - fjern reference til ising-modellen
+  - bruger vi en test-metodologi?
+  - split op i
+    - eksempler/use cases: legoland, proxy, util
+    - korrekthedstest/implementationstest
+    - benchmarking
+  - læg meget vægt på proxyen (vores "flagskib")
+  - drop det om sockets i test
+  - put kode eller reference til koden i afsnittet om channel
+    permissions (?)
+  - split channel permissions og alternation op i to tests
+  - brug ... i stedet for fuldt output
+  - forklar hvordan output skal fortolkes
+
+* ocaml
+  - find dokumentation om non-blicking IO (se ThreadUnix)
+  - skriv om maks antal tråde
+  - lever tråde uendeligt hvis man ikke joiner dem?
+  - lever de uendeliget selvom man joiner dem?
+
+* kode (ret i rapport, API og kode)
+  - lav parallel om så den kaster en exception til slut hvis en 
+    af processerne kaster en exception
+    - hvis der er flere, hvilken skal så vælges? den første?
+      den sidste? i tid eller i process-listen?
+    - drop poisoned
+    - gå igennem koden og se om det bliver et problem
+  - rename fork til spawn i rapport og kode
+  - rename guards til guarded processes
+  - overvej at lave remove_read etc. for permissions istedet
+  - lav write_guard funktionen unit -> b istedet for a -> b
+  - t er et dårligt navn - kald den chan eller noget andet
+  - rename eventuelt channel til new_channel
+  - tilføj hvad der sker når en guarded process *er* ready
+    i ocamldoc
+  - skriv i ocamldoc hvordan man comiler
+  - husk at rette det hele i rapporten også
+
+* referencer
+  - pycsp, ocaml, c++csp, jcsp
+    - find videnskabelig reference til pycsp
+
+* appendix
+  - kort oversigt over appendix
+    - også oversigt over koden
+  - husk at referer til alle bilag
+  - skriv at vi bruger ocamldoc og det er derfor det ser 
+    mærkeligt ud

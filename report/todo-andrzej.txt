@@ -1,0 +1,102 @@
+- skriv et bedre resume
+- mere ingenørmessig introduktion:
+    - forklar hvilket problem der bliver løst
+    - sig at vi har ikke parallelisme allerede i introduktionen
+    - målet er at skrive et bibliotek til concurrency
+    - sig evt. at målet også er at designe et API der kunne bruges til
+      parallelisme (men at vi ikke har det).
+    - må gerne indeholde eksempler på hvad man ville skrive med biblioteket
+    - nævn ikke læringsmålene og formalia
+    - lav evt. formalia-afsnit i slutningen
+    - skriv om non-blocking IO
+    
+- analysis: der er ikke så meget analyse i det!
+    - kald det API design
+    - argumenter for hvorfor vi har gjort der som vi har
+    - en processer er ikke unit -> unit, processer er et vilkårligt ml-udtryk,
+      men vi bruger funktioner for at undgå at de bliver eksekveret med det samme.
+    - argumenter hvorfor 
+    - pointer at parallel tager en liste af vilkårlig størrelse
+    - beskriv at parallel ikke returnerer en tupel eller liste, men unit etc, og
+      argumenter hvorfor vi ikke har dette API.
+    - vi har skrevet analysen som om målet var at give CSP i OCaml,
+      men at give CONCURRENCY i OCaml inspireret af CSP biblioteker.
+    - nævn at vi bruger tråde til at representere processer, hvilket giver
+      nogle udvidede scoping-regler samt shared memory.
+    - "object literals" giver ikke rigig mening, giv et eksempel eller drop det.
+    - kald fork spawn (der er det klassiske navn).
+    - it's -> its for ejefald
+    - flyt problement med shared state over i process-afsnittet og skriv evt. 
+      lidt mere om det (og nævn at typesystemet ikke kan udelukke det).
+    - forklar at pycsp alternation-eksemplet er et callable object til den korte
+      version.
+    - forklar at "processer" i select kan returnere en værdi og det skal være af samme type.
+    - brug unit istedet for a i write_guard (siden ocaml := returnerer unit).
+    - skriv at random-select giver fail-fast. (versus at et program opfører sig på samme måde, hvilket det ikke nødvendigvis gør)
+    - argumenter for hvorfor det er ok at betale for randomisering.
+    - internal choice ER IKKE det samme som en liste af guard enabled flags. Men vis hvad man 
+      kan gøre i ML for at filtrere listen af guards.
+    - flere kode-eksempler.
+    - fjern "since no applications run forever" og erstat det med "few" or "most don't".
+    - skriv om processer er hirakiske (parallel) eller sidestillede (fork/spawn).
+    - drop evt. afsnittet om interruption.
+    - vær præcis om processes er csp- eller unix.
+    - nedlukning via "killall" er kun et problem hvis man afbryder en kommunikation med den
+      eksterne verden. Hvis vores processer er hirakiske, hvad er problemet så.
+    - hvad er en pycsp process constructor er og lidt mere om hvorden den gør det eller eksmpel.
+    - skriv i analysen at en måde at channel rights kunne være et dynamisk tjek, og skriv fordele
+      og ulemper (f.eks. at man ikke kan have en liste af kanaler med forskellige rights?).
+    - skriv om at vi bruger user threads.
+    - find dokumentation om non-blocking IO - se ThreadUnix!
+    - guards er ikke guards i vores API, men *guarded processes*, idet de indeholder en process 
+      (skift det alle steder det står, også i ocamldoc).
+    - husk at beskriv guards
+    - pas på med P(x), brug evt. (fun () -> ...)
+    - t er ikke et godt navn til channel-typen
+    - kald evt. channel new_channel (skal ændres alle steder)
+    - tilføj hvad der sker når en process *er* blevet ready i ocamldoc
+    - skriv i parallel at hvis den ene kaster en exception så fortsætter de andre
+    - lav evt. parallel om så den kaster en exception hvis en af dem kaster en exception når den den er færdig.
+    - hvis 2 eller flere kaster en exception kan det prioriteres i listens orden eller efter hvornår de gør det,
+      og om det er den første eller sidste (random åh åh).
+    - overvej om apiet for permissions skulle være remove_read, remove_write, remove_poison.
+
+- implementation:
+    - giv eksempler fra koden og vær præcis.
+    - flyt channel-state op og sig at deres unktioner har side effects. Brug mere tid på at beskrive eksemplet.
+    - læg meget vægt på alternation
+    - skriv også her at vi bruger user threads og at ocaml's IO er non-blocking.
+    
+- test:
+    - fjern ising-modellen
+    - test-metodologi?
+    - vi har både "eksempler", "implementation-tests", og "benchmarking". Split det op.
+    - lav evt. et afsnit om hvad ocaml vi baserer os på kan i analysen (threads, non-blocking io, etc).
+    - drop det om sockets i test
+    - put kode eller reference til koden i channel permissions
+    - split channel permissions og alternation op i to tests
+    - prik-prik-prik i stedet for lange outputs i appendix
+    - forklar hvordan man skal kigge på linjerne i appendix
+
+- læg meget vægt på web-proxyen, tegn, forklar, vis.
+
+- husk referencerne (find god reference til pycsp, helst lidt videnskabelig).
+
+- appendix:
+    - skriv i ocamldoccen hvordan man compiler
+    - oversigt (også over koden)
+    - husk at referer til alle bilag.
+    - skriv at vi bruger ocamldoc og det er derfor det ser mærkeligt ud.
+
+- i ocamldoc er det write c/read c og ikke write/read der er eq.
+
+- de to modeller for fork/spawn og parallel er grundlæggende forskellige
+- man burde nok fjerne spawn med mindre der er nogle ting der er meget sværere at bruge
+- beskriv det i API-designet om der skal/ikke skal være spawn/fork. (flad vs hirakisk)
+- gcer ocaml tråde? bliver de liggende hvis man ikke joiner? bliver de liggende hvis man joiner?
+- lav en test for det (den behøver ikke være i rapporten)
+- hvis man lave join flere gange kan de så overhovedet forsvinde?
+- skal man lave en reaper-process for at have spawn?
+
+- læg evt pdf-en i rep
+

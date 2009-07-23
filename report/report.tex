@@ -465,7 +465,28 @@ allows the two processes to continue. The WriterWaiting state works in much the 
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.6\textwidth]{channel-state.png}
+%\includegraphics[width=0.6\textwidth]{channel-state.png}
+    \begin{tikzpicture}[node distance   = 4 cm]
+      \GraphInit[vstyle=Normal]
+      \tikzset{LabelStyle/.style =   {draw}}
+      \SetVertexNormal[TextColor = white,
+                       LineColor = white]
+      \Vertex{Start}
+      \SetVertexNormal[Shape = circle,
+                       TextColor = black,
+                       LineWidth = 4pt]
+      \SOEA(Start){NobodyWaiting}
+      \SOWE(NobodyWaiting){ReaderWaiting}
+      \SOEA(NobodyWaiting){WritterWaiting}
+      \SetUpEdge[style={->,bend right,ultra thick}]
+      \Edge(NobodyWaiting)(ReaderWaiting)
+      \Edge(NobodyWaiting)(WritterWaiting)
+      \SetUpEdge[style={->,bend right,ultra thick}]
+      \Edge(ReaderWaiting)(NobodyWaiting)
+      \Edge(WritterWaiting)(NobodyWaiting)
+      \SetUpEdge[style={->,bend left,ultra thick}]
+      \Edge(Start)(NobodyWaiting)
+    \end{tikzpicture}
 \caption{Simplified channel state (poison and multi-read/write not shown)}
 \label{channel-state}
 \end{figure}
@@ -653,27 +674,21 @@ both application on the same computer\footnote{Macbook Pro 2,6 GHz Core 2 Duo
 4GB RAM. Mac OS 10.5.7}, we achieve a execution time that it's about twenty
 times faster.
 
-\newpage
 \subsection{Fibonacci}
-\begin{figure}[htp]
+\begin{figure}[h]
   \begin{center}
     \begin{tikzpicture}[node distance   = 4 cm]
       \GraphInit[vstyle=Normal]
-      \tikzset{LabelStyle/.style =   {draw}}
+      \tikzset{LabelStyle/.style = {draw}}
       \Vertex{FibonacciInt}
       \EA(FibonacciInt){Stop}
       \EA(Stop){Printer}
-      \tikzstyle{EdgeStyle}=[->]
+      \SetUpEdge[style={->,ultra thick},labelstyle = {draw}]
       \Edge[label=c1](FibonacciInt)(Stop)
       \Edge[label=c2](Stop)(Printer)
     \end{tikzpicture}
-% \begin{center}
-%   \includegraphics[width=14.0cm,keepaspectratio=true]{figures/fibonacci.pdf}
-% \end{center}
-% \caption{Representation of the CSP network.}
-% \label{figurefibonacci}
   \end{center}
-  \caption{Pretty nice ...}
+  \caption{Fibonacci CSP network.}
 \end{figure}
 
 This test, once we have implemented all the {\it Legoland}\cite{vintercsp}
@@ -694,10 +709,22 @@ with a {\it stop} component which, ensures that the network shuts down correctly
 after the number of iterations given as the first parameter, and a {\it printer}
 component which prints out to the screen the Fibonacci numbers.
 
-
 \subsection{Webproxy}
-
-TODO: A picture of network (made with tkiz) goes here !!!
+\begin{figure}[h]
+  \begin{center}
+    \begin{tikzpicture}[node distance   = 4 cm]
+      \GraphInit[vstyle=Normal]
+      \tikzset{LabelStyle/.style =   {draw}}
+      \Vertex{FibonacciInt}
+      \EA(FibonacciInt){Stop}
+      \EA(Stop){Printer}
+      \SetUpEdge[style={->,ultra thick},labelstyle = {draw}]
+      \Edge[label=c1](FibonacciInt)(Stop)
+      \Edge[label=c2](Stop)(Printer)
+    \end{tikzpicture}
+  \end{center}
+  \caption{Webproxy CSP network.}
+\end{figure}
 
 \subsection{Channel permisions and alternation}
 

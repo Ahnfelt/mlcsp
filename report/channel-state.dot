@@ -1,7 +1,0 @@
-digraph g {
-    NobodyWaiting -> ReaderWaiting [label=read]
-    NobodyWaiting -> WriterWaiting [label=write]
-    ReaderWaiting -> NobodyWaiting [label=write]
-    WriterWaiting -> NobodyWaiting [label=read]
-}
-

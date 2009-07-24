@@ -117,6 +117,7 @@
 \begin{abstract}
 % Grue: Højest 10 linjer: Hvad handler rapporten om? Hvilke resultater er
 % opnået?
+
 Her på dansk
 \end{abstract}
 
@@ -135,39 +136,62 @@ Here in english
 \parskip=8pt plus 2pt minus 4pt
 
 \section{Introduction}
-This project is a complete, designed and implemented, API for a CSP-based
-concurrency library in a functional language, in this case Ocaml\cite{?}.
+We have designed and implemented a CSP-based concurrency library in a functional
+language\cite{ocaml}. CSP is an abreviation for {\it Communicating sequential
+processes}\cite{hoare}.
 
-We have achieved our three primary goals we set at the beginning:
+TODO: read when head clear ...
+
+%TODO: why use this instead of POSIX? Easy to write code for running processes in
+%parallel?
+%The primary goal of our library is to offer a developer run several processes in parallel
+
+One of our goals was to offer true parallelism, run several processors
+over several CPUs or cores, but the library cannot offer this because of the
+limitations of Ocaml, see {\it appendix \ref{appendixSysthreads}}. Based on
+Xavier Leroys $[$ Cam-list $]$ answer we can see that the goals for threads in a
+Ocaml context is to offer:
 \begin{itemize}
- \item \textbf{Designing an API for a CSP-based concurrency library in a
-     functional language}. Because our main focus was on the API design, most of
-   the {\it Section} \ref{analysis} is related to this.
- \item \textbf{Implementing the concurrency API in a functional language.} A
-   complete description on how we implemendted the API based on the limitations
-   of the chosen language?, use of a global lock. For more information look in
-   the {\it Section} \ref{implementation}.
- \item \textbf{Assessing the API and underlying implementation by comparing
-     applications built on top of it with similar applications built on top of
-     an existing CSP library}. We have made a simple CSP network, Fibonacci,
-   and a more complex, Webproxy, in order to test the API. The application are
-   similar to the applications we have made for one of the other CSP libraries.
-   A full description on how these applications are build and how to compile-run
-   can be seen in the {\it Section} \ref{test}.
+ \item {\it Overlapping I/O and computation}. Non-blocking I/O.
+ \item {\it Supporting the "coroutine" programming style}.
 \end{itemize}
+but not {\it Parallelism on shared-memory multiprocessors}. Even though we can't
+offer parallelism over several multiprocessors or kernels we can still offer
+concurrency over a single processor.
 
-The resulting API source code and documentation can be seen in the Appendix
-\ref{appendixSrc} and \ref{appendixDoc}. A online version is also avaliable at:
-
-\begin{center}
-http://github.com/Ahnfelt/mlcsp/
-\end{center}
-
-About the possible extensions to this API, we got wise on that we cannot
-implement true parallelism through system threads, see at {\it Section
-\ref{analysis}} for more information, but how we ``maybe'' can implement
-parallelism with distribution through sockets, see {\it Section 
-\ref{conclusion}}.
+%This project is a complete, designed and implemented, API for a CSP-based
+%concurrency library in a functional language, in this case Ocaml\cite{?}.
+%
+%We have achieved our three primary goals we set at the beginning:
+%\begin{itemize}
+% \item \textbf{Designing an API for a CSP-based concurrency library in a
+%     functional language}. Because our main focus was on the API design, most of
+%   the {\it Section} \ref{analysis} is related to this.
+% \item \textbf{Implementing the concurrency API in a functional language.} A
+%   complete description on how we implemendted the API based on the limitations
+%   of the chosen language?, use of a global lock. For more information look in
+%   the {\it Section} \ref{implementation}.
+% \item \textbf{Assessing the API and underlying implementation by comparing
+%     applications built on top of it with similar applications built on top of
+%     an existing CSP library}. We have made a simple CSP network, Fibonacci,
+%   and a more complex, Webproxy, in order to test the API. The application are
+%   similar to the applications we have made for one of the other CSP libraries.
+%   A full description on how these applications are build and how to compile-run
+%   can be seen in the {\it Section} \ref{test}.
+%\end{itemize}
+%
+%The resulting API source code and documentation can be seen in the Appendix
+%\ref{appendixSrc} and \ref{appendixDoc}. A online version is also avaliable at:
+%
+%\begin{center}
+%http://github.com/Ahnfelt/mlcsp/
+%\end{center}
+%
+%About the possible extensions to this API, we got wise on that we cannot
+%implement true parallelism through system threads, see at {\it Section
+%\ref{analysis}} for more information, but how we ``maybe'' can implement
+%parallelism with distribution through sockets, see {\it Section 
+%\ref{conclusion}}.
 
 \section{API design}
 \label{analysis}
@@ -712,6 +736,10 @@ with a {\it stop} component which, ensures that the network shuts down correctly
 after the number of iterations given as the first parameter, and a {\it printer}
 component which prints out to the screen the Fibonacci numbers.
 
+Other examples on how to write some simple processes and them put them together
+running in parallel in another process can be seen in our {\it CSP component 
+library (Legoland\cite{vintercsp})}, see  {\it appendix \ref{appendixLegoland}}.
+
 \subsection{Webproxy}
 \begin{figure}[h]
   \begin{center}
@@ -801,6 +829,14 @@ and definition of the channel variables.
 \newpage
 \begin{thebibliography}{99}
 
+\bibitem[Ocaml]{ocaml}
+:\\
+Objective Caml\\
+Xavier Leroy, Jérôme Vouillon, Damien Doligez, Didier Rémy\\
+National Institute for Research in Computer and Control Sciences
+http://caml.inria.fr/ocaml/
+Last visited: $24^{th}$ july 2009
+
 \bibitem[Hoare 04]{hoare}
 :\\
 Communicating Sequential Processes\\
@@ -810,6 +846,9 @@ ISBN-10: 0-13-153271-5\\
 ISBN-13: 978-0-13-153271-7\\
 http://www.usingcsp.com/cspbook.pdf
 
+http://www.cs.kent.ac.uk/projects/ofa/jcsp/
+
+http://www.cs.kent.ac.uk/projects/ofa/c++csp/
 
 \bibitem[Vinter, PyCSP]{vinterpycsp}
 :\\
@@ -827,8 +866,6 @@ Department of Computer Science. University of Copenhagen\\
 http://isis.ku.dk/kurser/blob.aspx?feltid=224185\\
 Last visited: $20^{th}$ july 2009
 
-
-
 \end{thebibliography}
 % ----------------------------------------------------------------------
 
@@ -843,8 +880,10 @@ Last visited: $20^{th}$ july 2009
 \includecode{csp.mli}{../source/csp.mli}
 \includecode{csp.ml}{../source/csp.ml}
 \subsection{A CSP Utility Library}
+\label{appendixCspu}
 \includecode{cspu.ml}{../source/cspu.ml}
 \subsection{A CSP Component Library (Legoland)}
+\label{appendixLegoland}
 \includecode{legoland.ml}{../source/legoland.ml}
 
 
@@ -934,6 +973,7 @@ Retrieve concurrent the files bar.mp3 and foo.mp3 from the two webservers:
 
 \newpage
 \subsection{Channel permisions and alternation}
+\label{appendixPermisions}
 \includecode{permission.ml}{../test/permission.ml}
 \runtest{./buildPermission.sh \&\& ./buildPermission}
 \includeoutput{alternation\_permision\_error.txt}{
@@ -943,5 +983,14 @@ Retrieve concurrent the files bar.mp3 and foo.mp3 from the two webservers:
 \includeoutput{alternation\_permision\_poison.txt}{
   test/alternation_permision_poison.txt}
 
+\newpage
+\section{Appendix: Other}
+\subsection{Why systhreads? (Xavier Leroy)}
+\label{appendixSysthreads}
+{\tt
+  \scriptsize
+  \input{appendix/whySysthreads.txt}
+  \normalsize
+}
 
 \end{document}

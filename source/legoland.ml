@@ -39,7 +39,7 @@ let idint i o () =
     done
   with Csp.PoisonException -> pl raise_poison ()
 
-let rec succint i o () =
+let succint i o () =
   let pl = poison_list [pc i; pc o] in
   try
     while true do
@@ -93,7 +93,7 @@ let blockingFifo i o () =
   let c = Csp.channel () in
     Csp.parallel [
       idint i c;
-      idint c o;
+      idint c o
     ]
 
 
@@ -126,7 +126,7 @@ let pairsInt i o () =
     Csp.parallel [
       delta2int i c1 c2;
       tailint c1 c3;
-      plusint c3 c2 o;
+      plusint c3 c2 o
     ]
 
       
@@ -141,7 +141,7 @@ let fibonacciInt o () =
       prefixint (bii 1) c4 c1 ;
       prefixint (bii 0) c1 c2 ;
       delta2int c2 o c3;
-      pairsInt c3 c4;
+      pairsInt c3 c4
     ]
 
 let squaresInt o () =
@@ -150,6 +150,6 @@ let squaresInt o () =
     Csp.parallel [
       numbersInt c1;
       integrateInt c1 c2;      
-      pairsInt c2 o;
+      pairsInt c2 o
     ]
 

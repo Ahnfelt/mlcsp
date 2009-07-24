@@ -1,0 +1,98 @@
+\begin{verbatim}
+Date: NaN-NaN-NaN (NaN:NaN)
+From: Xavier Leroy <xavier.leroy@i...>
+Subject: Re: [Caml-list] Why systhreads?
+It seems that the annual discussion on threads started again.  Allow
+me to deliver again my standard lecture on this topic.
+
+Threads have at least three different purposes:
+
+1- Parallelism on shared-memory multiprocessors.
+2- Overlapping I/O and computation (while a thread is blocked on a network
+   read, other threads may proceed).
+3- Supporting the "coroutine" programming style
+   (e.g. if a program has a GUI but performs long computations,
+   using threads is a nicer way to structure the program than
+   trying to wrap the long computation around the GUI event loop).
+
+The goals of OCaml threads are (2) and (3) but not (1) (for reasons
+that I'll get into later), with historical emphasis on (2) due to the
+MMM (Web browser) and V6 (HTTP proxy) applications.
+
+Pure user-level scheduling, or equivalently control operators (call/cc),
+provide (3) but not (2).
+
+To achieve (2) with a user-level scheduler such as OCaml's bytecode
+thread library requires all sorts of hacks, such as non-blocking I/O
+and select() under Unix, plus wrapping of all I/O operations so that
+they call the user-level scheduler in cases where they are about to
+block.  (Otherwise, the whole process would block, and not just the
+calling thread.)
+
+Not only this is ugly (read the sources of the bytecode thread library
+to get an idea) and inefficient, but it interacts very poorly with
+external libraries written in C.  For instance, deep inside the C
+implementation of gethostbyname(), there are network reads that can
+block; there is no way to wrap these with scheduler calls, short of
+rewriting gethostbyname() entirely.
+
+To make things worse, non-blocking I/O is done completely differently
+under Unix and under Win32.  I'm not even sure Win32 provides enough
+support for async I/O to write a real user-level scheduler.
+
+Another issue with user-level threads, at least in native code, is the
+handling of the thread stacks, especially if we wish to have thread
+stacks that start small and grow on demand.  It can be done, but is
+highly processor- and OS-dependent.  (For instance, stack handling on
+the IA64 is, ah, peculiar: there are actually two stacks that grow in
+opposite directions within the same memory area...)
+
+One aspect of wisdom is to know when not to do something oneself, but
+leave it to others.  Scheduling I/O and computation concurrently, and
+managing process stacks, is the job of the operating system.  Trying
+to do it entirely in a user-mode program is just not reasonable.
+(For another reference point, see Java's move away from "green
+threads" and towards system threads.)
+
+What about parallelism on SMP machines?  The main issue here is that
+the runtime system, and in particular the garbage collector and memory
+manager, must be MP-safe.  This means minimizing global state, and
+introducing locking around accesses to shared resources.  If done
+naively (e.g. locking at each heap allocation), this can be extremely
+costly; it also complicates the runtime system a lot.  Finally,
+garbage collection can become a limiting factor if it is done in the
+"stop the world" fashion (all threads stop during GC); a concurrent GC
+avoids this problem, but adds tremendous complexity.
+
+(Of course, all this SMP support stuff slows down the runtime system
+even if there is only one processor, which is the case for almost all
+our users...)
+
+All this has been done before in the context of Caml: that was
+Damien Doligez's Concurrent Caml Light system, in the early 90s.
+Indeed, the incremental major GC that we have in OCaml is a
+simplification of Damien's concurrent GC.  If you're interested, have
+a look at Damien's publications.
+
+Why was Concurrent Caml Light abandoned?  Too complex; too hard to debug
+(despite the existence of a machine-checked proof of correctness);
+and dubious practical interest.  Shared-memory multiprocessors have
+never really "taken off", at least in the general public.  For large
+parallel computations, clusters (distributed-memory systems) are the
+norm.  For desktop use, monoprocessors are plenty fast.  Even if you
+have a 4-processor SMP machine, it isn't clear whether you should
+write your program using shared memory or using message passing -- the
+latter is slightly more expensive, but scales to clusters...
+
+What about hyperthreading?  Well, I believe it's the last convulsive
+movement of SMP's corpse :-)  We'll see how it goes market-wise.  At
+any rate, the speedups announced for hyperthreading in the Pentium 4
+are below a factor of 1.5; probably not enough to offset the overhead
+of making the OCaml runtime system thread-safe.  
+
+In summary: there is no SMP support in OCaml, and it is very very
+unlikely that there will ever be.  If you're into parallelism, better
+investigate message-passing interfaces.
+
+- Xavier Leroy
+\end{verbatim}

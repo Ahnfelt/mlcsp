@@ -474,7 +474,7 @@ allows the two processes to continue. The WriterWaiting state works in much the 
       \Vertex{Start}
       \SetVertexNormal[Shape = circle,
                        TextColor = black,
-                       LineWidth = 4pt]
+                       LineWidth = 2pt]
       \SOEA(Start){NobodyWaiting}
       \SOWE(NobodyWaiting){ReaderWaiting}
       \SOEA(NobodyWaiting){WritterWaiting}
@@ -680,6 +680,9 @@ times faster.
     \begin{tikzpicture}[node distance   = 4 cm]
       \GraphInit[vstyle=Normal]
       \tikzset{LabelStyle/.style = {draw}}
+      \SetVertexNormal[Shape = circle,
+                       TextColor = black,
+                       LineWidth = 2pt]
       \Vertex{FibonacciInt}
       \EA(FibonacciInt){Stop}
       \EA(Stop){Printer}
@@ -715,6 +718,9 @@ component which prints out to the screen the Fibonacci numbers.
     \begin{tikzpicture}[node distance   = 4 cm]
       \GraphInit[vstyle=Normal]
       \tikzset{LabelStyle/.style =   {draw}}
+      \SetVertexNormal[Shape = circle,
+                       TextColor = black,
+                       LineWidth = 2pt]
       \Vertex{FibonacciInt}
       \EA(FibonacciInt){Stop}
       \EA(Stop){Printer}

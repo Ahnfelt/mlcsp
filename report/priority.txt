@@ -25,25 +25,24 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   - fjern formalia og lav evt. et afsnit til det i konklusionen
 
 * ret teksten så der ikke står at processer er unit->unit (Joakim)
-  - skriv alt det følgende i process-afsnittet
+  - alt hvad der står i missing
   + processer er vilkårlige ml-udtryk, men bundet i funktioner
     for at undgå at sideeffekter bliver udført før tid.
   - argumenter hvorfor vi ikke har parallel2 eller parallellist
   - argumenter hvorfor vi har/ikke har spawn
     - flad eller hirakisk processmodel?
-  - "object literals" giver ikke mening, slet eller give eksempel
   + pointer at parallel tager en liste af vilkårlig størrelse
 
 * alternation (Joakim)
+  - alt hvad der står i missing
   + vi har *guarded processes* og ikke guards, ret det!
   + argumenter hvorfor vi har guarded processes og ikke bare guards
   + forklar at guarded processes i select skal returnere det samme
-  - argumenter for hvorfor man skal betale for shuffle selv når man
+  + argumenter for hvorfor man skal betale for shuffle selv når man
     ikke bruger det
-    - giver fail-fast
-    - men gør det mindre sandsynligt at programmet opfører sig på
+    + giver fail-fast
+    % men gør det mindre sandsynligt at programmet opfører sig på
       samme måde hver gang
-  - alt hvad der står i missing
   + giv et eksempel på den korte version af pycsp's alternation
     eller slet det
   + internal choice ER IKKE if/enabled - ret det!

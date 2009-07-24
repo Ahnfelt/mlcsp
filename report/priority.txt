@@ -7,7 +7,7 @@ Generelle ting:
 * argumenter mere for hvorfor vi har gjort som vi har gjort
   i API-et
 * flere kodeeksempler i API design
-* ret alle P(x) til (fun () -> ...) eller lignende
++ ret alle P(x) til (fun () -> ...) eller lignende
 * vær præcis med forskellen på CSP processes, unix og threads.
 * husk alle missing-tingene
 * stavefejl
@@ -26,13 +26,13 @@ Ting der kan gøres nu (ikke prioriteret endnu):
 
 * ret teksten så der ikke står at processer er unit->unit
   - skriv alt det følgende i process-afsnittet
-  - processer er vilkårlige ml-udtryk, men bundet i funktioner
+  + processer er vilkårlige ml-udtryk, men bundet i funktioner
     for at undgå at sideeffekter bliver udført før tid.
   - argumenter hvorfor vi ikke har parallel2 eller parallellist
   - argumenter hvorfor vi har/ikke har spawn
     - flad eller hirakisk processmodel?
   - "object literals" giver ikke mening, slet eller give eksempel
-  - pointer at parallel tager en liste af vilkårlig størrelse
+  + pointer at parallel tager en liste af vilkårlig størrelse
 
 * alternation
   - vi har *guarded processes* og ikke guards, ret det!

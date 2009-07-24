@@ -188,7 +188,8 @@ Additionally, it is possible to wait for communication from multiple sources at 
 
 For each construct, we are going to look at how it's done in CSP and in the 
 existing CSP libraries, how we would like to write it in OCaml, and what the 
-semantics should be.
+semantics should be. We will use the explicit module prefix \verb|Csp.| in front
+of any functions that come from our API.
 
 \subsection{Processes}
 \missing{
@@ -205,26 +206,33 @@ In PyCSP running two processes in parallel looks like this:
 \begin{verbatim}
 Parallel(P, Q)
 \end{verbatim}
-Where $P$ and $Q$ must be specified as $Process$ instances. It runs the processes in
-parallel and returns when they have all stopped executing. Since Python does not offer
-a literal syntax for such objects that can be used in a expression, the processes must
-be defined elsewhere. The API for C++CSP and JCSP are similar, although Java does offer
-object literals. In all cases the object literals only expose a \emph{run} method. 
-It is unclear what happens if this method is called twice on the same instance 
-(especially if the instance is used twice in the same parallel-construct).
+Where $P$ and $Q$ must be specified as $Process$ instances. There may be more processes
+separated by commas. It runs the processes in parallel and returns when they have all 
+stopped executing. Since Python does not offer a literal syntax for such objects that can 
+be used in a expression, the processes must be defined elsewhere. The API for C++CSP and 
+JCSP are similar, although Java does offer object literals. In all cases the object 
+literals only expose a \emph{run} method. It is unclear what happens if this method is 
+called twice on the same instance (especially if the instance is used twice in the same 
+parallel-construct).
 
-To avoid undefined behaviour we use functions to represent process definitions. There is 
-nothing special about the functions except that they have the type $unit \to unit$. OCaml 
-allows us to treat the functions as values, which means we can pass them around and use 
-them as arguments for our parallel construct:
+To avoid that kind of undefined behaviour we do not provide handles to 
+\emph{running processes}.
+A process is simply any OCaml expression, although we use functions to delay the 
+evaluation of them until their side effects are desireable. 
+Our parallel construct looks like this:
 
 \begin{verbatim}
-Csp.parallel [P; Q]
+Csp.parallel [
+    (fun () -> ...);
+    (fun () -> ...);
+]
 \end{verbatim}
 
-However, since OCaml has anonymous functions, we can define the process directly inside
-the parallel construct, which is often convenient for small processes. The processes
-are then run in parallel, and there is no way to get a handle to a \emph{running} process
+We use a list so it is possible to specify any number of processes. The 
+\verb|(fun ...)|s may be any OCaml expression, although we require that they are of type
+$unit \to unit$. Since OCaml has anonymous functions, we can define the process directly 
+inside the parallel construct, which is often convenient for small processes. The processes
+are then run in parallel, and there is no way to get a handle to a running process
 through our API.
 
 Sometimes it is useful to define a function that starts a process as a side effect, but
@@ -237,7 +245,7 @@ it is unsafe to terminate a running process from the outside. There is not much 
 do with such a handle, so we avoid returning one at all.
 
 We don't provide a special construct for sequence, since OCaml has a perfectly fine 
-sequence operatoer built in, and executing a list of processes in sequence is a simple
+sequence operator built in, and executing a list of processes in sequence is a simple
 matter of iterating over it and invoking each one. We also don't provide a way to specify 
 the stack size for a process, because the stack grows dynamically in OCaml user threads, 
 and there is little reason to use system threads (see section \ref{implementation}).
@@ -259,21 +267,21 @@ let c = Csp.channel ()
 \end{verbatim}
 
 Two of the basic constructs for CSP channels are send and receive:
-\[c\,!\,e \to P\]
-\[c\,?\,x \to Q(x)\]
-Where $c$ is a channel, $e$ is an expression, $x$ is a name and $P$ and $Q$ are processes. 
+\[c\,!\,e \to ...\]
+\[c\,?\,x \to ...\]
+Where $c$ is a channel, $e$ is an expression, $x$ is a name and the $...$s are processes. 
 The semantics of these are to synchronously send or receive a value respectively, and
 then become another process. In the case of receive, the process may refer to the
-received value $x$.
+received value by the name $x$.
 
 In PyCSP, these two constructs look like this:
 \begin{verbatim}
 c.write(e)
-P
+...
 \end{verbatim}
 \begin{verbatim}
 x = c.read()
-Q(x)
+...
 \end{verbatim}
 It's using methods to realize the read/write, and sequence to realize \emph{becoming}
 another process after the synchronization. Note that the channels are values, whereas
@@ -291,10 +299,10 @@ exstensible inheritance hierachy for channels, we choose functions for the task.
 We use the \textbf{let in} construct to provide binding.
 
 \begin{verbatim}
-Csp.write c e; P
+Csp.write c e; ...
 \end{verbatim}
 \begin{verbatim}
-let x = Csp.read c in Q(x)
+let x = Csp.read c in ...
 \end{verbatim}
 
 It is possible to transmit any OCaml value over a channel, including impure functions and mutable 
@@ -311,52 +319,62 @@ details of the channels are explained in the following section.
 }
 
 Alternation corresponds to \emph{external choice} in CSP, which uses the $|$ operator:
-\[c_1\,?\,x \to P(x)\ |\ c_2\,?\,x \to Q(y)\ |\ c_3\,!\,e \to R\]
-The semantics is that once one or more of the alternatives can take a step, then
-an arbitrary one of these is chosen to take a step, and then the whole process acts as 
-the remainder of the chosen alternative.
+\[c_1\,?\,x \to ...\ |\ c_2\,?\,y \to ...\ |\ c_3\,!\,e \to ...\]
+The operands of the operator are arbitrary processes. The semantics is that once one or 
+more of the alternatives can take a step, then an arbitrary one of these is chosen to take a 
+step, and then the whole process acts as the remainder of the chosen alternative.
 
 In PyCSP it looks like (where in1 = c1.read, in2 = c2.read, out3 = c3.write):
 \begin{verbatim}
 s = Alternative(in1, in2, out3).priSelect()
 if s == in1:
     x = in1()
-    P(x)
+    ...
 elif s == in2:
     y = in2()
-    Q(y)
+    ...
 else:
     out3(e)
-    R
+    ...
 \end{verbatim}
-
-Note that the whole if-construct can be replaced by an application if all the guards have the same type 
-and become the same process. The JCSP and C++CSP selects take in a list of guards and return the index
-of the guard, which you can then switch on. In both cases, you have to \emph{promise} to read from the
-chosen channel, or the behaviour will be undefined.
+Here $s$ becomes one of $in1$, $in2$ and $out3$, which are \emph{channel ends}. These are instances
+of ordinary classes that define a special method that allows for the call-like syntax above.
+The JCSP and C++CSP selects take in a list of guards and return the index of the guard, which you can 
+then switch on. In both cases, you have to \emph{promise} to read from the chosen channel, or the 
+behaviour will be undefined.
 
 Starting from CSP's syntax, we might want to write something like \texttt{(A | B | C)}, where $A$, $B$
-and $C$ are processes. If we consider process definitions functions of type $unit \to unit$ for this 
-purpose, one might define an operator $|$ that takes two processes and returns the result of the one that 
-is chosen. The problem with this is that it is very hard in plain OCaml to inspect functions at runtime 
-to see which one of them can take a step.
+and $C$ are processes. One might define an operator $|$ that takes two processes and returns the result 
+of the one that is chosen. The problem with this is that it is very hard in plain OCaml to inspect 
+functions at runtime to see which one of them can take a step.
 
-Instead we make the first step inspectable by providing \emph{guards}, which is also the route taken by
-the other libraries. However, we would like to avoid relying promises and idioms to obtain the 
-intended behaviour. We therefore make the action an integral part of each guard. We use a list instead
-of an operator in order to provide a more natural syntax for alternation with more than two choices.
+The existing libraries solve this by providing \emph{guards}, which exposes the first action as a value 
+that can easily be inspected by the library. After a guard is selected, the action it specifies must be 
+carried out, and it is the programmer's responsibility to ensure this. In the case of PyCSP, channel
+ends are also read- or write guards. 
+
+Placing the responsibility on the programmer will lead to bugs if the programmer fails to obey the 
+requirements. To avoid this, we instead provide \emph{guarded processes}, which combine the guard and
+the corresponding actions. Each possible first action has it's own constructor, and is automatically 
+carried out when the guard is chosen. We use a list instead of an operator in order to provide a more 
+natural syntax for alternation between more than two guarded processes.
+
+Our alternation construct is intended to capture the conditional logic which typically follows 
+alternation in the existing CSP libraries.
 
 \begin{verbatim}
 Csp.select [
-    Csp.read_guard c1 P(x);
-    Csp.read_guard c2 Q(y);
-    Csp.write_guard c3 e R;
+    Csp.read_guard c1 (fun x -> ...);
+    Csp.read_guard c2 (fun y -> ...);
+    Csp.write_guard c3 e (fun () -> ...);
 ]
 \end{verbatim}
-Where $P(x)$ and $Q(x)$ are functions that take the read value as a parameter, and $R$ takes the written 
-value. Anonymous functions can be used to give it the appearence of a control construct. Note that select 
-also returns the result of the chosen action, which is particularily convenient if you are reading and 
-don't care which channel the value comes from.
+
+Whereas external choice in CSP is between processes, our alternation is between guarded processes.
+The \verb|(fun ...)|s can be any OCaml expression. The read guards require that the expression is of type
+$\alpha \to \beta$ where $\alpha$ is the type of messages that can be sent over the guard's channel, whereas
+for the write guards it must be of type $unit \to \beta$. The $\beta$ types must be the same for all guards in 
+a list. It will return the result of evaluating the chosen guarded process.
 
 In CSP, any process that can take a step may be chosen arbitrarily. However, if the same list of 
 alternatives is used in a loop, this might lead to starvation. If one of the guards is always ready,
@@ -409,24 +427,27 @@ which might not even be possible to determine. The process that wants to send th
 could loop forever, repeating the termination message to anybody who read from the channel, but then 
 that process could never shut down.
 
-In PyCSP, JCSP and C++CSP, a channel may be \emph{poisoned}. Once a channel has been poisoned, reading
-from or writing to that channel causes an exception. The exception may be handled, thus allowing the
-process to clean up, propagate the poison, or even ignore the poisoning. That way, the process remains
-in control of it's own lifespan. A channel that has been poisoned can never become unpoisoned.
-We provide the same construct:
+In PyCSP, JCSP and C++CSP, a channel may be \emph{poisoned}. Once a channel
+has been poisoned, reading from or writing to that channel causes an exception.
+The exception may be handled, thus allowing the process to clean up, propagate
+the poison, or even ignore the poisoning. That way, the process remains in
+control of it's own lifespan. A channel that has been poisoned can never become
+unpoisoned. We provide the same construct:
 
 \begin{verbatim}
 Csp.poison c 
 \end{verbatim}
 
-Read and write guards become ready if their channel is poisoned, and an alternation may thus chose to 
-throw a PoisonException if one or more of it's guards' channels are poisoned.
+Read and write guards become ready if their channel is poisoned, and an
+alternation may thus chose to throw a PoisonException if one or more of it's
+guards' channels are poisoned.
 
-In order to shut down process networks, which may have intrnal subnetworks, it is nessecary to propagate
-the poison to the other processes in the network. As mentioned, this can be done in the handler for
-PoisonException. PyCSP automatically poisons channels that are arguments to process constructors. In 
-many cases this is the desired behaviour. JCSP and C++CSP do not provide it, and neither do we due to
-technical issues (see section \ref{implementation}).
+In order to shut down process networks, which may have intrnal subnetworks, it
+is nessecary to propagate the poison to the other processes in the network. As
+mentioned, this can be done in the handler for PoisonException. PyCSP
+automatically poisons channels that are arguments to process constructors. In 
+many cases this is the desired behaviour. JCSP and C++CSP do not provide it, and
+neither do we due to technical issues (see section \ref{implementation}).
 
 \subsection{Permissions}
 
@@ -450,6 +471,7 @@ See secion \ref{implementation} for the complete set.
 \missing{
 - Mention that we do everything within OCaml's type system.\\
 - Mention why we can't have parallelism.\\
+- Mention why it isn't interesting to use system threads.\\
 - Describe why we cannot provide automatic poison propagation.\\
 }
 \label{implementation}

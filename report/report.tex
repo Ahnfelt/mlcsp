@@ -133,7 +133,9 @@ TODO: some more here ...
 \end{abstract}
 
 \newpage
-\tableofcontents
+\setcounter{tocdepth}{2}
+\setcounter{secttocdepth}{3}
+\dosecttoc \tableofcontents
 \newpage
 
 % Line breaks between paragraphs instead of indentation
@@ -167,14 +169,15 @@ Ocaml context is to offer:
 but not {\it Parallelism on shared-memory multiprocessors}. Even though we can't
 offer parallelism over several multiprocessors or kernels we can still offer
 concurrency over a single processor and {\it Overlapping I/O and computation}.
-Thanks to this we have been able to implement a Webproxy, see section \ref{test}
-for more information, with non-blocking I/O.
+Thanks to this we have been able to implement a Webproxy, see section
+\ref{examples} for more information, with non-blocking I/O.
 
 Besides the implementation of the Webproxy, we also implemented a CSP
 Library ({\it Legoland\cite{vinterpycsp}}), with these components we are able to
 create simple networks as the one that gives us Fibonacci numbers, see section
-\ref{test}. But just to show how simple it is to write a CSP network with our
-library we show the following example where we print even numbers in $\mathbb{N}$:
+\ref{examples}. But just to show how simple it is to write a CSP network with
+our library we show the following example where we print even numbers in
+$\mathbb{N}$:
 \newpage
 \begin{verbatim}
 let rec counter n o () =
@@ -218,7 +221,7 @@ http://github.com/Ahnfelt/mlcsp/
 
 
 \section{API design}
-\label{analysis}
+\label{apidesign}
 \missing{
 - Describe why/why not we're throwing an exception from parallel.\\
 - What do we do about shared state?\\
@@ -359,13 +362,6 @@ requires additional synchronization beyond the scope of this library. The remain
 details of the channels are explained in the following section.
 
 \subsection{Alternation}
-\missing{
-- PriSelect (not there because it's not well defined).\\
-- FairSelect (what problem does this actually solve?).\\
-- Polling or skip guards (can be implemented as a process). \\
-- Time guards (can be implemented as a process). \\
-}
-
 Alternation corresponds to \emph{external choice} in CSP, which uses the $|$ operator:
 \[c_1\,?\,x \to ...\ |\ c_2\,?\,y \to ...\ |\ c_3\,!\,e \to ...\]
 The operands of the operator are arbitrary processes. The semantics is that once one or 
@@ -441,6 +437,48 @@ provide separatly. Providing this as the arbitrary choice alternation is
 beneficial because a program cannot accidentally depend on an undocumented
 order of prioritization. On the other hand, it does incur a small overhead on
 every call to select.
+
+\begin{figure}[h]
+  \begin{center}
+    \begin{tikzpicture}[node distance   = 4 cm]
+      \GraphInit[vstyle=Normal]
+      \tikzset{LabelStyle/.style = {draw}}
+      \SetVertexNormal[Shape = circle,
+                       TextColor = black,
+                       LineWidth = 2pt]
+      \Vertex{P}
+      \EA(P){Q}
+      \SetUpEdge[style={->,bend right,ultra thick},labelstyle = {draw}]
+      \Edge[label=PRI ALT](P)(Q)
+      \Edge[label=PRI ALT](Q)(P)
+    \end{tikzpicture}
+  \end{center}
+  \caption{What to do when two opposite PRI ALT meet?}
+  \label{prialt}
+\end{figure}
+
+We haven't implemented {\it PRI ALT}\cite{occam}, even though it's implemented
+in all the other libraries we compare ours to. The primary reason is that it's
+not described in the Occam reference manual what will happend if two {\it PRI
+ALT} met, see figure \ref{prialt}. On the other hand we also don't implement
+{\it FAIR SELECT} because it's not really implemented in Occam and both the
+versions from JCSP and C++CSP2 differs from each other but both agree on that
+over time as our implementation, will ensure, statistically, that all the
+process will be called the same amount of time and no process can be
+indefinitely starved.
+
+Because we don't have implemented {\it PRI ALT}, this also affects that it will
+not give sense to implemented {\it SKIP GUARDS}. {\it SKIP GUARDS} are only
+usefull whenever you have the guarded process as the final process in the list.
+Because we use randomness, we could encounter this guarded process before
+another guarded process that was ready to read/write. Following this we also
+don't have the possibility to implement {\it polling}, again based on the
+randomness of alternation in CSP (external choice).
+
+About the implementation of {\it TIME GUARDS} we could achieve this by creating
+a guarded process, put the thread to sleep the desired amount of time, then wake
+up and send the message. Because this is possible, we leave up to the developer
+responsability to do it himself.
 
 The \emph{read} and \emph{write} functions are semantically equivalent to a select that has exactly 
 one guard.
@@ -672,75 +710,78 @@ than the current randomized select. \\
 
 \subsection{Processes}
 
-\section{Test}
-\label{test}
+\section{Test, performance and examples}
+\label{testexamples}
 One of the goals for this project was that we needed to implement a simple
-network on top of the API, Fibonacci, and a more complex network, The Ising 2D
-Model.
+network on top of the API, Fibonacci, and a more complex one but because Ocaml
+doesn't have support for parallelism, as mentioned in the section\ref{apidesign},
+we decided to make a Webproxy, with a build in cache so we show that we actually
+use overlapping I/O.
 
-Because Ocaml doesn't have support for parallelism, as mentioned in the Analysis
-Section\ref{?}, we decided to make a Webproxy, with a build in cache.
+But before we made this two applications we needed to know the limitations of
+Ocamls thread library and I/O library.
 
-But before we made this two applications we needed to now the limitations of
-Ocamls Thread library and IO Library.
+A detailed description on how to run the test can be seen in appendix
+\ref{appendixOcamltest}.
 
-A detailed description on how to run the test can be seen in
-Appendix \ref{appendixTest}.
+\subsection{Ocaml tests}
+\label{ocamltests}
+\begin{table}[!h]
+  \begin{center}
+    \begin{tabular}{|p{3cm}|p{8.5cm}|c|}
+      \hline
+      File name &
+      Description &
+      Result \\
+      \hline
+      maxthreads.ml (user thread) &
+      The application creates as many threads as possible, once it reaches
+      about 15.000 it stops spawning more threads (deadlock ?).&
+      OK \\
+      \hline
+      maxthreads.ml (system thread) &
+      The application creates as many threads as possible, once it reaches
+      about 100 it stops spawning more threads (deadlock ?).&
+      OK \\
+      \hline
+      nonblocking.ml &
+      We run to processes in parallel. The first process whats for user input
+      and the second process after a seconds delay reads the first line from
+      the its own source code file and writes the line to stdout.&
+      OK \\
+      \hline
+    \end{tabular} 
+    \caption{The test checks Ocaml implementation of the threadlibrary and I/O.}
+    \label{testtable}
+  \end{center}
+\end{table}
 
-\subsection{Performance}
-
-%\begin{table}[ht]
-%\centering
-\begin{tabular}{|p{3cm}|p{8.5cm}|c|}
-    \hline
-    	File name &
-	Description &
-	Result \\
-    \hline
-    	maxthreads.ml (user thread) &
-        The application creates as many threads as possible, once it reaches
-        about 15.000 it stops spawning more threads (deadlock ?).&
-	FAIL \\
-    \hline
-    	maxthreads.ml (system thread) &
-        The application creates as many threads as possible, once it reaches
-        about 100 it stops spawning more threads (deadlock ?).&
-	FAIL \\
-    \hline
-    	nonblocking.ml &
-        We run to processes in parallel. The first process whats for user input
-        and the second process after a seconds delay reads the first line from
-        the its own source code file and writes the line to stdout.&
-	OK \\
-    \hline
-    	commstime.ml &
-        A benchmark application used by Brian Vinter to measure PyCSP vs JCSP.&
-	OK \\
-    \hline
-  \end{tabular} 
-%\caption{The first three test checks Ocaml implementation of the Thread library
-%  and I/O. In the last test, we compare OcamlCSP vs PyCSP.}
-%\label{testtable}
-%\end{table}
-
-\subsubsection*{Maxthreads}
+\subsubsection{Maxthreads}
 In this test we try to find an upperbound of how many threads we can create,
-user threads or system threads. In the first case when using user threads we
+user threads and/or system threads. In the first case when using user threads we
 find that after creating between 15.000 - 20.000 threads the application
 freezes. We are not able to find any kind of documentation that can helps us
 verify that it's a deadlock or a maximum number of threads allowed for an
 application to create. If we run the test several times, we will see that
 each application will be able to create about those 15.000 - 20.000 threads.
 
-In case it's a limitation in Ocaml, we could by implementing sockets always
-start $n$ times the application and make them comunicate over sockets so we
-could achieve the number of threads as we desire.
-
 In the second test based on maxthreads, we use system threads and as before
 the application freezes but just after creating about 100 threads.
 
+Even though we didn't find any kind of documentation on the maximum number
+of threads to create, if we read read the documentation for the thread library
+we can see that {\it Thread.create} terminates when the {\it func args}
+returns either normally or by rasing an uncaught exception. In this last case
+the exception will be printed to the standard error but not be propagated to
+the parent thread. Because we don't see any kind of message we must assume
+that the created threads are still running in the background until we join
+them and if we joined them, we will suspend the calling thread until the
+child thread was terminated, which will be never cos we run them forever with:
+\begin{verbatim}
+let loop () = while true do () done
+\end{verbatim}
 
-\subsubsection*{Nonblocking}
+\subsubsection{Nonblocking}
 To implement the Webproxy we need to know if one of the processes is waiting
 to recieve a chunck of data, if it block the IO until it has recieved the data
 or if another process that is also waiting for a chunck.
@@ -753,19 +794,67 @@ also connects over the Webproxy to a fast website. While the first client
 waits to recieve data from the webserver, the second client can read chunks
 of data from the fast website.
 
+So what we have done is that we run two processes in parallel, the first one
+waits for the user input, while the second one reads a line from it's own
+code file after a second of waiting (Thread.sleep). As we can see in the test
+the second process is able to read the line even if the first process waits,
+hereby we can see that we don't have non-blocking I/O.
 
-\subsubsection*{Commstime}
+\subsection{OcamlCSP tests}
+\label{ocamlcsptests}
+\subsubsection{Channel permisions}
+One of the features this API has is that you have the possibility to set 
+read/write/poision permissions on the channels. With this test we will
+demostrate where this is useful. What we do is that we have to components
+that just counts integers. When the second counter reaches $20$ we want
+to poison the whole network. But we have sat the first count to only count
+to 10 and it will shutdown the hole network through the {\it stop}
+component from the {\it Legoland} library. But this is a problem, we don't
+want the first counter to shut down the network so we add {\it write\_only}
+to counter components output channel. This will result in a compiler error
+because the {\it stop} component once it's poisoned it propagates the poison
+to all the other channels, but we have just defined our output channel to
+only allow write.
+
+We now make a {\it custom\_stop} component which only propagates poison to
+the input channel. We are now able to compile and run the application knowing
+that our first counter will never shutdown our network through poison.
+
+Even though we don't allow to propagate poison whenever the second counter
+reaches it's number and poison the printer component. Then when the first
+counter will write over the {\it custom\_stop} component, it will actually
+raise a {\it PoisonException} which will be progated back to the counter
+ensuring that all of the processes terminate and hereby ensuring that network
+shuts down correctly.
+
+\subsubsection{Alternation}
+Based on the same code file as the one used to permision, we added a small
+{\it guard} test which read from the two counters components whenever one of
+them are ready. By setting the first counter to only send 5 numbers, we can
+actually check that when setting the second counter to the double we can see
+that the {\it custom\_printer} component will see if any of the to
+{\it read\_guards} are ready to read from the counters and because one stop
+early it will keep reading from the second.
+
+Both results can be seen in appendix \ref{appendixOcamlcsptest}.
+
+\subsection{Performance}
+\label{performance}
 Even though we don't set focus on performance and optimization, we still wanted
 to implement the Commstime\cite{vinterpycsp} process that's used to compare
 PyCSP against JCSP.
 
+\subsubsection{Commstime}
 The only change we made to the code is that we use {\it Unix.gettimeofday} in
 order to get the same time precision as Pythons {\it time.time} has. By running
 both application on the same computer\footnote{Macbook Pro 2,6 GHz Core 2 Duo
 4GB RAM. Mac OS 10.5.7}, we achieve a execution time that it's about twenty
-times faster.
+times faster. Results can be seen in appendix \ref{appendixPerformance}.
 
-\subsection{Fibonacci}
+\subsection{Examples}
+\label{examples}
+
+\subsubsection{Fibonacci}
 \begin{figure}[h]
   \begin{center}
     \begin{tikzpicture}[node distance   = 4 cm]
@@ -791,7 +880,13 @@ times faster.
     \end{tikzpicture}
   \end{center}
   \caption{FibonacciInt, a CSP component from the Legoland Library.}
+  \label{fibonaccicomp}
 \end{figure}
+
+This test, once we have implemented all the {\it Legoland}\cite{vintercsp}
+components, was a very easy and straight forward task. Even though that it
+looks like this network doesn't do much it was very useful to discover that
+our first implementation didn't work correctly.
 
 \begin{figure}[h]
   \begin{center}
@@ -810,12 +905,8 @@ times faster.
     \end{tikzpicture}
   \end{center}
   \caption{Fibonacci CSP network with stop component.}
+  \label{fibonacci}
 \end{figure}
-
-This test, once we have implemented all the {\it Legoland}\cite{vintercsp}
-components, was a very easy and straight forward task. Even though that it
-looks like this network doesn't do much it was very useful to discover that
-our first implementation didn't work correctly.
 
 Another thing was that we implemented our {\it Legoland} components as
 recursive function, but not tail-recursive, after running this application
@@ -824,20 +915,21 @@ overflow. Once we rewrote the components from recursive to using {\it while true
 do} we was able to run more than a 1.000.000 iterations, We supouse we can
 run even more but we didn't test it out.
 
-A description on how this simple network works can be seen in Figure\ref{?}
-where we use the {\it Legoland fibonacciInt} component running in parallel
-with a {\it stop} component which, ensures that the network shuts down correctly
-after the number of iterations given as the first parameter, and a {\it printer}
-component which prints out to the screen the Fibonacci numbers.
+A description on how this simple network works can be seen in figure
+\ref{fibonaccicomp} and \ref{fibonacci} where we use the {\it Legoland
+fibonacciInt} component running in parallel with a {\it stop} component which,
+ensures that the network shuts down correctly after the number of iterations
+given as the first parameter, and a {\it printer} component which prints out to
+the screen the Fibonacci numbers.
 
 Other examples on how to write some simple processes and them put them together
 running in parallel in another process can be seen in our {\it CSP component 
-library (Legoland\cite{vintercsp})}, see  {\it appendix \ref{appendixLegoland}}.
+library (Legoland)}, see  {\it appendix \ref{appendixLegoland}}.
 
-\subsection{Webproxy}
+\subsubsection{Webproxy}
 \begin{figure}[h]
   \begin{center}
-    \begin{tikzpicture}[node distance   = 4 cm]
+    \begin{tikzpicture}[node distance = 4 cm]
       \GraphInit[vstyle=Normal]
       \tikzset{LabelStyle/.style =   {draw}}
       \SetVertexNormal[Shape = circle,
@@ -852,41 +944,8 @@ library (Legoland\cite{vintercsp})}, see  {\it appendix \ref{appendixLegoland}}.
     \end{tikzpicture}
   \end{center}
   \caption{Webproxy CSP network.}
+  \label{webproxy}
 \end{figure}
-
-\subsection{Channel permisions and alternation}
-
-One of the features this API has is that you have the possibility to set 
-read/write/poision permissions on the channels. With this test we will
-demostrate where this is useful. What we do is that we have to components
-that just counts integers. When the second counter reaches $20$ we want
-to poison the whole network. But we have sat the first count to only count
-to 10 and it will shutdown the hole network through the {\it stop}
-component from the {\it Legoland} library. But this is a problem, we don't
-want the first counter to shut down the network so we add {\it write\_only}
-to counter components output channel. This will result in a compiler error
-because the {\it stop} component once it's poisoned it propagates the poison
-to all the other channels, but we have just defined our output channel to
-only allow write.
-
-We now make a {\it custom\_stop} component which only propagates poison to
-the input channel. We are now able to compile and run the application knowing
-that our first counter will never shutdown our network through poison.
-
-Even though we don't allow to propagate poison whenever the second counter
-reaches it's number and poison the printer component. Then when the first
-counter will write over the {\it custom\_stop} component, it will actually
-raise a {\it PoisonException} which will be progated back to the counter
-ensuring that all of the processes terminate and hereby ensuring that network
-shuts down correctly.
-
-%Besides the channel permision we also added a small {\it guard} test which read
-%from the two counters whenever one of them is ready. By setting the first
-%counter to only send 5 numbers, we can actually check that when setting the
-%second counter to the double we can see that the {\it custom\_printer} component
-%will see if any of the to {\it read\_guards} are ready to read from the counters
-%and because one stop early it will keep reading from the second.
-
 
 \section{Conclusion}
 \label{conclusion}
@@ -967,6 +1026,14 @@ http://www.cs.kent.ac.uk/projects/ofa/c++csp/\\
 Last visited: $26^{th}$ july 2009
 
 \newpage
+\bibitem[Occam]{occam}
+:\\
+Occam 2 Reference Manual\\
+C. A. R. Hoare\\
+Prentice Hall; (May 1988)\\
+ISBN-10: 0136293123\\
+ISBN-13: 978-0136293125
+
 \bibitem[Vinter, PyCSP]{vinterpycsp}
 :\\
 PyCSP. The beginning of a CSP library for Python\\
@@ -1017,10 +1084,11 @@ The documentation can be created with following command:
 
 \newpage
 \secttoc
-\section{Appendix: Test}
+\section{Appendix: Test, performance and examples}
 \label{appendixTest}
-\subsection{Performance}
 
+\subsection{Ocaml tests}
+\label{appendixOcamltest}
 \subsubsection{Maxthreads}
 \includecode{maxthreads.ml}{../test/maxthreads.ml}
 \runtest{ocamlc -vmthread unix.cma threads.cma maxthreads.ml -o maxthreads \&\&
@@ -1030,27 +1098,39 @@ The documentation can be created with following command:
   ./maxthreads}
 \includeoutput{sysMaxThreads.txt}{test/sysMaxThreads.txt}
 
-\newpage
 \subsubsection{Nonblocking}
 \includecode{nonblocking.ml}{../test/nonblocking.ml}
 \runtest{ocamlc -vmthread threads.cma unix.cma nonblocking.ml -o nonblocking
   \&\& ./nonblocking}
 \includeoutput{nonblocking.txt}{test/nonblocking.txt}
 
+\subsection{OcamlCSP tests}
+\label{appendixOcamlcsptest}
+\subsubsection{Channel permisions}
+\includecode{permission.ml}{../test/permission.ml}
+\runtest{./buildPermission.sh \&\& ./buildPermission}
+\includeoutput{permision\_error.txt}{test/permision_error.txt}
+
+\subsubsection{Alternation}
+\includeoutput{alternation\_one\_guard.txt}{test/alternation_one_guard.txt}
+\includeoutput{alternation\_poison.txt}{test/alternation_poison.txt}
+
+\subsection{Performance}
+\label{appendixPerformance}
 \subsubsection{Commstime}
 \includecode{commstime.ml}{../test/commstime.ml}
 \runtest{./buildCommstime.sh \&\& ./commstime}
 \includeoutput{ocamlcsp\_commstime.txt}{test/ocamlcsp_commstime.txt}
 \includeoutput{pycsp\_commstime.txt}{test/pycsp_commstime.txt}
 
-\subsection{Fibonacci}
+\subsection{Examples}
+\subsubsection{Fibonacci}
 \includecode{fibCSP.ml}{../test/fibCSP.ml}
 \runtest{./buildFibCSP.sh \&\& ./buildFibCSP}
-\newpage
 \includeoutput{fibonacci.txt}{test/fibonacci.txt}
 
 \newpage
-\subsection{Webproxy}
+\subsubsection{Webproxy}
 \includecode{proxyCSP.ml}{../test/proxyCSP.ml}
 \includecode{server.rb}{../test/web/server.rb}
 Start two sequential webservers (ruby):
@@ -1091,18 +1171,6 @@ Retrieve concurrent the files bar.mp3 and foo.mp3 from the two webservers:
   test/proxy_same_time_bar.txt}
 \includeoutput{proxy\_same\_time\_foo.txt}{
   test/proxy_same_time_foo.txt}
-
-\newpage
-\subsection{Channel permisions and alternation}
-\label{appendixPermisions}
-\includecode{permission.ml}{../test/permission.ml}
-\runtest{./buildPermission.sh \&\& ./buildPermission}
-\includeoutput{alternation\_permision\_error.txt}{
-  test/alternation_permision_error.txt}
-\includeoutput{alternation\_permision\_one\_guard.txt}{
-  test/alternation_permision_one_guard.txt}
-\includeoutput{alternation\_permision\_poison.txt}{
-  test/alternation_permision_poison.txt}
 
 \newpage
 \section{Appendix: Other}

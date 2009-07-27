@@ -15,7 +15,7 @@ Generelle ting:
 
 Ting der kan gøres nu (ikke prioriteret endnu):
 
-* mere ingenørmessig introduktion (Ramon)
++ mere ingenørmessig introduktion (Ramon)
   + forklar hvilket problem der er blevet løst
     + concurrency (og api der ville understøtte parallelisme)
     + inspireret af CSP-biblioteker
@@ -33,8 +33,8 @@ Ting der kan gøres nu (ikke prioriteret endnu):
     - flad eller hirakisk processmodel?
   + pointer at parallel tager en liste af vilkårlig størrelse
 
-* alternation (Ramon)
-  - alt hvad der står i missing
+! alternation (Ramon)
+  ! alt hvad der står i missing (Hvad med Polling - Andrzej)
   + vi har *guarded processes* og ikke guards, ret det!
   + argumenter hvorfor vi har guarded processes og ikke bare guards
   + forklar at guarded processes i select skal returnere det samme
@@ -79,25 +79,25 @@ Ting der kan gøres nu (ikke prioriteret endnu):
     non-blocking IO
 
 * test (Ramon)
-  - fjern reference til ising-modellen
-  - bruger vi en test-metodologi?
-  - split op i
-    - eksempler/use cases: legoland, proxy, util
-    - korrekthedstest/implementationstest
-    - benchmarking
+  + fjern reference til ising-modellen
+  % bruger vi en test-metodologi?
+  + split op i
+    + eksempler/use cases: legoland, proxy, util
+    + korrekthedstest/implementationstest
+    + benchmarking
   - læg meget vægt på proxyen (vores "flagskib")
-  - drop det om sockets i test
-  - put kode eller reference til koden i afsnittet om channel
+  + drop det om sockets i test
+  ? put kode eller reference til koden i afsnittet om channel
     permissions (?)
-  - split channel permissions og alternation op i to tests
-  - brug ... i stedet for fuldt output
+  + split channel permissions og alternation op i to tests
+  + brug ... i stedet for fuldt output
   - forklar hvordan output skal fortolkes
 
 * ocaml (Ramon)
-  - find dokumentation om non-blicking IO (se ThreadUnix)
-  - skriv om maks antal tråde
-  - lever tråde uendeligt hvis man ikke joiner dem?
-  - lever de uendeliget selvom man joiner dem?
+  ? find dokumentation om non-blicking IO (se ThreadUnix)
+  + skriv om maks antal tråde
+  + lever tråde uendeligt hvis man ikke joiner dem?
+  + lever de uendeliget selvom man joiner dem?
 
 + kode (ret i rapport, API og kode) (Joakim)
   + lav parallel om så den kaster en exception til slut hvis en 
@@ -127,4 +127,3 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   - husk at referer til alle bilag
   ? skriv at vi bruger ocamldoc og det er derfor det ser 
     mærkeligt ud
-

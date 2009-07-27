@@ -11,4 +11,3 @@ let _ =
         ignore (Thread.create loop ());
         if i mod 100 = 0 then print_endline (string_of_int i)
     done
-

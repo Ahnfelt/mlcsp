@@ -21,7 +21,7 @@ let write_file f i () =
     with PoisonException -> close_out io
 
 let _ =
-  let c = Csp.channel () in
+  let c = Csp.new_channel () in
     Csp.parallel[
       read_file "a.mp3" c;
       write_file "b.mp3" c

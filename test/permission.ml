@@ -27,10 +27,10 @@ let custom_stop n i o () =
 
       
 let _ = 
-  let c1 = Csp.channel () in
-  let c2 = Csp.channel () in
-  let c3 = Csp.channel () in
-  let c4 = Csp.channel () in
+  let c1 = Csp.new_channel () in
+  let c2 = Csp.new_channel () in
+  let c3 = Csp.new_channel () in
+  let c4 = Csp.new_channel () in
       Csp.parallel [
         numbersInt c1;
         (*stop 5 c1 (Csp.write_only c3);*)

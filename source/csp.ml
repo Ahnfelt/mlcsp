@@ -21,7 +21,7 @@ type ('a, 'b) channel = ('a channel_state) ref
 
 type on = unit and off = unit
 
-type 'a t = ('a, on * on * on) channel
+type 'a chan = ('a, on * on * on) channel
 
 type ('a, 'b) either = Left of 'a | Right of 'b
 
@@ -47,7 +47,7 @@ let with_mutex m f = (
     Mutex.unlock m;
     v)
 
-let channel () = ref NobodyWaiting
+let new_channel () = ref NobodyWaiting
 
 let poison c = with_mutex global_mutex (fun _ -> 
     let f = fun (s, _) -> Condition.signal s in
@@ -56,9 +56,6 @@ let poison c = with_mutex global_mutex (fun _ ->
     | WriterWaiting xs -> List.iter f xs
     | _ -> ());
     c := Poisoned)
-
-let poisoned c =
-  with_mutex global_mutex (fun _ -> !c == Poisoned)
 
 (* Must be called in a locked context *)
 let rec attempt_all l = match l with
@@ -132,7 +129,7 @@ let read_guard c f s = {
     }
 
 (* Methods must be called in a locked context *)
-let write_guard c v f s = {
+let write_guard c v f s = let f _ = f () in {
     attempt = (fun () -> match !c with
         | ReaderWaiting ((_, x)::_) -> (x v; Some (f v))
         | _ -> None
@@ -156,22 +153,36 @@ let write_guard c v f s = {
     }
 
 let read c = select [read_guard c (fun x -> x)]
-let write c v = select [write_guard c v (fun _ -> ())]
+let write c v = select [write_guard c v (fun () -> ())]
 
 let thread_function f () = try f () with PoisonException -> ()
 
-let fork f = ignore (Thread.create (thread_function f) ())
+let spawn f = ignore (Thread.create (thread_function f) ())
 
 let parallel fs =
+    let rec number fs l i = match fs with
+        | [] -> l
+        | (f::fs) -> number fs ((f, i)::l) (i + 1) in
+    let fs = number fs [] 0 in
+    let e = ref None in
+    let set_exception i v = with_mutex global_mutex (fun _ -> 
+        match !e with
+        | Some (j, _) -> if i < j then e := Some (i, v) else ()
+        | None -> e := Some (i, v)) in
     let rec loop fs ts = match fs with
-    | [] -> List.iter Thread.join ts
-    | [f] -> (try f () with
-        | PoisonException -> loop [] ts
-        | e -> print_endline (Printexc.to_string e); loop [] ts)
-    | (f::l) -> let t = Thread.create 
-        (fun () -> try f () with PoisonException -> ()) ()
-        in loop l (t::ts)
-    in loop (shuffle fs) []
+        | [] -> List.iter Thread.join ts
+        | [(f, i)] -> (try f () with
+            | PoisonException -> set_exception i PoisonException; loop [] ts
+            | e -> set_exception i e; print_endline (Printexc.to_string e); loop [] ts)
+        | ((f, i)::l) -> let t = Thread.create 
+            (fun () -> try f () with 
+            | PoisonException -> set_exception i PoisonException; ()
+            | e -> set_exception i e; print_endline (Printexc.to_string e)) ()
+            in loop l (t::ts)
+    in loop (shuffle fs) []; 
+    match !e with
+        | Some (_, e) -> raise e
+        | None -> ()
 
 let read_only x = x
 let read_write_only x = x

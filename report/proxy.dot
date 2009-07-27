@@ -1,9 +1,0 @@
-digraph G {
-    read_file_1 -> throttle_1 -> merge -> throttle -> split
-    read_file_2 -> throttle_2 -> merge
-    read_file_3 -> throttle_3 -> merge
-    split -> write_file_1
-    split -> write_file_2
-    split -> write_file_3
-}
-

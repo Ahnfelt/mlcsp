@@ -220,6 +220,7 @@ http://github.com/Ahnfelt/mlcsp/
 \section{API design}
 \label{analysis}
 \missing{
+- Describe why/why not we're throwing an exception from parallel.\\
 - What do we do about shared state?\\
 - Compare with the Event library.\\
 - More introduction.\\
@@ -256,12 +257,10 @@ Parallel(P, Q)
 \end{verbatim}
 Where $P$ and $Q$ must be specified as $Process$ instances. There may be more processes
 separated by commas. It runs the processes in parallel and returns when they have all 
-stopped executing. Since Python does not offer a literal syntax for such objects that can 
-be used in a expression, the processes must be defined elsewhere. The API for C++CSP and 
-JCSP are similar, although Java does offer object literals. In all cases the object 
-literals only expose a \emph{run} method. It is unclear what happens if this method is 
-called twice on the same instance (especially if the instance is used twice in the same 
-parallel-construct).
+stopped executing. Thes API for C++CSP and JCSP are similar. In all cases the
+process objects only expose a \emph{run} method. It is unclear what happens if
+this method is called twice on the same instance (especially if the instance is
+used twice in the same parallel-construct).
 
 To avoid that kind of undefined behaviour we do not provide handles to 
 \emph{running processes}.
@@ -286,7 +285,8 @@ through our API.
 Sometimes it is useful to define a function that starts a process as a side effect, but
 returns before the process has finished. This corresponds to running the process in 
 parallel with \emph{the rest of the program}. Since we don't have continuations, we 
-provide the special purpose function \emph{fork} that simply starts a process and returns
+provide the special purpose function \emph{spawn} that simply starts a process
+and returns
 immediatly. JCSP does something similar with their \emph{ProcessManager}, but provides a
 \emph{stop} method that will terminate the process. It has since been deprecated because
 it is unsafe to terminate a running process from the outside. There is not much else to 
@@ -311,7 +311,7 @@ one sender and one receiver, and communication is synchronous.
 
 Creating a channel is just a call to a function which returns the new channel:
 \begin{verbatim}
-let c = Csp.channel ()
+let c = Csp.new_channel ()
 \end{verbatim}
 
 Two of the basic constructs for CSP channels are send and receive:
@@ -436,7 +436,11 @@ If multiple processes repeatily wait to act on the same channel, and one process
 the other processes will be starved. We solve this by serving processes wating on any given channel
 on a first come, first served basis.
 
-Note that this is also a valid behaviour of the arbitrary choice, which we don't provide separatly.
+Note that this is also a valid behaviour of the arbitrary choice, which we don't
+provide separatly. Providing this as the arbitrary choice alternation is
+beneficial because a program cannot accidentally depend on an undocumented
+order of prioritization. On the other hand, it does incur a small overhead on
+every call to select.
 
 The \emph{read} and \emph{write} functions are semantically equivalent to a select that has exactly 
 one guard.
@@ -448,9 +452,9 @@ detect), and thus we attempt to terminate the thread by throwing an exception. I
 enabled, and the empty select is an error, this might also provide the programmer with more information
 to determine where the error occured.
 
-We do not provide any API for internal choice, since OCaml has plenty of control structures built-in.
-In JCSP and C++CSP you can provide a list of flags that specify if a guard is active or inactive. We
-do not provide this as it is just as easy to simply filter the list of guards.
+In JCSP and C++CSP you can provide a list of flags that specify if a guard is
+active or inactive. We do not provide this as it is just as easy to simply
+filter the list of guarded processes.
 
 \subsection{Termination of process networks}
 \missing{
@@ -553,7 +557,6 @@ allows the two processes to continue. The WriterWaiting state works in much the 
 
 \begin{figure}[h]
 \centering
-%\includegraphics[width=0.6\textwidth]{channel-state.png}
     \begin{tikzpicture}[node distance   = 5 cm]
       \GraphInit[vstyle=Normal]
       \tikzset{LabelStyle/.style =   {draw}}
@@ -901,9 +904,9 @@ versus how we implement the simple network:
 
 \begin{verbatim}
 let pairsInt i o () =
-  let a = Csp.channel () in
-  let b = Csp.channel () in
-  let c = Csp.channel () in
+  let a = Csp.new_channel () in
+  let b = Csp.new_channel () in
+  let c = Csp.new_channel () in
     Csp.parallel [
       delta2int i a c;
       tailint a b;

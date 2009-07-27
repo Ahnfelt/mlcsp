@@ -31,28 +31,28 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   - argumenter hvorfor vi ikke har parallel2 eller parallellist
   - argumenter hvorfor vi har/ikke har spawn
     - flad eller hirakisk processmodel?
-  - "object literals" giver ikke mening, slet eller give eksempel
   + pointer at parallel tager en liste af vilkårlig størrelse
 
 * alternation (Ramon)
-  - vi har *guarded processes* og ikke guards, ret det!
-  - argumenter hvorfor vi har guarded processes og ikke bare guards
-  - forklar at guarded processes i select skal returnere det samme
-  - argumenter for hvorfor man skal betale for shuffle selv når man
-    ikke bruger det
-    - giver fail-fast
-    - men gør det mindre sandsynligt at programmet opfører sig på
-      samme måde hver gang
   - alt hvad der står i missing
-    - giv et eksempel på den korte version af pycsp's alternation
-      eller slet det
-  - internal choice ER IKKE if/enabled - ret det!
-  - vis hvad man kan gøre i ML for at filtrere en liste af guards
+  + vi har *guarded processes* og ikke guards, ret det!
+  + argumenter hvorfor vi har guarded processes og ikke bare guards
+  + forklar at guarded processes i select skal returnere det samme
+  + argumenter for hvorfor man skal betale for shuffle selv når man
+    ikke bruger det
+    + giver fail-fast
+    % men gør det mindre sandsynligt at programmet opfører sig på
+      samme måde hver gang
+  + giv et eksempel på den korte version af pycsp's alternation
+    eller slet det
+  + internal choice ER IKKE if/enabled - ret det!
+  % vis hvad man kan gøre i ML for at filtrere en liste af guards
 
 * beskriv at processer bruger en shared-memory model (Joakim)
   - og at man derfor kan bruge OCaml's scoping-regler
   - at man skal undgå at dele mutable state, men at vi ikke
     kan garantere dette via typesystemet
+
 + poison og termination (Ramon)
   + fjern "since no apps run forever" eller brug "most don't"
     eller "few do".
@@ -99,23 +99,23 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   - lever tråde uendeligt hvis man ikke joiner dem?
   - lever de uendeliget selvom man joiner dem?
 
-* kode (ret i rapport, API og kode) (Joakim)
-  - lav parallel om så den kaster en exception til slut hvis en 
++ kode (ret i rapport, API og kode) (Joakim)
+  + lav parallel om så den kaster en exception til slut hvis en 
     af processerne kaster en exception
-    - hvis der er flere, hvilken skal så vælges? den første?
+    + hvis der er flere, hvilken skal så vælges? den første?
       den sidste? i tid eller i process-listen?
-    - drop poisoned
-    - gå igennem koden og se om det bliver et problem
-  - rename fork til spawn i rapport og kode
-  - rename guards til guarded processes
-  - overvej at lave remove_read etc. for permissions istedet
-  - lav write_guard funktionen unit -> b istedet for a -> b
-  - t er et dårligt navn - kald den chan eller noget andet
-  - rename eventuelt channel til new_channel
-  - tilføj hvad der sker når en guarded process *er* ready
+    + drop poisoned
+    + gå igennem koden og se om det bliver et problem
+  + rename fork til spawn i rapport og kode
+  + rename guards til guarded processes
+  % overvej at lave remove_read etc. for permissions istedet
+  + lav write_guard funktionen unit -> b istedet for a -> b
+  + t er et dårligt navn - kald den chan eller noget andet
+  + rename eventuelt channel til new_channel
+  + tilføj hvad der sker når en guarded process *er* ready
     i ocamldoc
-  - skriv i ocamldoc hvordan man comiler
-  - husk at rette det hele i rapporten også
+  + skriv i ocamldoc hvordan man comiler
+  + husk at rette det hele i rapporten også
 
 + referencer (Ramon)
   + pycsp, ocaml, c++csp, jcsp
@@ -127,3 +127,4 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   - husk at referer til alle bilag
   ? skriv at vi bruger ocamldoc og det er derfor det ser 
     mærkeligt ud
+

@@ -48,18 +48,18 @@ let succint i o () =
   with Csp.PoisonException -> pl raise_poison ()
 
 let plusint i1 i2 o () =
-  let i1' = Csp.channel () in
-  let i2' = Csp.channel () in
+  let i1' = Csp.new_channel () in
+  let i2' = Csp.new_channel () in
   let pl = poison_list [pc i1; pc i2; pc o; pc i1'; pc i2'] in
+  try 
     while true do
       Csp.parallel [
         pl (fun () -> Csp.write i1' (Csp.read i1));
         pl (fun () -> Csp.write i2' (Csp.read i2));
         pl (fun () -> Csp.write o (Csp.read i1' ++ Csp.read i2'))
       ];
-      if Csp.poisoned o || Csp.poisoned i1 || Csp.poisoned i2
-      then pl raise_poison ()      
-    done
+    done 
+  with Csp.PoisonException -> pl raise_poison ()
       
 let rec delta2int i o1 o2 () =
   let pl = poison_list [pc i; pc o1; pc o2;] in
@@ -90,7 +90,7 @@ let tailint i o () =
   with Csp.PoisonException -> pl raise_poison ()
 
 let blockingFifo i o () =
-  let c = Csp.channel () in
+  let c = Csp.new_channel () in
     Csp.parallel [
       idint i c;
       idint c o
@@ -100,9 +100,9 @@ let blockingFifo i o () =
 (* Some Simple Networks *)
 
 let numbersInt o () =
-  let c1 = Csp.channel () in
-  let c2 = Csp.channel () in
-  let c3 = Csp.channel () in
+  let c1 = Csp.new_channel () in
+  let c2 = Csp.new_channel () in
+  let c3 = Csp.new_channel () in
     Csp.parallel [
       prefixint (bii 0) c3 c1;
       delta2int c1 o c2;
@@ -110,9 +110,9 @@ let numbersInt o () =
     ]
       
 let integrateInt i o () =
-  let c1 = Csp.channel () in
-  let c2 = Csp.channel () in
-  let c3 = Csp.channel () in
+  let c1 = Csp.new_channel () in
+  let c2 = Csp.new_channel () in
+  let c3 = Csp.new_channel () in
     Csp.parallel [
       plusint i c3 c1;
       delta2int c1 o c2;
@@ -120,9 +120,9 @@ let integrateInt i o () =
     ]
       
 let pairsInt i o () =
-  let c1 = Csp.channel () in
-  let c2 = Csp.channel () in
-  let c3 = Csp.channel () in
+  let c1 = Csp.new_channel () in
+  let c2 = Csp.new_channel () in
+  let c3 = Csp.new_channel () in
     Csp.parallel [
       delta2int i c1 c2;
       tailint c1 c3;
@@ -133,10 +133,10 @@ let pairsInt i o () =
 (* Some Layered Networks *)
 
 let fibonacciInt o () =
-  let c1 = Csp.channel () in
-  let c2 = Csp.channel () in
-  let c3 = Csp.channel () in
-  let c4 = Csp.channel () in
+  let c1 = Csp.new_channel () in
+  let c2 = Csp.new_channel () in
+  let c3 = Csp.new_channel () in
+  let c4 = Csp.new_channel () in
     Csp.parallel [
       prefixint (bii 1) c4 c1 ;
       prefixint (bii 0) c1 c2 ;
@@ -145,8 +145,8 @@ let fibonacciInt o () =
     ]
 
 let squaresInt o () =
-  let c1 = Csp.channel () in
-  let c2 = Csp.channel () in
+  let c1 = Csp.new_channel () in
+  let c2 = Csp.new_channel () in
     Csp.parallel [
       numbersInt c1;
       integrateInt c1 c2;      

@@ -19,10 +19,10 @@ let consumer i () =
       pl raise_poison()
       
 let _ = 
-  let a = Csp.channel () in
-  let b = Csp.channel () in
-  let c = Csp.channel () in
-  let d = Csp.channel () in
+  let a = Csp.new_channel () in
+  let b = Csp.new_channel () in
+  let c = Csp.new_channel () in
+  let d = Csp.new_channel () in
       Csp.parallel [
         prefixint (bii 0) c a;
         delta2int a b d;

@@ -63,9 +63,6 @@ val write_guard : ('a, _ * on * _) channel ->
 val poison : ('a, _ * _ * on) channel -> unit
 (** Poisons the channel. *)
 
-val poisoned : ('a, _ * _ * _) channel -> bool
-(** Checks if a channel is poisoned *)
-
 val read : ('a, on * _ * _) channel -> 'a
 (** Receives a value from the channel. [read c] is
     equivalent to [select [read_guard c (fun x -> x)]]. *)
@@ -88,7 +85,11 @@ Csp.select [
 
 val parallel : (unit -> unit) list -> unit
 (** Runs a list of functions as processes in parallel.
-    It will only return once all these processes have finished. *)
+    It will only return once all these processes have finished. 
+    If any of the processes is thrown, it will be rethrown from
+    this function once all processes have finished. Even if 
+    multiple exceptions are thrown, only the exception of the 
+    first processes, in the order of the process list, will be rethrown. *)
 
 val fork : (unit -> unit) -> unit
 (** Spawns a process and returns immediatly. *)

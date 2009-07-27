@@ -32,7 +32,7 @@ type 'a t = ('a, on * on * on) channel
 
 (** {6 Channel interaction} *)
 
-val channel : unit -> ('a, on * on * on) channel
+val new_channel : unit -> ('a, on * on * on) channel
 (** Creates a channel with all permissions. Any number of 
     processes can read from and write to this channel as
     desired. A message is always sent from exactly one
@@ -56,7 +56,7 @@ val read_guard : ('a, on * _ * _) channel ->
     to write on the channel. *)
 
 val write_guard : ('a, _ * on * _) channel -> 
-    'a -> ('a -> 'b) -> 'b guard
+    'a -> (unit -> 'b) -> 'b guard
 (** A write guard becomes ready when there is somebody waiting 
     to read on the channel. *)
 

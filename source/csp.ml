@@ -47,7 +47,7 @@ let with_mutex m f = (
     Mutex.unlock m;
     v)
 
-let channel () = ref NobodyWaiting
+let new_channel () = ref NobodyWaiting
 
 let poison c = with_mutex global_mutex (fun _ -> 
     let f = fun (s, _) -> Condition.signal s in
@@ -132,7 +132,7 @@ let read_guard c f s = {
     }
 
 (* Methods must be called in a locked context *)
-let write_guard c v f s = {
+let write_guard c v f s = let f _ = f () in {
     attempt = (fun () -> match !c with
         | ReaderWaiting ((_, x)::_) -> (x v; Some (f v))
         | _ -> None
@@ -156,7 +156,7 @@ let write_guard c v f s = {
     }
 
 let read c = select [read_guard c (fun x -> x)]
-let write c v = select [write_guard c v (fun _ -> ())]
+let write c v = select [write_guard c v (fun () -> ())]
 
 let thread_function f () = try f () with PoisonException -> ()
 

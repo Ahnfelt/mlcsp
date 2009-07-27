@@ -99,23 +99,23 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   - lever tråde uendeligt hvis man ikke joiner dem?
   - lever de uendeliget selvom man joiner dem?
 
-* kode (ret i rapport, API og kode) (Joakim)
-  - lav parallel om så den kaster en exception til slut hvis en 
++ kode (ret i rapport, API og kode) (Joakim)
+  + lav parallel om så den kaster en exception til slut hvis en 
     af processerne kaster en exception
-    - hvis der er flere, hvilken skal så vælges? den første?
+    + hvis der er flere, hvilken skal så vælges? den første?
       den sidste? i tid eller i process-listen?
-    - drop poisoned
-    - gå igennem koden og se om det bliver et problem
-  - rename fork til spawn i rapport og kode
-  - rename guards til guarded processes
-  - overvej at lave remove_read etc. for permissions istedet
-  - lav write_guard funktionen unit -> b istedet for a -> b
-  - t er et dårligt navn - kald den chan eller noget andet
-  - rename eventuelt channel til new_channel
-  - tilføj hvad der sker når en guarded process *er* ready
+    + drop poisoned
+    + gå igennem koden og se om det bliver et problem
+  + rename fork til spawn i rapport og kode
+  + rename guards til guarded processes
+  % overvej at lave remove_read etc. for permissions istedet
+  + lav write_guard funktionen unit -> b istedet for a -> b
+  + t er et dårligt navn - kald den chan eller noget andet
+  + rename eventuelt channel til new_channel
+  + tilføj hvad der sker når en guarded process *er* ready
     i ocamldoc
-  - skriv i ocamldoc hvordan man comiler
-  - husk at rette det hele i rapporten også
+  + skriv i ocamldoc hvordan man comiler
+  + husk at rette det hele i rapporten også
 
 * referencer (Ramon)
   - pycsp, ocaml, c++csp, jcsp
@@ -127,3 +127,4 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   - husk at referer til alle bilag
   - skriv at vi bruger ocamldoc og det er derfor det ser 
     mærkeligt ud
+

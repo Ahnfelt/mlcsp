@@ -36,10 +36,10 @@ let http_download_process o url () = try
     with _ -> Csp.poison o
 
 let url_process url c () = 
-    let c1 = Csp.channel () in
-    let c2 = Csp.channel () in
-    let c3 = Csp.channel () in
-    let c4 = Csp.channel () in try
+    let c1 = Csp.new_channel () in
+    let c2 = Csp.new_channel () in
+    let c3 = Csp.new_channel () in
+    let c4 = Csp.new_channel () in try
     let f = Filename.temp_file "csp" "proxy" in
     Csp.parallel [
         http_download_process c1 url;
@@ -48,7 +48,7 @@ let url_process url c () =
         Cspu.write_file f c3
     ];
     let rec loop () = 
-        let c4 = Csp.channel () in
+        let c4 = Csp.new_channel () in
         Csp.parallel [
             Cspu.read_file f c4;
             (fun () -> (try Csp.write c c4 with Csp.PoisonException -> ()); loop ())
@@ -60,7 +60,7 @@ let cache_process i o () =
     let cache table url = 
         try (table, Table.find url table)
         with Not_found -> begin
-            let c = Csp.channel () in
+            let c = Csp.new_channel () in
             Csp.fork (url_process url c);
             (Table.add url c table, c)
         end in
@@ -81,8 +81,8 @@ let socket_listener_process port f () =
     let server_address = hostinfo.Unix.h_addr_list.(0) in
         ignore (Unix.bind socket (Unix.ADDR_INET (server_address, port)));
         Unix.listen socket 10;
-        let ci = Csp.channel () in
-        let co = Csp.channel () in
+        let ci = Csp.new_channel () in
+        let co = Csp.new_channel () in
         let rec loop () = let (d, _) = Unix.accept socket in
             Csp.parallel [
                 f (cache_rpc ci co) (Unix.in_channel_of_descr d) (Unix.out_channel_of_descr d);

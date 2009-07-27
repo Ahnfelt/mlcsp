@@ -61,7 +61,7 @@ let cache_process i o () =
         try (table, Table.find url table)
         with Not_found -> begin
             let c = Csp.channel () in
-            Csp.fork (url_process url c);
+            Csp.spawn (url_process url c);
             (Table.add url c table, c)
         end in
     let rec loop t =

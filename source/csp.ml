@@ -21,7 +21,7 @@ type ('a, 'b) channel = ('a channel_state) ref
 
 type on = unit and off = unit
 
-type 'a t = ('a, on * on * on) channel
+type 'a chan = ('a, on * on * on) channel
 
 type ('a, 'b) either = Left of 'a | Right of 'b
 
@@ -157,7 +157,7 @@ let write c v = select [write_guard c v (fun _ -> ())]
 
 let thread_function f () = try f () with PoisonException -> ()
 
-let fork f = ignore (Thread.create (thread_function f) ())
+let spawn f = ignore (Thread.create (thread_function f) ())
 
 let parallel fs =
     let rec number fs l i = match fs with

@@ -25,7 +25,7 @@ type on
 type off
 (** A reperesentation of "false" in the type system. *)
 
-type 'a t = ('a, on * on * on) channel
+type 'a chan = ('a, on * on * on) channel
 (** A shorthand for channel handles with all permissions: 
     to read, to write and to poison, in that order. *)
 
@@ -91,7 +91,7 @@ val parallel : (unit -> unit) list -> unit
     multiple exceptions are thrown, only the exception of the 
     first processes, in the order of the process list, will be rethrown. *)
 
-val fork : (unit -> unit) -> unit
+val spawn : (unit -> unit) -> unit
 (** Spawns a process and returns immediatly. *)
 
 (** {[(* Read from two channels in parallel and sum the values. *)

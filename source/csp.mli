@@ -39,7 +39,8 @@ val channel : unit -> ('a, on * on * on) channel
     process to one other process. *)
 
 val select : ('a guard) list -> 'a
-(** Blocks until one of the guards become ready. 
+(** Blocks until one of the guarded processes become ready,
+    and then becomes the guarded process. 
     If multiple guards are ready, one is chosen (pseudo)
     randomly. Note that this is a stronger guarentee than
     the corresponding CSP construct, which only specifies 
@@ -52,13 +53,13 @@ val select : ('a guard) list -> 'a
 
 val read_guard : ('a, on * _ * _) channel -> 
     ('a -> 'b) -> 'b guard
-(** A read guard becomes ready when there is somebody waiting 
-    to write on the channel. *)
+(** A guarded read process becomes ready when there is somebody 
+    waiting to write on the channel. *)
 
 val write_guard : ('a, _ * on * _) channel -> 
     'a -> ('a -> 'b) -> 'b guard
-(** A write guard becomes ready when there is somebody waiting 
-    to read on the channel. *)
+(** A guarded write process becomes ready when there is somebody 
+    waiting to read on the channel. *)
 
 val poison : ('a, _ * _ * on) channel -> unit
 (** Poisons the channel. *)

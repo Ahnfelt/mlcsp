@@ -29,7 +29,7 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   + processer er vilkårlige ml-udtryk, men bundet i funktioner
     for at undgå at sideeffekter bliver udført før tid.
   + argumenter hvorfor vi ikke har parallel2 eller parallellist
-  - argumenter hvorfor vi har/ikke har spawn
+  - argumenter hvorfor vi ikke har spawn
     - flad eller hirakisk processmodel?
   + argumenter for hvorfor parallel kan kaste en exception
   + pointer at parallel tager en liste af vilkårlig størrelse

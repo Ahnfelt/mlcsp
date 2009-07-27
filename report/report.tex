@@ -198,7 +198,7 @@ of any functions that come from our API.
 - give a reference for dynamic stack growth in OCaml\\
 - there is probably no reference for this, but the number is limited by other
 factors (even if it's 100kb: 100kb*20000 = 200 mb).\\
-- genovervej spawn eller hirakisk model\\
+- skriv at vi har en hirakisk model og at spawn ikke findes\\
 }
 
 Processes can be run in parallel in CSP using the $\parallel$ operator:
@@ -300,24 +300,12 @@ during development of the example code in section \ref{examples}. The above code
 is the only compelling use case for \emph{parallel2} we could identify, so we
 chose to provide \emph{parallel} which we have used throughout the code base.
 
-
-Sometimes it is useful to define a function that starts a process as a side
-effect, but
-returns before the process has finished. This corresponds to running the process in 
-parallel with \emph{the rest of the program}. Since we don't have continuations, we 
-provide the special purpose function \emph{spawn} that simply starts a process
-and returns immediatly. JCSP does something similar with their
-\emph{ProcessManager}, but provides a \emph{stop} method that will terminate the
-process. It has since been deprecated because it is unsafe to terminate a
-running process from the outside. There is not much else to do with such a
-handle, so we avoid returning one at all.
-
-We don't provide a special construct for sequence, since OCaml has a perfectly fine 
-sequence operator built in, and executing a list of processes in sequence is a simple
-matter of iterating over it and invoking each one. We also don't provide a way to specify 
-the stack size for a process, because the stack grows dynamically in OCaml user
-threads, and there is little reason to use system threads (see section
-\ref{implementation}).
+We don't provide a special construct for sequence, since OCaml has a perfectly
+fine sequence operator built in, and executing a list of processes in sequence
+is a simple matter of iterating over it and invoking each one. We also don't
+provide a way to specify the stack size for a process, because the stack grows
+dynamically in OCaml user threads, and there is little reason to use system
+threads (see section \ref{implementation}).
 
 \subsection{Channels}
 

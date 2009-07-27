@@ -93,9 +93,6 @@ val parallel : (unit -> unit) list -> unit
     first processes, in the order of the process list, 
     will be rethrown. *)
 
-val spawn : (unit -> unit) -> unit
-(** Spawns a process and returns immediatly. *)
-
 (** {[(* Read from two channels in parallel and sum the values. *)
 let parallel_add i1 i2 o () = while true do
     let i1o = Csp.channel () in

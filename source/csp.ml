@@ -155,10 +155,6 @@ let write_guard c v f s = let f _ = f () in {
 let read c = select [read_guard c (fun x -> x)]
 let write c v = select [write_guard c v (fun () -> ())]
 
-let thread_function f () = try f () with PoisonException -> ()
-
-let spawn f = ignore (Thread.create (thread_function f) ())
-
 let parallel fs =
     let e = ref None in
     let set_exception v = with_mutex global_mutex (fun _ -> e := Some v) in

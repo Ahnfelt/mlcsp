@@ -172,13 +172,14 @@ parallelism with distribution through sockets, see {\it Section
 \section{API design}
 \label{analysis}
 \missing{
-- Describe why/why not we're throwing an exception from parallel.\\
+- Describe why we're throwing an exception from parallel.\\
 - What do we do about shared state?\\
 - Compare with the Event library.\\
 - More introduction.\\
 - Mention that we don't use OCaml's object model.\\
 - Compare more with Occam.\\
 - Mention that channels are typed.\\
+- Why is it good to have a small API?\\
 }
 
 The CSP theory is concerned with processes that communicate solely by synchronous 
@@ -194,7 +195,10 @@ of any functions that come from our API.
 
 \subsection{Processes}
 \missing{
-- More about the lack of parallelism.\\
+- give a reference for dynamic stack growth in OCaml\\
+- there is probably no reference for this, but the number is limited by other
+factors (even if it's 100kb: 100kb*20000 = 200 mb).\\
+- genovervej spawn eller hirakisk model\\
 }
 
 Processes can be run in parallel in CSP using the $\parallel$ operator:
@@ -234,24 +238,86 @@ inside the parallel construct, which is often convenient for small processes. Th
 are then run in parallel, and there is no way to get a handle to a running process
 through our API.
 
-Sometimes it is useful to define a function that starts a process as a side effect, but
+Parallel only returns once all the processes have finished executing. A process
+may finish either by returning or by throwing an exception. In the latter case,
+we have to decide what to do with the exception. We can throw it away, but then
+we can't detect the exception and handle it outside the parallel construct. We
+could build up a list of exceptions, and attach data so it's possible to handle
+exceptions from each thread separatly. However, this fine grained handling can
+already be done individually within each process. We therefore pick one of the
+exceptions thrown (if any) and rethrow that. 
+
+The question is then, how to pick
+one of potentially many exceptions? One possible option is to pick the first
+exception that is thrown, since this may be the cause of exceptions thrown later
+by the other processes. However, then you would have to decide which one is
+``first'', which isn't clear when multiple processes are running in parallel.
+You could also choose the exception from whichever of the throwing processes
+comes first in the list passed to parallel. This gives the programmer some
+control over which of the processes that might throw the exceptions that are
+most important to handle. However, this kind of control can already be obtained
+by handling the exceptions in each process individually. We therefore say that
+an arbitrary exception will be picked if multiple processes throw.
+
+Note that the implementation \emph{does not provide actual parallelism}; it only
+provides perceived parallelism (see section \ref{implementation}).
+
+Being a functional language, it may be convenient to collect the \emph{return
+values} of processes. Consider the following CSP (assuming global scoping for
+$x$ and $y$ for the purpose of this example):
+\[(c_1\,?\,x \to SKIP \parallel c_2\,?\,y \to SKIP); c_3\,!\,(x + y)\]
+The intention of this is to read from $c_1$ and $c_2$ in parallel, and then
+send the sum via $c_3$. Consider a construct $parallel2$ that takes a pair 
+$(unit \to \alpha) \times (unit \to \beta)$, runs the two processes in parallel,
+and returns a pair $\alpha \times \beta$ containing the return value of each
+process. Then we could write:
+
+\begin{verbatim}
+let (x, y) = parallel2 (
+    (fun () -> Csp.read c1), 
+    (fun () -> Csp.read c2)
+) in Csp.write c3 (x + y)
+\end{verbatim}
+
+However, we can implement this using the parallel construct that throw away
+the result, but extra channels like this:
+
+\begin{verbatim}
+let c1' = Csp.new_channel () in
+let c2' = Csp.new_channel () in
+parallel [
+    (fun () -> Csp.write c1' (Csp.read c1));
+    (fun () -> Csp.write c2' (Csp.read c2));
+    (fun () -> Csp.write c3 (Csp.read c1' + Csp.read c2'));
+]
+\end{verbatim}
+
+You could generalize this to derive \emph{parallel2} from \emph{parallel}. You
+could also derive \emph{parallel} from \emph{parallel2}. Thus, in the name of
+minimalism, we want to provide the most useful one, and then leave it to the
+user to define the other one if she needs it. We had both versions in the API
+during development of the example code in section \ref{examples}. The above code
+is the only compelling use case for \emph{parallel2} we could identify, so we
+chose to provide \emph{parallel} which we have used throughout the code base.
+
+
+Sometimes it is useful to define a function that starts a process as a side
+effect, but
 returns before the process has finished. This corresponds to running the process in 
 parallel with \emph{the rest of the program}. Since we don't have continuations, we 
 provide the special purpose function \emph{spawn} that simply starts a process
-and returns
-immediatly. JCSP does something similar with their \emph{ProcessManager}, but provides a
-\emph{stop} method that will terminate the process. It has since been deprecated because
-it is unsafe to terminate a running process from the outside. There is not much else to 
-do with such a handle, so we avoid returning one at all.
+and returns immediatly. JCSP does something similar with their
+\emph{ProcessManager}, but provides a \emph{stop} method that will terminate the
+process. It has since been deprecated because it is unsafe to terminate a
+running process from the outside. There is not much else to do with such a
+handle, so we avoid returning one at all.
 
 We don't provide a special construct for sequence, since OCaml has a perfectly fine 
 sequence operator built in, and executing a list of processes in sequence is a simple
 matter of iterating over it and invoking each one. We also don't provide a way to specify 
-the stack size for a process, because the stack grows dynamically in OCaml user threads, 
-and there is little reason to use system threads (see section \ref{implementation}).
-
-Note that the library \emph{does not provide parallel execution}; it only provides 
-perceived concurrency (see section \ref{implementation}).
+the stack size for a process, because the stack grows dynamically in OCaml user
+threads, and there is little reason to use system threads (see section
+\ref{implementation}).
 
 \subsection{Channels}
 
@@ -314,7 +380,7 @@ details of the channels are explained in the following section.
 \missing{
 - PriSelect (not there because it's not well defined).\\
 - FairSelect (what problem does this actually solve?).\\
-- Polling or skip guards (can be implemented as a process). \\
+- Polling or skip guards (can be implemented as a process - or can they?). \\
 - Time guards (can be implemented as a process). \\
 }
 
@@ -411,7 +477,6 @@ filter the list of guarded processes.
 \subsection{Termination of process networks}
 \missing{
 - Automatic poison propagation (PyCSP has it by relflection)\\
-- Why have a function to check if a channel is poisoned (it's almost useless)?\\
 - What about common design patterns for propagate poison?\\
 }
 

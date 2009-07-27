@@ -28,9 +28,10 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   - alt hvad der står i missing
   + processer er vilkårlige ml-udtryk, men bundet i funktioner
     for at undgå at sideeffekter bliver udført før tid.
-  - argumenter hvorfor vi ikke har parallel2 eller parallellist
+  + argumenter hvorfor vi ikke har parallel2 eller parallellist
   - argumenter hvorfor vi har/ikke har spawn
     - flad eller hirakisk processmodel?
+  + argumenter for hvorfor parallel kan kaste en exception
   + pointer at parallel tager en liste af vilkårlig størrelse
 
 * alternation (Joakim)
@@ -43,6 +44,7 @@ Ting der kan gøres nu (ikke prioriteret endnu):
     + giver fail-fast
     % men gør det mindre sandsynligt at programmet opfører sig på
       samme måde hver gang
+    - og gør skip-guards ubrugelige og polling umulig?
   + giv et eksempel på den korte version af pycsp's alternation
     eller slet det
   + internal choice ER IKKE if/enabled - ret det!
@@ -107,6 +109,7 @@ Ting der kan gøres nu (ikke prioriteret endnu):
     + drop poisoned
     + gå igennem koden og se om det bliver et problem
   + rename fork til spawn i rapport og kode
+  % fjern eventuelt fork/spawn
   + rename guards til guarded processes
   % overvej at lave remove_read etc. for permissions istedet
   + lav write_guard funktionen unit -> b istedet for a -> b

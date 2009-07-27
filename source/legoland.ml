@@ -17,7 +17,7 @@ let terminator i () =
 let stop n i o () =
   let pl = poison_list [pc i; pc o] in
   try
-    for j = 1 to n do
+    for j = 0 to n do
       Csp.write o (Csp.read i);
     done;
     pl raise_poison ()

@@ -7,6 +7,9 @@
 % Nice looking font
 %\usepackage{palatino}
 
+% Minitoc - mini table of contents
+\usepackage{minitoc}
+
 % In order to highlight code
 \usepackage[pdftex]{color}
 \usepackage{listings}
@@ -18,6 +21,7 @@
 
 % Math support
 \usepackage{amsmath}
+\usepackage{amssymb}
 
 % In order to include pdf
 \usepackage{pdfpages}
@@ -113,18 +117,19 @@
 \maketitle
 
 \newpage
-\selectlanguage{danish}
+\selectlanguage{english}
 \begin{abstract}
 % Grue: Højest 10 linjer: Hvad handler rapporten om? Hvilke resultater er
 % opnået?
-
-Her på dansk
-\end{abstract}
-
-\newpage
-\selectlanguage{english}
-\begin{abstract}
-Here in english
+We present a concurrent library in a functional language designed and
+implemented after the abstracts of CSP\cite{hoare}. The library can't offer true
+parallelism due to the limitation of the chossen programming language but we can
+offer overlapping I/O operations.
+\\ \\
+We provide some examples on how to implement components with the concurrent
+library.
+\\ \\
+TODO: some more here ...
 \end{abstract}
 
 \newpage
@@ -136,15 +141,19 @@ Here in english
 \parskip=8pt plus 2pt minus 4pt
 
 \section{Introduction}
-We have designed and implemented a CSP-based concurrency library in a functional
-language\cite{ocaml}. CSP is an abreviation for {\it Communicating sequential
-processes}\cite{hoare}.
+When we took the course Extreme Multiprogramming 2009 at the Department of
+Computer Science, Copenhagen University, we missed a CSP\cite{hoare} library for
+a functional programming language. All the presented libraries were for
+imperative languages. We missed a library that was based on ML or functional
+programming in general.
 
-TODO: read when head clear ...
-
-%TODO: why use this instead of POSIX? Easy to write code for running processes in
-%parallel?
-%The primary goal of our library is to offer a developer run several processes in parallel
+We have designed and implemented the abstracts of CSP in a functional
+language\cite{ocaml}. In the chossen programming language, Ocaml, we found out
+that there already was a concurrent library, {\it Event}, but this was inspired
+on {\it ConcurrentML} and not on CSP as ours. Whenever we didn't find a
+theoretical guidance from \cite{hoare} on how to implement ``TODO:something'',
+for example shutting correctly down a network, we used the other CSP libraries,
+\cite{pycsp}, \cite{jcsp} and \cite{cppcsp2}, as inspiration (poison).
 
 One of our goals was to offer true parallelism, run several processors
 over several CPUs or cores, but the library cannot offer this because of the
@@ -152,46 +161,61 @@ limitations of Ocaml, see {\it appendix \ref{appendixSysthreads}}. Based on
 Xavier Leroys $[$ Cam-list $]$ answer we can see that the goals for threads in a
 Ocaml context is to offer:
 \begin{itemize}
- \item {\it Overlapping I/O and computation}. Non-blocking I/O.
+ \item {\it Overlapping I/O and computation}.
  \item {\it Supporting the "coroutine" programming style}.
 \end{itemize}
 but not {\it Parallelism on shared-memory multiprocessors}. Even though we can't
 offer parallelism over several multiprocessors or kernels we can still offer
-concurrency over a single processor.
+concurrency over a single processor and {\it Overlapping I/O and computation}.
+Thanks to this we have been able to implement a Webproxy, see section \ref{test}
+for more information, with non-blocking I/O.
 
-%This project is a complete, designed and implemented, API for a CSP-based
-%concurrency library in a functional language, in this case Ocaml\cite{?}.
-%
-%We have achieved our three primary goals we set at the beginning:
-%\begin{itemize}
-% \item \textbf{Designing an API for a CSP-based concurrency library in a
-%     functional language}. Because our main focus was on the API design, most of
-%   the {\it Section} \ref{analysis} is related to this.
-% \item \textbf{Implementing the concurrency API in a functional language.} A
-%   complete description on how we implemendted the API based on the limitations
-%   of the chosen language?, use of a global lock. For more information look in
-%   the {\it Section} \ref{implementation}.
-% \item \textbf{Assessing the API and underlying implementation by comparing
-%     applications built on top of it with similar applications built on top of
-%     an existing CSP library}. We have made a simple CSP network, Fibonacci,
-%   and a more complex, Webproxy, in order to test the API. The application are
-%   similar to the applications we have made for one of the other CSP libraries.
-%   A full description on how these applications are build and how to compile-run
-%   can be seen in the {\it Section} \ref{test}.
-%\end{itemize}
-%
-%The resulting API source code and documentation can be seen in the Appendix
-%\ref{appendixSrc} and \ref{appendixDoc}. A online version is also avaliable at:
-%
-%\begin{center}
-%http://github.com/Ahnfelt/mlcsp/
-%\end{center}
-%
-%About the possible extensions to this API, we got wise on that we cannot
-%implement true parallelism through system threads, see at {\it Section
-%\ref{analysis}} for more information, but how we ``maybe'' can implement
-%parallelism with distribution through sockets, see {\it Section 
-%\ref{conclusion}}.
+Besides the implementation of the Webproxy, we also implemented a CSP
+Library ({\it Legoland\cite{vinterpycsp}}), with these components we are able to
+create simple networks as the one that gives us Fibonacci numbers, see section
+\ref{test}. But just to show how simple it is to write a CSP network with our
+library we show the following example where we print even numbers in $\mathbb{N}$:
+\newpage
+\begin{verbatim}
+let rec counter n o () =
+  Csp.write o n; counter (n+1) o ()
+
+let rec double i o () =
+  let x = Csp.read i in
+  Csp.write o (x*2); double i o ()
+
+let rec print i () =
+  print_endline(string_of_int (Csp.read i)); print i ()
+
+let even_numbers o () =
+  let c = Csp.new_channel () in
+    Csp.parallel [
+      counter 1 c;
+      double c o;
+    ]
+
+let _ =
+  let c = Csp.new_channel () in
+    Csp.parallel [
+      even_numbers c;
+      print c
+    ]
+\end{verbatim}
+We have a counter component, which sends a number over a channel and another
+component which recieves a number from a input channel and sends the
+double of the value through an output channel. If we combine those two
+components together by running in parallel and we give the counter $1$ as
+initial parameter we have a new component that will gives us the even numbers in
+$\mathbb{N}$.
+
+The resulting API source code, CSP utility and component library, and
+documentation can be seen in the appendix \ref{appendixSrc} and \ref{appendixDoc}.
+A online version is also avaliable at:
+
+\begin{center}
+http://github.com/Ahnfelt/mlcsp/
+\end{center}
+
 
 \section{API design}
 \label{analysis}
@@ -430,26 +454,26 @@ do not provide this as it is just as easy to simply filter the list of guards.
 
 \subsection{Termination of process networks}
 \missing{
-- Automatic poison propagation (PyCSP has it by relflection)\\
 - Why have a function to check if a channel is poisoned (it's almost useless)?\\
 - What about common design patterns for propagate poison?\\
 }
 
-Since no practical applications run forever, termination of process networks should be considered.
-Interruption of the process from an external source is an obvious but poor choice, since it does not
-allow the process to clean up and propagate the termination to it's subprocesses.
+Since few applications run forever, termination of process networks should be
+considered.
 
-Another way to implement this is to send a special termination message. However, that requires 
-insertion of termination logic for every communication where the process might receive a termination 
-message. Additionally, if the readers want to terminate the writers of a channel, it will often 
-require a dedicated channel just for termination messages.
+Another way to implement this is to send a special termination message. However,
+that requires insertion of termination logic for every communication where the
+process might receive a termination message. Additionally, if the readers want
+to terminate the writers of a channel, it will often require a dedicated channel
+just for termination messages.
 
-If there are multiple processes that listen on a channel, it would also be hard to ensure that they had
-all received the termination message before the process sending it shuts down. To keep track of this you
-might need to know the number of processes that are listening or are going to listen on the channel, 
-which might not even be possible to determine. The process that wants to send the terminating process 
-could loop forever, repeating the termination message to anybody who read from the channel, but then 
-that process could never shut down.
+If there are multiple processes that listen on a channel, it would also be hard
+to ensure that they had all received the termination message before the process
+sending it shuts down. To keep track of this you might need to know the number
+of processes that are listening or are going to listen on the channel, which
+might not even be possible to determine. The process that wants to send the
+terminating process could loop forever, repeating the termination message to
+anybody who read from the channel, but then that process could never shut down.
 
 In PyCSP, JCSP and C++CSP, a channel may be \emph{poisoned}. Once a channel
 has been poisoned, reading from or writing to that channel causes an exception.
@@ -463,33 +487,51 @@ Csp.poison c
 \end{verbatim}
 
 Read and write guards become ready if their channel is poisoned, and an
-alternation may thus chose to throw a PoisonException if one or more of it's
+alternation may thus chose to throw a PoisonException if one or more of its
 guards' channels are poisoned.
 
 In order to shut down process networks, which may have intrnal subnetworks, it
 is nessecary to propagate the poison to the other processes in the network. As
 mentioned, this can be done in the handler for PoisonException. PyCSP
 automatically poisons channels that are arguments to process constructors. In 
-many cases this is the desired behaviour. JCSP and C++CSP do not provide it, and
-neither do we due to technical issues (see section \ref{implementation}).
+the following PyCSP example:
+\begin{verbatim}
+def foo(in,out):
+    while True:
+        x = in()
+        out(x)
+        
+        poisonChannel(in)
+\end{verbatim}
+Even if we only poison the input channel, as soon as we try to read again on
+the input channel then we get poisoned and throw a poison exception. By doing
+this we then iterate through the parameters in the constructor checking if
+they are channels, if they are we poison. In our example we have the {\it in}
+and {\it out}, both get poisoned and hereby we have propagated the poison
+received by the input channel. For more information on this, look at
+\cite{pycsp}.
+
+In many cases this is the desired behaviour. JCSP and C++CSP do not provide it,
+and neither do we due to technical issues (see section \ref{implementation}).
 
 \subsection{Permissions}
 
-PyCSP, JCSP and C++CSP provide a concept called \emph{channel ends}, which are handles to channels
-though which you can only read or only write (or some other set of permissions). This is useful for
-specifying what a process might do with a channel, so unintended use of a channel can be caught
-early.
+PyCSP, JCSP and C++CSP provide a concept called \emph{channel ends}, which are
+handles to channels though which you can only read or only write (or some other
+set of permissions). This is useful for specifying what a process might do with
+a channel, so unintended use of a channel can be caught early.
 
-We provide this through a set of functions, each of which takes a channel returns a handle with only
-a specific set of permissions:
+We provide this through a set of functions, each of which takes a channel
+returns a handle with only a specific set of permissions:
 
 \begin{verbatim}
 let i = Csp.read_only c
 \end{verbatim}
 
-It is a compile time error to attempt to write to or poison the returned handle. The permissions are 
-provided purely through the type system, and none of the functions can add permissions. 
-See secion \ref{implementation} for the complete set.
+It is a compile time error to attempt to write to or poison the returned handle.
+The permissions are provided purely through the type system, and none of the
+functions can add permissions. See secion \ref{implementation} for the complete
+set.
 
 \section{Implementation}
 \missing{
@@ -512,7 +554,7 @@ allows the two processes to continue. The WriterWaiting state works in much the 
 \begin{figure}[h]
 \centering
 %\includegraphics[width=0.6\textwidth]{channel-state.png}
-    \begin{tikzpicture}[node distance   = 4 cm]
+    \begin{tikzpicture}[node distance   = 5 cm]
       \GraphInit[vstyle=Normal]
       \tikzset{LabelStyle/.style =   {draw}}
       \SetVertexNormal[TextColor = white,
@@ -524,12 +566,12 @@ allows the two processes to continue. The WriterWaiting state works in much the 
       \SOEA(Start){NobodyWaiting}
       \SOWE(NobodyWaiting){ReaderWaiting}
       \SOEA(NobodyWaiting){WritterWaiting}
-      \SetUpEdge[style={->,bend right,ultra thick}]
-      \Edge(NobodyWaiting)(ReaderWaiting)
-      \Edge(NobodyWaiting)(WritterWaiting)
-      \SetUpEdge[style={->,bend right,ultra thick}]
-      \Edge(ReaderWaiting)(NobodyWaiting)
-      \Edge(WritterWaiting)(NobodyWaiting)
+      \SetUpEdge[style={->,bend right,ultra thick},labelstyle = {draw}]
+      \Edge[label=read](NobodyWaiting)(ReaderWaiting)
+      \Edge[label=write](NobodyWaiting)(WritterWaiting)
+      \SetUpEdge[style={->,bend right,ultra thick},labelstyle = {draw}]
+      \Edge[label=write](ReaderWaiting)(NobodyWaiting)
+      \Edge[label=read](WritterWaiting)(NobodyWaiting)
       \SetUpEdge[style={->,bend left,ultra thick}]
       \Edge(Start)(NobodyWaiting)
     \end{tikzpicture}
@@ -725,6 +767,33 @@ times faster.
   \begin{center}
     \begin{tikzpicture}[node distance   = 4 cm]
       \GraphInit[vstyle=Normal]
+      \tikzset{LabelStyle/.style =   {draw}}
+      \SetVertexNormal[TextColor = white,
+                       LineColor = white]
+      \Vertex{Out}
+      \SetVertexNormal[Shape = circle,
+                       TextColor = black,
+                       LineWidth = 2pt]
+      \WE(Out){delta2int}
+      \WE(delta2int){prefixInt0}
+      \WE(prefixInt0){prefixInt1}
+      \SO(prefixInt0){pairsInt}
+      \SetUpEdge[style={->,ultra thick},labelstyle = {draw}]
+      \Edge[label=out](delta2int)(Out)
+      \Edge[label=c2](prefixInt0)(delta2int)
+      \Edge[label=c1](prefixInt1)(prefixInt0)
+      \SetUpEdge[style={->,bend left,ultra thick},labelstyle = {draw}]
+      \Edge[label=c3](delta2int)(pairsInt)
+      \Edge[label=c4](pairsInt)(prefixInt1)
+    \end{tikzpicture}
+  \end{center}
+  \caption{FibonacciInt, a CSP component from the Legoland Library.}
+\end{figure}
+
+\begin{figure}[h]
+  \begin{center}
+    \begin{tikzpicture}[node distance   = 4 cm]
+      \GraphInit[vstyle=Normal]
       \tikzset{LabelStyle/.style = {draw}}
       \SetVertexNormal[Shape = circle,
                        TextColor = black,
@@ -737,7 +806,7 @@ times faster.
       \Edge[label=c2](Stop)(Printer)
     \end{tikzpicture}
   \end{center}
-  \caption{Fibonacci CSP network.}
+  \caption{Fibonacci CSP network with stop component.}
 \end{figure}
 
 This test, once we have implemented all the {\it Legoland}\cite{vintercsp}
@@ -808,12 +877,12 @@ raise a {\it PoisonException} which will be progated back to the counter
 ensuring that all of the processes terminate and hereby ensuring that network
 shuts down correctly.
 
-Besides the channel permision we also added a small {\it guard} test which read
-from the two counters whenever one of them is ready. By setting the first
-counter to only send 5 numbers, we can actually check that when setting the
-second counter to the double we can see that the {\it custom\_printer} component
-will see if any of the to {\it read\_guards} are ready to read from the counters
-and because one stop early it will keep reading from the second.
+%Besides the channel permision we also added a small {\it guard} test which read
+%from the two counters whenever one of them is ready. By setting the first
+%counter to only send 5 numbers, we can actually check that when setting the
+%second counter to the double we can see that the {\it custom\_printer} component
+%will see if any of the to {\it read\_guards} are ready to read from the counters
+%and because one stop early it will keep reading from the second.
 
 
 \section{Conclusion}
@@ -855,8 +924,8 @@ and definition of the channel variables.
 :\\
 Objective Caml\\
 Xavier Leroy, Jérôme Vouillon, Damien Doligez, Didier Rémy\\
-National Institute for Research in Computer and Control Sciences
-http://caml.inria.fr/ocaml/
+National Institute for Research in Computer and Control Sciences\\
+http://caml.inria.fr/ocaml/\\
 Last visited: $24^{th}$ july 2009
 
 \bibitem[Hoare 04]{hoare}
@@ -868,10 +937,33 @@ ISBN-10: 0-13-153271-5\\
 ISBN-13: 978-0-13-153271-7\\
 http://www.usingcsp.com/cspbook.pdf
 
-http://www.cs.kent.ac.uk/projects/ofa/jcsp/
+\bibitem[PyCSP]{pycsp}
+:\\
+PyCSP - Communicating Sequential Processes for Python\\
+John Markus Bjørndalen, Brian Vinter and Otto Anshus\\
+Department of Computer Science, University of Tromsø and\\
+Department of Computer Science, University of Copenhagen\\
+http://www.cs.uit.no/$\sim$johnm/publications/pdf/bjorndalen2007pycsp.pdf\\
+Last visited: $26^{th}$ july 2009
 
-http://www.cs.kent.ac.uk/projects/ofa/c++csp/
+\bibitem[JCSP]{jcsp}
+:\\
+Communicating Sequential Processes for Java\texttrademark (JCSP)\\
+Peter Welch and Paul Austin\\
+University of Kent at Canterbury\\
+http://www.cs.kent.ac.uk/projects/ofa/jcsp/\\
+Last visited: $26^{th}$ july 2009
 
+\bibitem[C++CSP2]{cppcsp2}
+:\\
+C++CSP2: A Many-to-Many Threading Model for Multicore Architectures\\
+Brown,  Neil C. C.\\
+University of Kent at Canterbury\\
+ISBN-13: 978-1586037673\\
+http://www.cs.kent.ac.uk/projects/ofa/c++csp/\\
+Last visited: $26^{th}$ july 2009
+
+\newpage
 \bibitem[Vinter, PyCSP]{vinterpycsp}
 :\\
 PyCSP. The beginning of a CSP library for Python\\
@@ -893,6 +985,7 @@ Last visited: $20^{th}$ july 2009
 
 \appendix
 \newpage
+\secttoc
 \section{Appendix: Source code}
 \label{appendixSrc}
 
@@ -912,12 +1005,15 @@ Last visited: $20^{th}$ july 2009
 \newpage
 \section{Appendix: Documentation}
 \label{appendixDoc}
+The documentation can be created with following command:
+
+\runtest{ocamldoc -html -d ../docs/ csp.mli}
 \begin{center}
   \includepdf[pages=-]{../docs/csp.pdf}
 \end{center}
 
-
 \newpage
+\secttoc
 \section{Appendix: Test}
 \label{appendixTest}
 \subsection{Performance}

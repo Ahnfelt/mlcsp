@@ -16,13 +16,13 @@ Generelle ting:
 Ting der kan gøres nu (ikke prioriteret endnu):
 
 * mere ingenørmessig introduktion (Ramon)
-  - forklar hvilket problem der er blevet løst
-    - concurrency (og api der ville understøtte parallelisme)
-    - inspireret af CSP-biblioteker
-  - sig at vi ikke har parallelisme
-  - men at vi har concurrency med non-blocking IO
-  - eksempler på hvad man kunne bygge med biblioteket
-  - fjern formalia og lav evt. et afsnit til det i konklusionen
+  + forklar hvilket problem der er blevet løst
+    + concurrency (og api der ville understøtte parallelisme)
+    + inspireret af CSP-biblioteker
+  + sig at vi ikke har parallelisme
+  + men at vi har concurrency med non-blocking IO
+  + eksempler på hvad man kunne bygge med biblioteket
+  + fjern formalia og lav evt. et afsnit til det i konklusionen
 
 * ret teksten så der ikke står at processer er unit->unit (Joakim)
   - skriv alt det følgende i process-afsnittet
@@ -34,7 +34,7 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   - "object literals" giver ikke mening, slet eller give eksempel
   + pointer at parallel tager en liste af vilkårlig størrelse
 
-* alternation (Joakim)
+* alternation (Ramon)
   - vi har *guarded processes* og ikke guards, ret det!
   - argumenter hvorfor vi har guarded processes og ikke bare guards
   - forklar at guarded processes i select skal returnere det samme
@@ -53,16 +53,15 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   - og at man derfor kan bruge OCaml's scoping-regler
   - at man skal undgå at dele mutable state, men at vi ikke
     kan garantere dette via typesystemet
-
-* poison og termination (Ramon)
-  - fjern "since no apps run forever" eller brug "most don't"
++ poison og termination (Ramon)
+  + fjern "since no apps run forever" eller brug "most don't"
     eller "few do".
-  - drop afsnittet om interruption
-    - nedlukning af "subnetværk" er kun et problem hvis det
+  + drop afsnittet om interruption
+    + nedlukning af "subnetværk" er kun et problem hvis det
       skulle have kommunikeret med omverdnen først
-    - men vores kan skrive til filer uden om biblioteket
-  - hvad er en pycsp process constructor? hvad gør pycsp præcist?
-    - evt. eksempel
+    + men vores kan skrive til filer uden om biblioteket
+  + hvad er en pycsp process constructor? hvad gør pycsp præcist?
+    + evt. eksempel
 
 * permissions (Joakim)
   - skriv at den 
@@ -118,13 +117,13 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   - skriv i ocamldoc hvordan man comiler
   - husk at rette det hele i rapporten også
 
-* referencer (Ramon)
-  - pycsp, ocaml, c++csp, jcsp
-    - find videnskabelig reference til pycsp
++ referencer (Ramon)
+  + pycsp, ocaml, c++csp, jcsp
+    + find videnskabelig reference til pycsp
 
 * appendix (Ramon)
-  - kort oversigt over appendix
-    - også oversigt over koden
+  + kort oversigt over appendix
+    + også oversigt over koden
   - husk at referer til alle bilag
-  - skriv at vi bruger ocamldoc og det er derfor det ser 
+  ? skriv at vi bruger ocamldoc og det er derfor det ser 
     mærkeligt ud

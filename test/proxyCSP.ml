@@ -41,12 +41,12 @@ let url_process url c () =
     let c3 = Csp.new_channel () in
     let c4 = Csp.new_channel () in try
     let f = Filename.temp_file "csp" "proxy" in
-    Csp.parallel [
+    (try Csp.parallel [
         http_download_process c1 url;
         Cspu.delta c1 c2 c3;
         (fun () -> Csp.write c c2);
         Cspu.write_file f c3
-    ];
+    ] with Csp.PoisonException -> ());
     let rec loop () = 
         let c4 = Csp.new_channel () in
         Csp.parallel [
@@ -54,14 +54,14 @@ let url_process url c () =
             (fun () -> (try Csp.write c c4 with Csp.PoisonException -> ()); loop ())
         ]
     in loop ()
-    with e -> (Csp.poison c1; Csp.poison c2; Csp.poison c3; Csp.poison c4; raise e)
+    with e -> Csp.poison c1; Csp.poison c2; Csp.poison c3; Csp.poison c4; raise e
 
 let cache_process i o () =
     let cache table url = 
         try (table, Table.find url table)
         with Not_found -> begin
             let c = Csp.new_channel () in
-            Csp.fork (url_process url c);
+            Csp.spawn (url_process url c);
             (Table.add url c table, c)
         end in
     let rec loop t =

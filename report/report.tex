@@ -237,7 +237,8 @@ through our API.
 Sometimes it is useful to define a function that starts a process as a side effect, but
 returns before the process has finished. This corresponds to running the process in 
 parallel with \emph{the rest of the program}. Since we don't have continuations, we 
-provide the special purpose function \emph{fork} that simply starts a process and returns
+provide the special purpose function \emph{spawn} that simply starts a process
+and returns
 immediatly. JCSP does something similar with their \emph{ProcessManager}, but provides a
 \emph{stop} method that will terminate the process. It has since been deprecated because
 it is unsafe to terminate a running process from the outside. There is not much else to 
@@ -262,7 +263,7 @@ one sender and one receiver, and communication is synchronous.
 
 Creating a channel is just a call to a function which returns the new channel:
 \begin{verbatim}
-let c = Csp.channel ()
+let c = Csp.new_channel ()
 \end{verbatim}
 
 Two of the basic constructs for CSP channels are send and receive:
@@ -774,9 +775,9 @@ versus how we implement the simple network:
 
 \begin{verbatim}
 let pairsInt i o () =
-  let a = Csp.channel () in
-  let b = Csp.channel () in
-  let c = Csp.channel () in
+  let a = Csp.new_channel () in
+  let b = Csp.new_channel () in
+  let c = Csp.new_channel () in
     Csp.parallel [
       delta2int i a c;
       tailint a b;

@@ -51,15 +51,15 @@ let plusint i1 i2 o () =
   let i1' = Csp.new_channel () in
   let i2' = Csp.new_channel () in
   let pl = poison_list [pc i1; pc i2; pc o; pc i1'; pc i2'] in
+  try 
     while true do
       Csp.parallel [
         pl (fun () -> Csp.write i1' (Csp.read i1));
         pl (fun () -> Csp.write i2' (Csp.read i2));
         pl (fun () -> Csp.write o (Csp.read i1' ++ Csp.read i2'))
       ];
-      if Csp.poisoned o || Csp.poisoned i1 || Csp.poisoned i2
-      then pl raise_poison ()      
-    done
+    done 
+  with Csp.PoisonException -> pl raise_poison ()
       
 let rec delta2int i o1 o2 () =
   let pl = poison_list [pc i; pc o1; pc o2;] in

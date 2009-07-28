@@ -896,10 +896,6 @@ use overlapping I/O.
 
 But before we made this two applications we needed to know the limitations of
 Ocamls thread library and I/O library.
-
-A detailed description on how to run the test can be seen in appendix
-\ref{appendixOcamltest}.
-
 \subsection{Ocaml tests}
 \label{ocamltests}
 \begin{table}[!h]
@@ -927,12 +923,13 @@ A detailed description on how to run the test can be seen in appendix
       OK \\
       \hline
     \end{tabular} 
-    \caption{The test checks Ocaml implementation of the threadlibrary and I/O.}
+    \caption{The test checks Ocaml implementation of the thread and I/O library.}
     \label{testtable}
   \end{center}
 \end{table}
-
 \subsubsection{Maxthreads}
+Both test can be seen in appendix \ref{appendixOcamltest}.
+
 In this test we try to find an upperbound of how many threads we can create,
 user threads and/or system threads. In the first case when using user threads we
 find that after creating between 15.000 - 20.000 threads the application
@@ -941,28 +938,23 @@ verify that it's a deadlock or a maximum number of threads allowed for an
 application to create. If we run the test several times, we will see that
 each application will be able to create about those 15.000 - 20.000 threads.
 
-In the second test based on maxthreads, we use system threads and as before
-the application freezes but just after creating about 100 threads.
+By reading the {\it The runtime system (ocamlrun)} documentation we found
+out that by changing some size of the heap $s$ to about $1024$ words. Then
+we are able to create more than twice as many threads. Changing the stack
+option $l$, do not give more threads.
 
-Even though we didn't find any kind of documentation on the maximum number
-of threads to create, if we read read the documentation for the thread library
-we can see that {\it Thread.create} terminates when the {\it func args}
-returns either normally or by rasing an uncaught exception. In this last case
-the exception will be printed to the standard error but not be propagated to
-the parent thread. Because we don't see any kind of message we must assume
-that the created threads are still running in the background until we join
-them and if we joined them, we will suspend the calling thread until the
-child thread was terminated, which will be never cos we run them forever with:
-\begin{verbatim}
-let loop () = while true do () done
-\end{verbatim}
+In the second test based on maxthreads, we use system threads and as before
+the application freezes but just after creating about 100 threads. By changing
+on the options of {\it ocamlrun} as before, do not give more threads.
 
 \subsubsection{Nonblocking}
+The test can be seen in appendix \ref{appendixOcamltest}.
+
 To implement the web proxy we need to know if one of the processes is waiting
-to recieve a chunck of data, if it block the IO until it has recieved the data
+to recieve a chunck of data, if it block the I/O until it has recieved the data
 or if another process that is also waiting for a chunck.
 
-We discovered that Ocaml support non-blocking IO so it will be no problem have
+We discovered that Ocaml support non-blocking I/O so it will be no problem have
 several clients waiting to recieve data from our web proxy. An example could
 be a client that connects over the web proxy to a very slow website. The website
 can only deliver a small amount of data every second. If another client that
@@ -979,18 +971,20 @@ hereby we can see that we don't have non-blocking I/O.
 \subsection{OcamlCSP tests}
 \label{ocamlcsptests}
 \subsubsection{Channel permisions}
-One of the features this API has is that you have the possibility to set 
-read/write/poision permissions on the channels. With this test we will
-demostrate where this is useful. What we do is that we have to components
-that just counts integers. When the second counter reaches $20$ we want
-to poison the whole network. But we have sat the first count to only count
-to 10 and it will shutdown the hole network through the {\it stop}
-component from the {\it Legoland} library. But this is a problem, we don't
-want the first counter to shut down the network so we add {\it write\_only}
-to counter components output channel. This will result in a compiler error
-because the {\it stop} component once it's poisoned it propagates the poison
-to all the other channels, but we have just defined our output channel to
-only allow write.
+In order to perform this test, we use some of the implemented components
+of {\it Legoland}, see appendix \ref{appendixLegoland}. The test can bee seen
+in detail in appendix \ref{appendixOcamlcsptest}. One of the features this API
+has is that you have the possibility to set read/write/poision permissions on
+the channels. With this test we will demostrate where this is useful. What we
+do is that we have to components that just counts integers. When the second
+counter reaches $20$ we want to poison the whole network. But we have sat the
+first count to only count to 10 and it will shutdown the hole network through
+the {\it stop} component from the {\it Legoland} library. But this is a problem,
+we don't want the first counter to shut down the network so we add
+{\it write\_only} to counter components output channel. This will result in a
+compiler error because the {\it stop} component once it's poisoned it propagates
+the poison to all the other channels, but we have just defined our output
+channel to only allow write.
 
 We now make a {\it custom\_stop} component which only propagates poison to
 the input channel. We are now able to compile and run the application knowing
@@ -1004,6 +998,8 @@ ensuring that all of the processes terminate and hereby ensuring that network
 shuts down correctly.
 
 \subsubsection{Alternation}
+The results of the test can be seen in appendix \ref{appendixOcamlcsptest}.
+
 Based on the same code file as the one used to permision, we added a small
 {\it guard} test which read from the two counters components whenever one of
 them are ready. By setting the first counter to only send 5 numbers, we can
@@ -1012,8 +1008,6 @@ that the {\it custom\_printer} component will see if any of the to
 {\it read\_guards} are ready to read from the counters and because one stop
 early it will keep reading from the second.
 
-Both results can be seen in appendix \ref{appendixOcamlcsptest}.
-
 \subsection{Performance}
 \label{performance}
 Even though we don't set focus on performance and optimization, we still wanted
@@ -1021,6 +1015,8 @@ to implement the Commstime\cite{vinterpycsp} process that's used to compare
 PyCSP against JCSP.
 
 \subsubsection{Commstime}
+The results of the test can be seen in appendix \ref{appendixPerformance}.
+
 The only change we made to the code is that we use {\it Unix.gettimeofday} in
 order to get the same time precision as Pythons {\it time.time} has. By running
 both application on the same computer\footnote{Macbook Pro 2,6 GHz Core 2 Duo

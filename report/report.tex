@@ -240,10 +240,6 @@ but with a lot of classes and methods. We have moved everything out from the
 library that was not strictly neccesary.
 
 \subsection{Processes}
-\missing{
-- skriv at vi har en hirakisk model og at spawn ikke findes\\
-}
-
 Processes can be run in parallel in CSP using the $\parallel$ operator:
 \[P \parallel Q\]
 The semantics of this is that the two processes $P$ and $Q$ are run in parallel. They
@@ -342,6 +338,11 @@ user to define the other one if she needs it. We had both versions in the API
 during development of the example code in section \ref{examples}. The above code
 is the only compelling use case for \emph{parallel2} we could identify, so we
 chose to provide \emph{parallel} which we have used throughout the code base.
+
+At the beginning we also thought about having spawn, as JCSP with their
+ProcessManager but this would give us a flat model. Instead we noticed that we
+actually just would need {\it parallel} and hereby achiving a hierarchical
+model.
 
 We don't provide a special construct for sequence, since OCaml has a perfectly
 fine sequence operator built in, and executing a list of processes in sequence

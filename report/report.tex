@@ -547,8 +547,43 @@ enabled, and the empty select is an error, this might also provide the programme
 to determine where the error occured.
 
 In JCSP and C++CSP2 you can provide a list of flags that specify if a guard is
-active or inactive. We do not provide this as it is just as easy to simply
-filter the list of guarded processes.
+active or inactive. We provide similar functionality in the utility module Cspu
+(appendix \ref{appendix-cspu}), except it takes a list of optional guarded
+processes instead of separate lists of flags and guarded processes:
+
+\goodbreak
+\begin{verbatim}
+let conditional_select l =
+    let l' = List.filter (fun cg -> cg <> None) l in
+    let l'' = List.map (fun (Some gp) -> gp) l' in
+    Csp.select l''
+\end{verbatim}
+
+Since we don't have to build the guards that aren't enabled, we can avoid
+calculating the values that disabled write-guarded processes could have sent if
+they were enabled. This is useful because in some cases, it is not possible to
+calculate such a value if the condition is false. As an example, consider the
+buffer process that may write when its buffer is not empty and may read when its
+buffer is not full:
+
+\goodbreak
+\begin{verbatim}
+let rec buffer i o n l =
+    conditional_select [
+        (if l <> [] then Some (
+            Csp.write_guard o (List.hd l) (fun () -> 
+                buffer i o n (List.tl l)
+            )
+        ) else None);
+        (if List.length l < n then Some (
+            Csp.read_guard i (fun h -> 
+                buffer i o n (l @ [h])
+            )
+        ) else None);
+    ]
+\end{verbatim}
+
+It is not possible to take the head of the list when it is empty.
 
 \subsection{Termination of process networks}
 Since few applications run forever, termination of process networks should be

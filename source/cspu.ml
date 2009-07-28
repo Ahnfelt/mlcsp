@@ -1,15 +1,33 @@
 let poison_list l fn () = 
   try fn () with Csp.PoisonException -> List.iter (fun f -> f ()) l
 
-let poison_channel c () =
-  Csp.poison c
-
 let raise_poison () =
   raise Csp.PoisonException
 
-let pc = poison_channel
+let pc c () = Csp.poison c
 
 let finally f g = let v = try f () with e -> g (); raise e in g (); v
+
+let conditional_select l =
+    let l' = List.filter (fun cg -> cg <> None) l in
+    let l'' = List.map (fun cg -> match cg with
+        | (Some gp) -> gp 
+        | None -> raise (Failure "None")) l' in
+    Csp.select l''
+
+let rec buffer_process i o n l () =
+    conditional_select [
+        (if l <> [] then Some (
+            Csp.write_guard o (List.hd l) (fun () -> 
+                buffer_process i o n (List.tl l) ()
+            )
+        ) else None);
+        (if List.length l < n then Some (
+            Csp.read_guard i (fun h -> 
+                buffer_process i o n (l @ [h]) ()
+            )
+        ) else None);
+    ]
 
 let write_file f i () =
     let io = try open_out_bin f with e -> Csp.poison i; raise e in

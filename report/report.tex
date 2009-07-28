@@ -393,7 +393,7 @@ side of the question mark introduces a binding. It is also not desireable to red
 the ! operator that is used for dereferencing mutable references in OCaml.
 
 We therefore have to decide between methods and functions. The OCaml standard library
-primarily uses functions to provide it's functionality, and few if any other ML 
+primarily uses functions to provide its functionality, and few if any other ML 
 variants share OCaml's object model. Since we don't anticipate any need for an
 exstensible inheritance hierachy for channels, we choose functions for the task.
 We use the \textbf{let in} construct to provide binding.
@@ -453,7 +453,8 @@ ends are also read- or write guards.
 
 Placing the responsibility on the programmer will lead to bugs if the programmer fails to obey the 
 requirements. To avoid this, we instead provide \emph{guarded processes}, which combine the guard and
-the corresponding actions. Each possible first action has it's own constructor, and is automatically 
+the corresponding actions. Each possible first action has its own constructor,
+and is automatically 
 carried out when the guard is chosen. We use a list instead of an operator in order to provide a more 
 natural syntax for alternation between more than two guarded processes.
 
@@ -571,7 +572,7 @@ In PyCSP, JCSP and C++CSP2, a channel may be \emph{poisoned}. Once a channel
 has been poisoned, reading from or writing to that channel causes an exception.
 The exception may be handled, thus allowing the process to clean up, propagate
 the poison, or even ignore the poisoning. That way, the process remains in
-control of it's own lifespan. A channel that has been poisoned can never become
+control of its own lifespan. A channel that has been poisoned can never become
 unpoisoned. We provide the same construct:
 
 \begin{verbatim}
@@ -691,7 +692,7 @@ over the channel. This would happen with a stack if another process is always re
 write again before the channel was ready to accomodate the starving process. The starving process
 would always be put behind the eager process with a stack, but with a queue, the starving process
 will always advance in the queue every time a message is transmitted, guarenteeing that it will
-eventually get it's turn.
+eventually get its turn.
 
 \goodbreak
 The internal state for channels looks like this:
@@ -908,7 +909,7 @@ waits to recieve data from the webserver, the second client can read chunks
 of data from the fast website.
 
 So what we have done is that we run two processes in parallel, the first one
-waits for the user input, while the second one reads a line from it's own
+waits for the user input, while the second one reads a line from its own
 code file after a second of waiting (Thread.sleep). As we can see in the test
 the second process is able to read the line even if the first process waits,
 hereby we can see that we don't have non-blocking I/O.
@@ -934,7 +935,7 @@ the input channel. We are now able to compile and run the application knowing
 that our first counter will never shutdown our network through poison.
 
 Even though we don't allow to propagate poison whenever the second counter
-reaches it's number and poison the printer component. Then when the first
+reaches its number and poison the printer component. Then when the first
 counter will write over the {\it custom\_stop} component, it will actually
 raise a {\it PoisonException} which will be progated back to the counter
 ensuring that all of the processes terminate and hereby ensuring that network

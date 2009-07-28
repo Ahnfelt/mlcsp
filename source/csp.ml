@@ -3,11 +3,11 @@
 exception PoisonException
 
 type 'a concrete_guard = {
-    attempt: unit -> 'a option;
+    attempt: unit -> (unit -> 'a) option;
     check_poison: unit -> bool;
-    subscribe: ('a concrete_guard) list -> ('a option) ref -> unit;
+    subscribe: ('a concrete_guard) list -> ((unit -> 'a) option) ref -> unit;
     unsubscribe: unit -> unit;
-    }
+}
 
 type 'a guard = Condition.t -> 'a concrete_guard
 
@@ -86,7 +86,7 @@ let select l = with_mutex global_mutex (fun m ->
     let s = Condition.create () in
     let l = List.map (fun x -> x s) (shuffle l) in
     if l = [] or check_poison_all l 
-    then (unsubscribe_all l; raise PoisonException) 
+    then raise PoisonException
     else match attempt_all l with
     | Some v -> v
     | None -> let r = ref None in (subscribe_all l r;
@@ -96,18 +96,18 @@ let select l = with_mutex global_mutex (fun m ->
             | None -> if check_poison_all l 
                 then (unsubscribe_all l; raise PoisonException) 
                 else (Condition.wait s m; loop ())
-        in loop ()))
+        in loop ())) ()
 
 (* Must be called in a locked context *)
 let transmit l r f v s =
-    r := Some (f v);
+    r := Some (fun () -> f v);
     unsubscribe_all l;
     Condition.signal s
 
 (* Methods must be called in a locked context *)
 let read_guard c f s = {
     attempt = (fun () -> match !c with
-        | WriterWaiting ((_, x)::_) -> Some (f (x ()))
+        | WriterWaiting ((_, x)::_) -> Some (fun () -> f (x ()))
         | _ -> None
     );
     check_poison = (fun () -> !c = Poisoned);
@@ -131,7 +131,7 @@ let read_guard c f s = {
 (* Methods must be called in a locked context *)
 let write_guard c v f s = let f _ = f () in {
     attempt = (fun () -> match !c with
-        | ReaderWaiting ((_, x)::_) -> (x v; Some (f v))
+        | ReaderWaiting ((_, x)::_) -> (x v; Some (fun () -> f v))
         | _ -> None
     );
     check_poison = (fun () -> !c = Poisoned);
@@ -161,16 +161,17 @@ let parallel fs =
     let rec loop fs ts = match fs with
         | [] -> List.iter Thread.join ts
         | [f] -> (try f () with
-            | PoisonException -> set_exception PoisonException; loop [] ts
-            | e -> set_exception e; print_endline (Printexc.to_string e); loop [] ts)
+            | PoisonException -> set_exception PoisonException
+            | e -> set_exception e; print_endline (Printexc.to_string e)); 
+            loop [] ts
         | (f::l) -> let t = Thread.create 
             (fun () -> try f () with 
-            | PoisonException -> set_exception PoisonException; ()
+            | PoisonException -> set_exception PoisonException
             | e -> set_exception e; print_endline (Printexc.to_string e)) ()
             in loop l (t::ts)
     in loop (shuffle fs) []; 
     match !e with
-        | Some e -> raise e
+        | Some v -> raise v
         | None -> ()
 
 let read_only x = x

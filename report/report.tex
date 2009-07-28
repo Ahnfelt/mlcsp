@@ -483,8 +483,8 @@ Csp.select [
 ]
 \end{verbatim}
 
-
-Whereas external choice in CSP is between processes, our alternation is between guarded processes.
+Whereas external choice in CSP is between processes, our alternation is between
+guarded processes.
 The \verb|(fun ...)|s can be any OCaml expression. The read guards require that the expression is of type
 $\alpha \to \beta$ where $\alpha$ is the type of messages that can be sent over the guard's channel, whereas
 for the write guards it must be of type $unit \to \beta$. The $\beta$ types must be the same for all guards in 
@@ -550,41 +550,41 @@ Both C++CSP and JCSP support output guards and refer to \emph{PRI ALT} in their
 \emph{priSelect} definition. We choose not to offer \emph{priSelect} since it's
 semantics are unclear.
 
-% har ikke kigget på de to næste afsnit
+The existing processes provide skip guards that are always ready, which is
+mostly useful in the bottom of a \emph{priSelect} in order to \emph{poll} the
+alternatives. If none of them are ready, the skip guard will be reached and the
+priSelect will return without blocking. In case of our select, a skip guard
+cannot be given the lowest priority, since all alternatives have equal
+priority. However, if a select with a skip-guard like guarded process is used
+in a loop, it will never block, allowing the process to perform other tasks
+while waiting for one of the guarded processes to become ready. A ready
+alternative may be skipped any number of times due to skip being chosen
+repeatidly, but it becomes less and less likely that it will be starved in this
+sence as the number of calls to select grows. Polling in a loop like this may
+lead to busy waiting or multiple responsibilities for a single process. We
+don't provide special support for it, but a skip-like construct can be
+implemented on top of the library by a read guard that reads from a channel to
+which another process writes in a loop.
 
-We also don't implement {\it FAIR SELECT} because it's not really implemented in
-Occam and both the versions from JCSP and C++CSP2 differs from each other but
-both agree on that over time as our implementation, will ensure, statistically,
-that all the process will be called the same amount of time and no process can
-be indefinitely starved.
+JCSP and C++CSP2 provides a construct called \emph{fairSelect}, which has
+slightly different specifications in the two libraries. The intended semantics
+seems to be that if the alternatives are ready in an equal number of calls to
+select, no one alternative is chosen again before all other alternatives have
+been chosen. This requires that a history is maintained over which guards have
+been chosen. We don't provide this since our select should approach this
+behavior given sufficient invocations.
 
-Because we don't have implemented {\it PRI ALT}, this also affects that it will
-not make sense to implemented {\it SKIP} guards. {\it SKIP} guards are only
-useful whenever you have the guarded process as the final process in the list.
-Because we use randomness, we could encounter this guarded process before
-another guarded process that was ready to read/write. Following this we also
-don't have the possibility to implement {\it polling}, again based on the
-randomness of alternation in CSP (external choice). Even though we don't choose
-to implement {\it SKIP} guards and {\it polling}, it is possible to add thoose
-to the library with the subsequent decrease of performance.
+We don't provide {\it time guards} since it can be done by creating process
+that waits for the desired interval and then writes to a channel, which
+process, you can then wait to read from.
 
-% TODO: joakim read?
+The \emph{read} and \emph{write} functions are semantically equivalent to a 
+select that has exactly one guard.
 
-About the implementation of {\it TIME} guards we could achieve this by creating
-a guarded process, put the thread to sleep the desired amount of time, then wake
-up and send the message. Because this is possible, we leave up to the developer
-responsability to do it himself.
-
-The \emph{read} and \emph{write} functions are semantically equivalent to a select that has exactly 
-one guard.
-
-\begin{verbatim}
-let read c = select [read_guard c (fun x -> x)]
-let write c v = select [write_guard c v (fun () -> ())]
-\end{verbatim}
-
-The semantics of the select so far is to block until one of the guards become ready. The obvious
-way to define a select with no guards at all is therefore to block indefinatly, causing a deadlock.
+The semantics of the select so far is to block until one of the guards become
+ready. The obvious
+way to define a select with no guards at all is therefore to block indefinatly,
+causing a deadlock.
 Preferably, the thread would not take up any further resources in this case (since it's trivial to 
 detect), and thus we attempt to terminate the thread by throwing an exception. If stack traces are
 enabled, and the empty select is an error, this might also provide the programmer with more information

@@ -30,7 +30,7 @@ let http_download_process o url () = try
         Csp.poison o
     with _ -> Csp.poison o
 
-let url_process url c () = 
+let url_process url o () = 
     let c1 = Csp.new_channel () in
     let c2 = Csp.new_channel () in
     let c3 = Csp.new_channel () in try
@@ -38,14 +38,14 @@ let url_process url c () =
     (try Csp.parallel [
         http_download_process c1 url;
         Cspu.delta c1 c2 c3;
-        (fun () -> Csp.write c c2);
+        (fun () -> Csp.write o c2);
         Cspu.write_file f c3
     ] with Csp.PoisonException -> ());
     let rec loop () = 
         let c4 = Csp.new_channel () in
         Csp.parallel [
             Cspu.read_file f c4;
-            (fun () -> (try Csp.write c c4 with e -> ()); loop ())
+            (fun () -> (try Csp.write o c4 with e -> ()); loop ())
         ]
     in loop ()
     with e -> Csp.poison c1; Csp.poison c2; Csp.poison c3; raise e
@@ -87,21 +87,21 @@ let socket_listener_process port f () =
             loop;
         ]
 
-let http_request_process rpc ic oc () =
+let http_request_process rpc i o () =
     let input_header j = let rec loop l = 
             let s = input_line j in
             if s = "" || s = "\r" then l else loop (s::l)
         in List.rev (loop []) in
-    let a = List.hd (input_header ic) in
+    let a = List.hd (input_header i) in
     let r = Str.regexp "^GET \\([^ \r\n]+\\)" in
     if Str.string_match r a 0 then begin
         let u = Str.matched_group 1 a in
         let c = rpc u in
         Cspu.finally (fun () -> while true do
             let s = Csp.read c in
-            output_string oc s;
-            flush oc
-        done) (fun () -> Csp.poison c; close_out oc)
+            output_string o s;
+            flush o
+        done) (fun () -> Csp.poison c; close_out o)
     end else raise Not_found
 
 let _ = 

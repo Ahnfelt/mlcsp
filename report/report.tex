@@ -1048,17 +1048,30 @@ library (Legoland)}, see  {\it appendix \ref{appendixLegoland}}.
       \SetVertexNormal[Shape = circle,
                        TextColor = black,
                        LineWidth = 2pt]
-      \Vertex{FibonacciInt}
-      \EA(FibonacciInt){Stop}
-      \EA(Stop){Printer}
+
+      \Vertex{HRP}
+      \SOWE(HRP){SLP}
+      \SOEA(SLP){CP}
+      \EA(CP){UP}
+      \SOEA(UP){HDP}
+      \SetUpEdge[style={->,bend left,ultra thick},labelstyle = {draw}]
+      \Edge[label=co](SLP)(CP)
+      \Edge[label=ci](CP)(SLP)
+      \Edge[label=i](HRP)(SLP)
+      \Edge[label=o](SLP)(HRP)
       \SetUpEdge[style={->,ultra thick},labelstyle = {draw}]
-      \Edge[label=c1](FibonacciInt)(Stop)
-      \Edge[label=c2](Stop)(Printer)
+      \Edge[label=c](CP)(UP)
+      \Edge[label=c1](UP)(HDP)
     \end{tikzpicture}
   \end{center}
-  \caption{Webproxy CSP network.}
+  \caption{Webproxy CSP network. Where HRP is an argument to SLP, CP is an
+    internal process in SLP, UP is an internal process in CP and HDP is and
+    internal process in UP. HRP is an abreviation for {\it http\_request\_process},
+    SLP is {\it socket\_listener\_process}, CP is {\it ocache\_process}, UP is
+    {\it url\_process} and HDP is {\it http\_download\_process}.}
   \label{webproxy}
 \end{figure}
+
 
 TODO: this is critical (refactoring of code? it's almost impossible to draw
 the network diagram) ...

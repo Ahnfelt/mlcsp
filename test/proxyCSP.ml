@@ -1,28 +1,23 @@
 module Table = Map.Make(String)
 
-(* split an url into the (hostname, index) *)
-let spliturl url =
-    let re = Str.regexp "\\(http://\\)?\\([^/:]+\\)[:]?\\([^/:]+\\)?\\(/.*\\)?" in
-        if Str.string_match re url 0 then
-            let host = Str.matched_group 2 url in
-            let port = try Str.matched_group 3 url with Not_found -> "80" in 
-            let index = try Str.matched_group 4 url with Not_found -> "/" in 
-            (host, int_of_string port, index)
-        else raise Not_found
-
-(* read everything pending in the socket *)
-let sendall socket o =
-    let buffer = String.create 512 in
-    let rec loop () =
-        let count = (Unix.recv socket buffer 0 512 [])
-        in if count = 0 then () else begin
-            Csp.write o (String.sub buffer 0 count);
-            loop ()
-        end
-    in loop ()
-
-(* get the contents of an arbitrary URL page *)
 let http_download_process o url () = try
+    let spliturl url =
+        let re = Str.regexp "\\(http://\\)?\\([^/:]+\\)[:]?\\([^/:]+\\)?\\(/.*\\)?" in
+            if Str.string_match re url 0 then
+                let host = Str.matched_group 2 url in
+                let port = try Str.matched_group 3 url with Not_found -> "80" in 
+                let index = try Str.matched_group 4 url with Not_found -> "/" in 
+                (host, int_of_string port, index)
+            else raise Not_found in
+    let sendall socket o =
+        let buffer = String.create 512 in
+        let rec loop () =
+            let count = (Unix.recv socket buffer 0 512 [])
+            in if count = 0 then () else begin
+                Csp.write o (String.sub buffer 0 count);
+                loop ()
+            end
+        in loop () in
     let (hostname, port, rest) = spliturl url in
     let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     let hostinfo = Unix.gethostbyname hostname in
@@ -71,10 +66,9 @@ let cache_process i o () =
             ]
     in loop Table.empty
 
-let cache_rpc o i u = Csp.write o u; Csp.read i
-
 (* create a server on a given port, and invokes the given function whenever anybody makes a request *)
 let socket_listener_process port f () =
+    let cache_rpc o i u = Csp.write o u; Csp.read i in
     let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     Unix.setsockopt socket Unix.SO_REUSEADDR true;
     let hostinfo = Unix.gethostbyname "localhost" in

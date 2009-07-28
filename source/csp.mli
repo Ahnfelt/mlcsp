@@ -41,14 +41,14 @@ val new_channel : unit -> ('a, on * on * on) channel
 val select : ('a guard) list -> 'a
 (** Blocks until one of the guarded processes become ready,
     then becomes the guarded process. 
-    If multiple guards are ready, one is chosen (pseudo)
-    randomly. Note that this is a stronger guarentee than
-    the corresponding CSP construct, which only specifies 
+    If multiple guarded processes are ready, one is chosen 
+    (pseudo) randomly. Note that this is a stronger guarentee 
+    than the corresponding CSP construct, which only specifies 
     that an arbitrary one will be chosen. For any single
     channel, processes that are waiting to read or write
     are also served on a first come, first served basis.
-    If there are no guards in the list or if at least one
-    of the guards are accociated with a poisoned channel,
+    If there are no guarded processes in the list or if at least one
+    of the guarded processes are accociated with a poisoned channel,
     PoisonException is thrown. *)
 
 val read_guard : ('a, on * _ * _) channel -> 
@@ -69,7 +69,7 @@ val read : ('a, on * _ * _) channel -> 'a
     equivalent to [select [read_guard c (fun x -> x)]]. *)
 
 val write : ('a, _ * on * _) channel -> 'a -> unit
-(** Sends a value via the channel. [write c] is
+(** Sends a value via the channel. [write c v] is
     equivalent to [select [write_guard c v (fun _ -> ())]]. *)
 
 (** {[(* Alternation. *)

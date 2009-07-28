@@ -222,11 +222,6 @@ http://github.com/Ahnfelt/mlcsp/
 
 \section{API design}
 \label{apidesign}
-\missing{
-- What do we do about shared state?\\
-? Compare more with Occam. (context???)\\
-- Why is it good to have a small API?\\
-}
 
 The CSP theory is concerned with processes that communicate solely by synchronous 
 events. Synchronous channels are built on top of the basic abstraction, and this is
@@ -239,9 +234,13 @@ existing CSP libraries, how we would like to write it in OCaml, and what the
 semantics should be. We will use the explicit module prefix \verb|Csp.| in front
 of any functions that come from our API.
 
+We have tried to mantain the API as small as possible. It's always easier to
+learn an API which has a few methods instead of a well documented API as JCSP
+but with a lot of classes and methods. We have moved everything out from the
+library that was not strictly neccesary.
+
 \subsection{Processes}
 \missing{
-- skriv at vi har en hirakisk model og at spawn ikke findes\\
 - skriv at vi har en hirakisk model og at spawn ikke findes\\
 }
 
@@ -412,6 +411,8 @@ Sharing mutable state between processes should only be done with caution however
 since it requires additional synchronization beyond the scope of this library.
 The remaining semantic details of the channels are explained in the following
 section.
+
+%TODO: Er uening, vi skal fraråde bruget af shared data, bryder jo mod CSP :/
 
 \subsection{Alternation}
 Alternation corresponds to \emph{external choice} in CSP, which uses the $|$ operator:

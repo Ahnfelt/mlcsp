@@ -8,6 +8,7 @@ struktur:
 +giv reference til appenix apidoc for at fremhæve det,
 +eller giv det dets eget afsnit.
 
+Joakim:
 ?sammenlign med Communicating Haskell Processes, som er
 ?CSP-agtigt til haskell med monader. argumenter for at det
 ?modellen ikke passer i ocaml hvis det er tilfældet.
@@ -25,6 +26,7 @@ API design:
 +minimalism in intro: we moved everything else into the
 +der skal i introduktionen
 
+Joakim:
 ?sig klarerer hvorfor vi bruger funktioner (to suspend the
 ?evaluation of the processes in a CBV language)
 
@@ -34,8 +36,10 @@ API design:
 +forklar hvad vi mener med flat (intet tilhørsforhold) og 
 +hirakial model (med subprocesses).
 
+Ramon:
 ?sæt funktionsnavne i \emph
 
+Joakim:
 ?skriv mangel på parallelism lige ved parallel
 ?skriv shared state lige ved parallel og nævn at det også
 kan deles ved scope.
@@ -44,11 +48,13 @@ kan deles ved scope.
 +natural to have shared mutable state.
 +Ikke hæve external choice er ikke en operator! det er et sæt med
 +paranteser omkring.
+Joakim:
 ?Alle processer i external choice skal eksponere deres "guard"! nævn at vores er
 ?tættere på CSP external choice end de andre. 
 +pri alt i occam kode (el. lign)
 +skip guards etc skal være med småt.
 
+Ramon:
 ?skriv at man kan lave både read og write guards på den
 ?samme kanal i samme select, men at den ikke kommunikerer
 ?med sig selv. 
@@ -58,26 +64,29 @@ kan deles ved scope.
 ?er lidt forskelligt fra csp fordi vi har any2any.
 ?i csp er kanaler altid mellem to forskellige processer.
 
+Joakim:
 ?du kan faktisk godt lave polling med shuffle select og
 ?skip guards (well en kanal der altid har noget at læse),
 ?det kan tage bare længere tid end ved priSelect.
 
-vis det med det filtrering med boolske udtryk, put det
-f.eks. i Cspu, evt sum boolean guards. vis evt. eksemplet 
-med en buffer guard (nogle gange klar til at læse nogle
-gange til at skrive).
++vis det med det filtrering med boolske udtryk, put det
++f.eks. i Cspu, evt sum boolean guards. vis evt. eksemplet 
++med en buffer guard (nogle gange klar til at læse nogle
++gange til at skrive).
 
+Ramon:
 concurrent = samtidighedsmodellen
 parallelism = samtidighed på hardwareniveau
 ret parallelism næsten alle steder vi bruger det
 
 implementation
+
+Joakim:
 skriv at vi konceptuelt gør det samme som CSP med read 
 og write, idet prefixing er external choices med et valg.
 
 ocamltest
-maxthreads mangler en konklusion (hvor mange tråde kan
-man så få?)
+Ramon:
 nonblocking forklar referencen "brug systhreads", og fortæl
 om konflikten mellem den og det vi siger, og hvorfor det
 virker med user threads (hvis det gør!). skriv hvornår 
@@ -89,10 +98,8 @@ webproxy
 - hvorfor er det bedre at bruge csp end mutexes etc.?
 - kig evt. på den web proxy der er i "use sythreads".
 
+Ramon/Joakim:
 referer til koden fra implementation?
-
-i ocamldoc, skriv at det er example ved hver eksempel,
-ellers virker det mærkeligt.
 
 aflever elektronisk i studieadm cc til andrzej + fysisk
 kopi. vedhæft koden som zip

@@ -67,17 +67,16 @@ Ting der kan gøres nu (ikke prioriteret endnu):
     + evt. eksempel
 
 * permissions (Joakim)
-  - skriv at den 
   - skriv om remove_read vs write_poison_only
   - skriv i analysen at en måde at channel rights kunne være et 
     dynamisk tjek, og skriv fordele og ulemper (f.eks. at man 
     ikke kan have en liste af kanaler med forskellige rights?).
 
 * implementation (Joakim)
-  - giv eksempler fra implementationens kode og vær præcis
-  - flyt channel-state op så den kommer tidligere og beskriv
+  ? giv eksempler fra implementationens kode og vær præcis
+  + flyt channel-state op så den kommer tidligere og beskriv
     funktionerne a -> unit og unit -> a
-  - beskriv alternation meget grundigt
+  ? beskriv alternation meget grundigt
   - skriv også her at vi bruger user threads og at ocaml har
     non-blocking IO
 

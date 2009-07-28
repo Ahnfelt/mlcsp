@@ -491,6 +491,27 @@ beneficial because a program cannot accidentally depend on an undocumented
 order of prioritization. On the other hand, it does incur a small overhead on
 every call to select.
 
+Occam specifies \emph{PRI ALT} as follows \cite{occam}:
+\begin{quote}
+The inputs which guard alternatives in an alternation may be given 
+a selection priority. Priority is determined by textual order, the 
+alternative appearing first having the highest priority for 
+selection. Consider the following example:
+\begin{verbatim}
+PRI ALT
+  disk ? block
+    d ()
+  keyboard ? char
+    k ()
+\end{verbatim}
+This priority alternation will input values from the channel disk 
+in preference to inputs from the channel keyboard. If both channels 
+disk and keyboard become ready then disk will be selected as it has 
+the highest priority.
+\end{quote}
+
+Occam does not have output guards, but if they are added, as they
+are in most CSP libraries, PRI ALT becomes contradictionary:
 \begin{verbatim}
 PAR
   PRI ALT
@@ -505,15 +526,20 @@ PAR
       Q ()
 \end{verbatim}
 
-We haven't implemented {\it PRI ALT}\cite{occam}, even though it's implemented
-in all the other libraries we compare ours to. The primary reason is that it's
-not described in the Occam reference manual what will happend if two {\it PRI
-ALT} met, see previous occam code. On the other hand we also don't implement
-{\it FAIR SELECT} because it's not really implemented in Occam and both the
-versions from JCSP and C++CSP2 differs from each other but both agree on that
-over time as our implementation, will ensure, statistically, that all the
-process will be called the same amount of time and no process can be
-indefinitely starved.
+The problem is which communication to chose? It seems the specification of
+\emph{PRI ALT} says that \emph{both} must be selected, which contradicts the
+semantics of any \emph{ALT} that \emph{one} of them will be chosen.
+Both C++CSP and JCSP support output guards and refer to \emph{PRI ALT} in their
+\emph{priSelect} definition. We choose not to offer \emph{priSelect} since it's
+semantics are unclear.
+
+% har ikke kigget på de to næste afsnit
+
+We also don't implement {\it FAIR SELECT} because it's not really implemented in
+Occam and both the versions from JCSP and C++CSP2 differs from each other but
+both agree on that over time as our implementation, will ensure, statistically,
+that all the process will be called the same amount of time and no process can
+be indefinitely starved.
 
 Because we don't have implemented {\it PRI ALT}, this also affects that it will
 not make sense to implemented {\it SKIP} guards. {\it SKIP} guards are only
@@ -525,7 +551,7 @@ randomness of alternation in CSP (external choice). Even though we don't choose
 to implement {\it SKIP} guards and {\it polling}, it is possible to add thoose
 to the library with the subsequent decrease of performance.
 
-TODO: joakim read?
+% TODO: joakim read?
 
 About the implementation of {\it TIME} guards we could achieve this by creating
 a guarded process, put the thread to sleep the desired amount of time, then wake

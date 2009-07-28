@@ -634,7 +634,7 @@ set.
 \label{implementation}
 
 
-\subsection{Channels}
+\subsection{Channels and alternation}
 A one-to-one channel is a channel that only allows one procees to read from it
 and one process 
 to write to it. It may be implemented as a state machine as shown in figure \ref{channel-state}.
@@ -720,36 +720,50 @@ that is the case, throws a PoisonException. This is done by calling
 
 \begin{verbatim}
 type 'a concrete_guard = {
-    attempt: unit -> 'a option;
+    attempt: unit -> (unit -> 'a) option;
     check_poison: unit -> bool;
-    subscribe: ('a concrete_guard) list -> ('a option) ref -> unit;
+    subscribe: ('a concrete_guard) list -> 
+        ((unit -> 'a) option) ref -> unit;
     unsubscribe: unit -> unit;
 }
 \end{verbatim}
 
-Otherwise it calls \emph{attempt} on each of them. The \emph{attempt} function
-may succeed, carrying out a transmission and returning $Some\ v$ where v is the
-transmitted value, or it may fail, returning $None$. If any of them succeeds,
-the corresponding guarded process is executed and the select returns the result
-of the guard. For readers, the guarded process is passed the read value.
+Otherwise it calls \emph{attempt} on each of them until one succeeds.
+When \emph{attempt} succeeds, it carries out a transmission and returns $Some\
+f$ where $f$ is a function that when called carries out the process part of the
+guarded process and returns its result. Otherwise it returns $None$. If any of
+them succeeds, $f$ is applied (to unit) and the result is returned.
 
-If none of the attempts succeed, it \emph{subscribes} each guarded process,
-adding the appropriate queue on the associated channel. Then it enters a loop
-where it waits on the process' condition variable each iteration. When it is
-woken up, it checks if it has been involved in a transmission, and if so
-returns the resulting value. 
+If none of the attempts succeed, it \emph{subscribes} each guarded process.
+This means creating a function that fits into the channel waiting queue
+as discussed earlier, and putting it into the queue. Then it enters a loop
+where it waits on the process' condition variable each iteration. When woken up
+due to a signal on the condition variable, it checks if it has been involved in
+a transmission, and then executes the process part of the chosen guarded
+process.
 
-We use a lock that is global to the library, in order to protect the channel and
-processes from concurrent mutation. This lock is only taken when first trying to
-read from a channel, or right after a process has been woken up. We claim that
-this won't lead to performance degradation, since OCaml's threads only provides
-concurrency though time-sharing \cite{ocaml-threads}.
+We use a lock that is global to the library in order to protect the state
+associated with channels and processes from concurrent mutation (and
+thus race conditions). This lock is only taken when first trying to read from a
+channel, or right after a process has been woken up. We claim that this won't
+lead to performance degradation, since OCaml's threads only provides concurrency
+though time-sharing \cite{ocaml-threads}. The execution of the process part of
+guarded processes are done outside this lock since they do not require it and
+because they may run for a very long time (or even diverge).
+
+Read and write are implemented as selects a trivial guarded process:
+\begin{verbatim}
+let read c = select [read_guard c (fun x -> x)]
+let write c v = select [write_guard c v (fun () -> ())]
+\end{verbatim}
 
 \missing{
 - How do you get rid of this lock? (useful for porting). It is hard because you don't know which
 channels you will touch before you have chosen a target process to transmit to/from. If you knew
 that, you could simply take their locks in some well defined order (thus avoiding deadlock). \\
 }
+
+\subsection{Alternation}
 
 \begin{verbatim}
 type ('a, 'b) channel = ('a channel_state) ref
@@ -788,12 +802,6 @@ Read & Write & Poison & Function \\
 \caption{Channel permissions}
 \label{channel-permissions}
 \end{figure}
-
-\subsection{Alternation}
-
-\missing{
-- priSelect is a part of the impl. of select.\\
-}
 
 \subsection{Processes}
 

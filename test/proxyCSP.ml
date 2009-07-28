@@ -51,7 +51,7 @@ let url_process url c () =
         Csp.parallel [
             Cspu.read_file f c4;
             (fun () -> (try Csp.write c c4 with e -> ()); loop ())
-        ];print_endline "wtf"
+        ]
     in loop ()
     with e -> Csp.poison c1; Csp.poison c2; Csp.poison c3; raise e
 

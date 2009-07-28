@@ -6,20 +6,24 @@ Joakim:
 ?sammenlign med Communicating Haskell Processes, som er
 ?CSP-agtigt til haskell med monader. argumenter for at det
 ?modellen ikke passer i ocaml hvis det er tilfældet.
+tror mest det er en smagssag, men:
+- der er ingen speciel syntax for monader i OCaml, det giver
+  ingen garantier mht. sideeffekter og der er ikke tradition
+  for at bruge det i OCaml.
 
 API design:
 Joakim:
-?sig klarerer hvorfor vi bruger funktioner (to suspend the
-?evaluation of the processes in a CBV language)
++sig klarerer hvorfor vi bruger funktioner (to suspend the
++evaluation of the processes in a CBV language)
 
 Joakim:
-?skriv mangel på parallelism lige ved parallel
-?skriv shared state lige ved parallel og nævn at det også
++skriv mangel på parallelism lige ved parallel
++skriv shared state lige ved parallel og nævn at det også
 kan deles ved scope.
 
 Joakim:
-?Alle processer i external choice skal eksponere deres "guard"! nævn at vores er
-?tættere på CSP external choice end de andre. 
++Alle processer i external choice skal eksponere deres "guard"! nævn at vores er
++tættere på CSP external choice end de andre. 
 
 Ramon:
 ?skriv at man kan lave både read og write guards på den

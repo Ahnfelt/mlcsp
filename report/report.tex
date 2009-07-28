@@ -155,8 +155,8 @@ that there already was a concurrent library, {\it Event}, but this was inspired
 on \cite{concurrentml} and not on CSP as ours. Whenever we didn't find a
 theoretical guidance from \cite{hoare} on how to implement something, for
 example shutting correctly down a network, we used the other CSP libraries,
-\cite{pycsp}, \cite{jcsp} and \cite{cppcsp2}, as inspiration on how they use
-{\it Poison} to perform this action.
+\cite{pycsp}, \cite{jcsp}, \cite{cppcsp2}, as inspiration on how
+they use {\it Poison} to perform this action.
 
 One of our goals was to offer true parallelism, run several processors
 over several CPUs or cores, but the library cannot offer this because of the
@@ -223,44 +223,47 @@ http://github.com/Ahnfelt/mlcsp/
 
 The CSP theory is concerned with processes that communicate solely by synchronous 
 events. Synchronous channels are built on top of the basic abstraction, and this is
-what most implementations (including \cite{occam}, \cite{cppcsp2}, \cite{jcsp} and 
-\cite{pycsp}) provide for communication. 
-Additionally, it is possible to wait for communication from multiple sources at once.
+what most implementations (including \cite{occam}, \cite{chp}, \cite{cppcsp2},
+\cite{jcsp} and \cite{pycsp}) provide for communication. Additionally, it is
+possible to wait for communication from multiple sources at once.
 
-For each construct, we are going to look at how it's done in CSP and in the 
-existing CSP libraries, how we would like to write it in OCaml, and what the 
-semantics should be. We will use the explicit module prefix \verb|Csp.| in front
-of any functions that come from our API.
+For each construct, we are going to look at how it's done in CSP and in some of
+the existing CSP libraries, how we would like to write it in OCaml, and what
+the semantics should be. We will use the explicit module prefix \verb|Csp.| in
+front of any functions that come from our core API.
 
-We have tried to make the API as small as possible. It's always easier to
-learn an API which has a few methods instead of a well documented API as JCSP
-but with a lot of classes and methods. We have moved everything out from the
-library that was not strictly neccesary to a CSP utility library, the library
-can be seen in appendix \ref{appendixCspu}.
+We have tried to make the API as small as possible. Given an equal quality of
+documentation, it is easier to learn a small number of functions than a large;
+and if we have less functions to consider, we can spend more time improving the
+quality of the documentation of each of them. The core \verb|Csp| module has
+been kept small by excluding everything that wasn't either CSP-like or required
+access to the internal data structures. Utility functions that didn't fit this
+description have been put in the \verb|Cspu| module (see appendix
+\ref{appendixCspu}).
 
 \subsection{Processes}
 Processes can be run concurrently in CSP using the $\parallel$ operator:
 \[P \parallel Q\]
 They may communicate with each other. If put in front of another process in a
-sequence, all processes running concurrently must finish before the next process
-can take any steps.
+sequence, all these processes running concurrently must finish before the next
+process can take any steps.
 
 In PyCSP running two processes concurrently looks like this:
 \begin{verbatim}
 Parallel(P, Q)
 \end{verbatim}
 Where $P$ and $Q$ must be specified as $Process$ instances. There may be more processes
-separated by commas. It runs the processes concurrently and returns when they have all 
-stopped executing. The API for C++CSP2 and JCSP are similar. In all cases the
-process objects only expose a \emph{run} method. It is unclear what happens if
-this method is called twice on the same instance (especially if the instance is
-used twice in the same parallel-construct).
+separated by commas. It runs the processes concurrently and returns when they
+have all stopped executing. The API for C++CSP2 and JCSP are similar. In all
+cases the process objects only expose a \emph{run} method. It is unclear what
+happens if this method is called twice on the same instance (especially if the
+instance is used twice in the same parallel-construct).
 
 To avoid that kind of undefined behaviour we do not provide handles to 
 \emph{running processes}.
-A process is simply any OCaml expression, although we use functions to delay the 
-evaluation of them until their side effects are desireable. 
-Our parallel construct looks like this:
+A process is simply any OCaml expression, although since OCaml is
+call-by-value we use functions to suspend the evaluation of them until their
+side effects are desireable (if ever). Our parallel construct looks like this:
 
 \begin{verbatim}
 Csp.parallel [
@@ -269,12 +272,23 @@ Csp.parallel [
 ]
 \end{verbatim}
 
+Even though the construct is called parallel, there is no guarentee that they
+actually run in parallel on the hardware. In particular, our implementation
+does not support this (see section \ref{implementation}). It does guarentee
+that the processes will be run concurrently however.
+
+Note that processes share memory and can share any kind of OCaml values, which
+it may get a handle to via OCamls standard scoping rules or any other way a
+value can travel in a shared-memory environment. Although you can also share
+mutable state this way, don't recommend this since it requires careful
+syncronization beyond the scope of this library.
+
 We use a list so it is possible to specify any number of processes. The 
 \verb|(fun ...)|s may be any OCaml expression, although we require that they are of type
 $unit \to unit$. Since OCaml has anonymous functions, we can define the process directly 
 inside the parallel construct, which is often convenient for small processes. The processes
-are then run concurrently, and there is no way to get a handle to a running process
-through our API.
+are then run concurrently, and there is no way to get a handle to a running
+process through our API.
 
 {\it Parallel} only returns once all the processes have finished executing. A
 process may finish either by returning or by throwing an exception. In the
@@ -304,9 +318,9 @@ $x$ and $y$ for the purpose of this example):
 \[(c_1\,?\,x \to SKIP \parallel c_2\,?\,y \to SKIP); c_3\,!\,(x + y)\]
 The intention of this is to read from $c_1$ and $c_2$ concurrently, and then
 send the sum via $c_3$. Consider a construct $parallel2$ that takes a pair 
-$(unit \to \alpha) \times (unit \to \beta)$, runs the two processes concurrently,
-and returns a pair $\alpha \times \beta$ containing the return value of each
-process. Then we could write:
+$(unit \to \alpha) \times (unit \to \beta)$, runs the two processes
+concurrently, and returns a pair $\alpha \times \beta$ containing the return
+value of each process. Then we could write:
 
 \begin{verbatim}
 let (x, y) = parallel2 (
@@ -346,7 +360,8 @@ We don't provide a special construct for sequence, since OCaml has a perfectly
 fine sequence operator built in, and executing a list of processes in sequence
 is a simple matter of iterating over it and invoking each one. We also don't
 provide a way to specify the stack size for a process, because the stack grows
-dynamically in OCamls user threads; as described in the library {\it Gc.control},
+dynamically in OCamls user threads; as described in the library {\it
+Gc.control},
 you can assign at execution time with ocamlrun a stack limit size which is not
 allocated totally at initial state but after need, and there is little reason to
 use system threads (see section \ref{implementation}).
@@ -414,8 +429,8 @@ The remaining semantic details of the channels are explained in the following
 section.
 
 \subsection{Alternation}
-Alternation corresponds to \emph{external choice} in CSP, which uses the $|$ operator:
-(\[c_1\,?\,x \to ...\ |\ c_2\,?\,y \to ...\ |\ c_3\,!\,e \to ...\])
+Alternation is similar to to \emph{external choice} in CSP:
+\[(c_1\,?\,x \to ...\ |\ c_2\,?\,y \to ...\ |\ c_3\,!\,e \to ...)\]
 The operands of the operator are guarded processes. The semantics is that once one or 
 more of the alternatives can take a step, then an arbitrary one of these is chosen to take a 
 step, and then the whole process acts as the remainder of the chosen alternative.
@@ -449,11 +464,13 @@ that can easily be inspected by the library. After a guard is selected, the acti
 carried out, and it is the programmer's responsibility to ensure this. In the case of PyCSP, channel
 ends are also read- or write guards. 
 
-Placing the responsibility on the programmer will lead to bugs if the programmer fails to obey the 
-requirements. To avoid this, we instead provide \emph{guarded processes}, which combine the guard and
-the corresponding actions. Each possible first action has its own constructor,
-and is automatically carried out when the guard is chosen. We use a list instead of an operator in order to provide a more 
-natural syntax for alternation between more than two guarded processes.
+Placing the responsibility on the programmer will lead to bugs if the programmer
+fails to obey the requirements. To avoid this, we instead provide \emph{guarded
+processes}, which combine the guard and the corresponding actions, similarly to
+CSP. Each possible first action has its own constructor, and is automatically
+carried out when the guard is chosen. We use a list instead of an operator in
+order to provide a more natural syntax for alternation between more than two
+guarded processes.
 
 Our alternation construct is intended to capture the conditional logic which typically follows 
 alternation in the existing CSP libraries.

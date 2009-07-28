@@ -46,7 +46,7 @@ kan deles ved scope.
 +paranteser omkring.
 ?Alle processer i external choice skal eksponere deres "guard"! nævn at vores er
 ?tættere på CSP external choice end de andre. 
-pri alt i occam kode (el. lign)
++pri alt i occam kode (el. lign)
 +skip guards etc skal være med småt.
 
 ?skriv at man kan lave både read og write guards på den

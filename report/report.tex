@@ -492,8 +492,17 @@ order of prioritization. On the other hand, it does incur a small overhead on
 every call to select.
 
 \begin{verbatim}
-PRI ALT
-  disk ?
+PAR
+  PRI ALT
+    c1 ? data
+      P ()
+    c2 ! data
+      Q ()
+  PRI ALT
+    c2 ? data
+      P ()
+    c1 ! data
+      Q ()
 \end{verbatim}
 
 We haven't implemented {\it PRI ALT}\cite{occam}, even though it's implemented

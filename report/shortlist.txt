@@ -12,9 +12,6 @@ Joakim:
 ?sig klarerer hvorfor vi bruger funktioner (to suspend the
 ?evaluation of the processes in a CBV language)
 
-Ramon:
-?sæt funktionsnavne i \emph
-
 Joakim:
 ?skriv mangel på parallelism lige ved parallel
 ?skriv shared state lige ved parallel og nævn at det også
@@ -39,11 +36,6 @@ Joakim:
 ?skip guards (well en kanal der altid har noget at læse),
 ?det kan tage bare længere tid end ved priSelect.
 
-Ramon:
-concurrent = samtidighedsmodellen
-parallelism = samtidighed på hardwareniveau
-ret parallelism næsten alle steder vi bruger det
-
 implementation
 
 Joakim:
@@ -62,9 +54,6 @@ webproxy
 - hvad skal den kunne
 - hvorfor er det bedre at bruge csp end mutexes etc.?
 - kig evt. på den web proxy der er i "use sythreads".
-
-Ramon/Joakim:
-referer til koden fra implementation?
 
 aflever elektronisk i studieadm cc til andrzej + fysisk
 kopi. vedhæft koden som zip

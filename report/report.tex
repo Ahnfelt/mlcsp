@@ -206,7 +206,7 @@ let _ =
 We have a counter component, which sends a number over a channel and another
 component which recieves a number from a input channel and sends the
 double of the value through an output channel. If we combine those two
-components together by running in parallel and we give the counter $1$ as
+components together by running concurrently and we give the counter $1$ as
 initial parameter we have a new component that will gives us the even numbers in
 $\mathbb{N}$.
 
@@ -239,18 +239,18 @@ library that was not strictly neccesary to a CSP utility library, the library
 can be seen in appendix \ref{appendixCspu}.
 
 \subsection{Processes}
-Processes can be run in parallel in CSP using the $\parallel$ operator:
+Processes can be run concurrently in CSP using the $\parallel$ operator:
 \[P \parallel Q\]
 They may communicate with each other. If put in front of another process in a
-sequence, all processes running in parallel must finish before the next process
+sequence, all processes running concurrently must finish before the next process
 can take any steps.
 
-In PyCSP running two processes in parallel looks like this:
+In PyCSP running two processes concurrently looks like this:
 \begin{verbatim}
 Parallel(P, Q)
 \end{verbatim}
 Where $P$ and $Q$ must be specified as $Process$ instances. There may be more processes
-separated by commas. It runs the processes in parallel and returns when they have all 
+separated by commas. It runs the processes concurrently and returns when they have all 
 stopped executing. The API for C++CSP2 and JCSP are similar. In all cases the
 process objects only expose a \emph{run} method. It is unclear what happens if
 this method is called twice on the same instance (especially if the instance is
@@ -273,7 +273,7 @@ We use a list so it is possible to specify any number of processes. The
 \verb|(fun ...)|s may be any OCaml expression, although we require that they are of type
 $unit \to unit$. Since OCaml has anonymous functions, we can define the process directly 
 inside the parallel construct, which is often convenient for small processes. The processes
-are then run in parallel, and there is no way to get a handle to a running process
+are then run concurrently, and there is no way to get a handle to a running process
 through our API.
 
 {\it Parallel} only returns once all the processes have finished executing. A
@@ -289,7 +289,7 @@ The question is then, how to pick
 one of potentially many exceptions? One possible option is to pick the first
 exception that is thrown, since this may be the cause of exceptions thrown later
 by the other processes. However, then you would have to decide which one is
-{\it first}, which isn't clear when multiple processes are running in parallel.
+{\it first}, which isn't clear when multiple processes are running concurrently.
 You could also choose the exception from whichever of the throwing processes
 comes first in the list passed to parallel. This gives the programmer some
 control over which of the processes that might throw the exceptions that are
@@ -302,9 +302,9 @@ Being a functional language, it may be convenient to collect the \emph{return
 values} of processes. Consider the following CSP (assuming global scoping for
 $x$ and $y$ for the purpose of this example):
 \[(c_1\,?\,x \to SKIP \parallel c_2\,?\,y \to SKIP); c_3\,!\,(x + y)\]
-The intention of this is to read from $c_1$ and $c_2$ in parallel, and then
+The intention of this is to read from $c_1$ and $c_2$ concurrently, and then
 send the sum via $c_3$. Consider a construct $parallel2$ that takes a pair 
-$(unit \to \alpha) \times (unit \to \beta)$, runs the two processes in parallel,
+$(unit \to \alpha) \times (unit \to \beta)$, runs the two processes concurrently,
 and returns a pair $\alpha \times \beta$ containing the return value of each
 process. Then we could write:
 
@@ -337,10 +337,10 @@ is the only compelling use case for \emph{parallel2} we could identify, so we
 chose to provide \emph{parallel} which we have used throughout the code base.
 
 At the beginning we also thought about having spawn, as JCSP with their
-ProcessManager but this would give us a flat model, where the processes have no
-affinity between them. Instead we noticed that we actually just would need to
-add {\it parallel} and hereby achiving a hierarchical model, processes with
-subprocesses.
+\emph{ProcessManager} but this would give us a flat model, where the processes
+have no affinity between them. Instead we noticed that we actually just would
+need to add {\it parallel} and hereby achiving a hierarchical model, processes
+with subprocesses.
 
 We don't provide a special construct for sequence, since OCaml has a perfectly
 fine sequence operator built in, and executing a list of processes in sequence
@@ -574,8 +574,8 @@ enabled, and the empty select is an error, this might also provide the programme
 to determine where the error occured.
 
 In JCSP and C++CSP2 you can provide a list of flags that specify if a guard is
-active or inactive. We provide similar functionality in the utility module Cspu
-(appendix \ref{appendix-cspu}), except it takes a list of optional guarded
+active or inactive. We provide similar functionality in the utility module Cspu,
+appendix \ref{appendixCspu}, except it takes a list of optional guarded
 processes instead of separate lists of flags and guarded processes:
 
 \goodbreak
@@ -642,8 +642,8 @@ Csp.poison c
 \end{verbatim}
 
 Read and write guards become ready if their channel is poisoned, and an
-alternation may thus chose to throw a PoisonException if one or more of its
-guards' channels are poisoned.
+alternation may thus chose to throw a \emph{PoisonException} if one or more of
+its guards' channels are poisoned.
 
 In order to shut down process networks, which may have internal subnetworks, it
 is nessecary to propagate the poison to the other processes in the network. As
@@ -701,8 +701,10 @@ Our implementation does not use any type casts or other features that
 circumvent the type system. We use functions to hide differing type variables
 whenever we need to put them in lists or similar.
 
+The source code to the CSP library can be seen in appendix \ref{appendixAPI}.
+
 \subsection{Channels and alternation}
-A one-to-one channel is a channel that only allows one procees to read from it
+A \emph{one-to-one} channel is a channel that only allows one procees to read from it
 and one process 
 to write to it. It may be implemented as a state machine as shown in figure \ref{channel-state}.
 When the channel is in the NobodyWaiting state and a process tries to read from the channel,
@@ -742,7 +744,7 @@ ReaderWaiting or the WriterWaiting state, the waiting process will wake up and t
 exception. Any further attempts to read from or write to the channel will result in this 
 exception being thrown again.
 
-Any-to-any channels places no restrictions on the number of processes that can
+\emph{Any-to-any} channels places no restrictions on the number of processes that can
 read from or write to it. To implement these we extend the above to keep a queue
 of readers (when in the ReaderWaiting state) or writers (when in the
 WriterWaiting state).
@@ -780,7 +782,7 @@ In the case of the readers, it stores the value transmitted.
 A process registers itself for reading or writing on any number of channels via
 the select construct, which takes a list of guarded processes. It augments each
 with a condition variable unique to the process. Then shuffles the list in order
-to avoid starvation as discussed in section \ref{api-design}. It checks if any
+to avoid starvation as discussed in section \ref{apidesign}. It checks if any
 of the channels associated with the guarded processes are poisoned, and if
 that is the case, throws a PoisonException. This is done by calling
 \emph{check\_poison} for each of them, which is part of the following record:
@@ -839,7 +841,7 @@ type ('a, 'b) channel = ('a channel_state) ref
 \end{verbatim}
 
 The phantom type 'b is used for the channel permissions. This is enforced solely via the type
-system, and is represented with a product of three booleans values: read * write * poison.
+system, and is represented with a product of three booleans values: \emph{read * write * poison}.
 Reading, writing and poisoning are initially enabled for a channel, but handles with less 
 permissions can be obtained through the functions shown in figure \ref{channel-permissions}. 
 Permissions can only be taken away, not gained, which is evident from the types of the 
@@ -889,9 +891,9 @@ Otherwise it throws the saved exception.
 \section{Test, performance and examples}
 \label{testexamples}
 One of the goals for this project was that we needed to implement a simple
-network on top of the API, Fibonacci, and a more complex one but because Ocaml
+network on top of the API, \emph{Fibonacci}, and a more complex one but because Ocaml
 doesn't have support for parallelism, as mentioned in the section \ref{apidesign},
-we decided to make a web proxy, with a built in cache so we show that we actually
+we decided to make a \emph{web proxy}, with a built in cache so we show that we actually
 use overlapping I/O.
 
 But before we made this two applications we needed to know the limitations of
@@ -917,7 +919,7 @@ Ocamls thread library and I/O library.
       OK \\
       \hline
       nonblocking.ml &
-      We run to processes in parallel. The first process whats for user input
+      We run to processes concurrently. The first process whats for user input
       and the second process after a seconds delay reads the first line from
       the its own source code file and writes the line to stdout.&
       OK \\
@@ -962,9 +964,9 @@ also connects over the web proxy to a fast website. While the first client
 waits to recieve data from the webserver, the second client can read chunks
 of data from the fast website.
 
-So what we have done is that we run two processes in parallel, the first one
+So what we have done is that we run two processes concurrently, the first one
 waits for the user input, while the second one reads a line from its own
-code file after a second of waiting (Thread.sleep). As we can see in the test
+code file after a second of waiting (\emph{Thread.sleep}). As we can see in the test
 the second process is able to read the line even if the first process waits,
 hereby we can see that we don't have non-blocking I/O.
 
@@ -1089,13 +1091,13 @@ run even more but we didn't test it out.
 
 A description on how this simple network works can be seen in figure
 \ref{fibonaccicomp} and \ref{fibonacci} where we use the {\it Legoland
-fibonacciInt} component running in parallel with a {\it stop} component which,
+fibonacciInt} component running concurrently with a {\it stop} component which,
 ensures that the network shuts down correctly after the number of iterations
 given as the first parameter, and a {\it printer} component which prints out to
 the screen the Fibonacci numbers.
 
 Other examples on how to write some simple processes and them put them together
-running in parallel in another process can be seen in our {\it CSP component 
+running concurrently in another process can be seen in our {\it CSP component 
 library (Legoland)}, see  {\it appendix \ref{appendixLegoland}}.
 
 \subsubsection{web proxy}
@@ -1187,7 +1189,7 @@ The documentation can be created with following command:
 \label{appendixAPI}
 \includecode{csp.mli}{../source/csp.mli}
 \includecode{csp.ml}{../source/csp.ml}
-\subsection{A CSP Utility Library}
+\subsection{A CSP Utility ibrary}
 \label{appendixCspu}
 \includecode{cspu.ml}{../source/cspu.ml}
 \subsection{A CSP Component Library (Legoland)}

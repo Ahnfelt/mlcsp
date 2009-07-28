@@ -12,8 +12,8 @@ exception PoisonException
 (** Thrown when reading from or writing to a poisoned channel. *)
 
 type 'a guard
-(** Represents a guard (for example for reading and writing) that
-    can be used in a select. *)
+(** Represents a guarded process (for example for reading and 
+    writing) that can be used in a select. *)
 
 type ('a, 'b) channel
 (** Represents a channel for transmitting messages of type 'a.

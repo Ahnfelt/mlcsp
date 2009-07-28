@@ -719,7 +719,7 @@ though time-sharing \cite{ocaml-threads}. The execution of the process part of
 guarded processes are done outside this lock since they do not require it and
 because they may run for a very long time (or even diverge).
 
-Read and write are implemented as selects with trivial guarded processes:
+Read and write are implemented as selects a trivial guarded process:
 \begin{verbatim}
 let read c = select [read_guard c (fun x -> x)]
 let write c v = select [write_guard c v (fun () -> ())]
@@ -730,6 +730,8 @@ let write c v = select [write_guard c v (fun () -> ())]
 channels you will touch before you have chosen a target process to transmit to/from. If you knew
 that, you could simply take their locks in some well defined order (thus avoiding deadlock). \\
 }
+
+\subsection{Alternation}
 
 \begin{verbatim}
 type ('a, 'b) channel = ('a channel_state) ref

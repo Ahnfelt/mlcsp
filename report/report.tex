@@ -601,6 +601,9 @@ set.
 }
 \label{implementation}
 
+Our implementation does not use any type casts or other features that
+circumvent the type system. We use functions to hide differing type variables
+whenever we need to put them in lists or similar.
 
 \subsection{Channels and alternation}
 A one-to-one channel is a channel that only allows one procees to read from it
@@ -715,9 +718,9 @@ associated with channels and processes from concurrent mutation (and
 thus race conditions). This lock is only taken when first trying to read from a
 channel, or right after a process has been woken up. We claim that this won't
 lead to performance degradation, since OCaml's threads only provides concurrency
-though time-sharing \cite{ocaml-threads}. The execution of the process part of
-guarded processes are done outside this lock since they do not require it and
-because they may run for a very long time (or even diverge).
+though time-sharing (see appendix \ref{appendixSysthreads}). The execution of
+the process part of guarded processes are done outside this lock since they do
+not require it and because they may run for a very long time (or even diverge).
 
 Read and write are implemented as selects a trivial guarded process:
 \begin{verbatim}
@@ -731,7 +734,9 @@ channels you will touch before you have chosen a target process to transmit to/f
 that, you could simply take their locks in some well defined order (thus avoiding deadlock). \\
 }
 
-\subsection{Alternation}
+\subsection{Permissions}
+
+Channel permissions are enforced solely by the type system.
 
 \begin{verbatim}
 type ('a, 'b) channel = ('a channel_state) ref
@@ -751,7 +756,8 @@ val read_poison_only : ('a, on * _ * on) channel ->
 
 Apart from the type, all of these functions are simply identity functions. We provide a
 type alias \texttt{'a t = ('a, on * on * on) channel} for people who don't want to write the
-longer (often optional) type annotations that the permission types incur.
+longer (often optional) type annotations that the permission types incur. All
+the useful functions are provided, as shown in figure \ref{channel-permissions}.
 
 \begin{figure}[h]
 \centering
@@ -780,6 +786,17 @@ than the current randomized select. \\
 }
 
 \subsection{Processes}
+
+The parallel construct shuffles its list of functions in order to expose any
+accidental dependency on the order in which they are started as processes.
+If the list is empty, then it returns. Otherwise it proceeds as follows.
+Except from the last function in the shuffled list, each function is started,
+and the resulting list of thread handles are then joined. The remaining
+function is run in the current thread to avoid spawning more threads than
+required. All exceptions are caught, and each overwrites the contents of a
+reference (protected by a mutex) that is initially $None$. When all threads have
+been joined, the reference is checked. If it's $None$ then it just returns.
+Otherwise it throws the saved exception.
 
 \section{Test}
 \label{test}

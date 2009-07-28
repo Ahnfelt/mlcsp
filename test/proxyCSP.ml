@@ -38,8 +38,7 @@ let http_download_process o url () = try
 let url_process url c () = 
     let c1 = Csp.new_channel () in
     let c2 = Csp.new_channel () in
-    let c3 = Csp.new_channel () in
-    let c4 = Csp.new_channel () in try
+    let c3 = Csp.new_channel () in try
     let f = Filename.temp_file "csp" "proxy" in
     (try Csp.parallel [
         http_download_process c1 url;
@@ -51,28 +50,25 @@ let url_process url c () =
         let c4 = Csp.new_channel () in
         Csp.parallel [
             Cspu.read_file f c4;
-            (fun () -> (try Csp.write c c4 with Csp.PoisonException -> ()); loop ())
-        ]
+            (fun () -> (try Csp.write c c4 with e -> ()); loop ())
+        ];print_endline "wtf"
     in loop ()
-    with e -> Csp.poison c1; Csp.poison c2; Csp.poison c3; Csp.poison c4; raise e
+    with e -> Csp.poison c1; Csp.poison c2; Csp.poison c3; raise e
 
 let cache_process i o () =
-    let lookup v t = 
-        try Some (Table.find v t)
-        with Not_found -> None in
     let rec loop t =
         let u = Csp.read i in
-        match lookup u t with
-          | Some c -> Csp.write o (Csp.read c); loop t
-          | None -> 
-                let c = Csp.new_channel () in
-                Csp.parallel [
-                    url_process u c;
-                    (fun () -> 
-                        Csp.write o (Csp.read c); 
-                        loop (Table.add u c t)
-                    );
-                ]
+        try let c = Table.find u t in
+            Csp.write o (Csp.read c); loop t
+        with Not_found -> 
+            let c = Csp.new_channel () in
+            Csp.parallel [
+                url_process u c;
+                (fun () -> 
+                    Csp.write o (Csp.read c); 
+                    loop (Table.add u c t)
+                );
+            ]
     in loop Table.empty
 
 let cache_rpc o i u = Csp.write o u; Csp.read i

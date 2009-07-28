@@ -25,14 +25,17 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   + fjern formalia og lav evt. et afsnit til det i konklusionen
 
 * ret teksten så der ikke står at processer er unit->unit (Joakim)
-  - skriv alt det følgende i process-afsnittet
   + processer er vilkårlige ml-udtryk, men bundet i funktioner
     for at undgå at sideeffekter bliver udført før tid.
   + argumenter hvorfor vi ikke har parallel2 eller parallellist
-  - argumenter hvorfor vi ikke har spawn
-    - flad eller hirakisk processmodel?
   + argumenter for hvorfor parallel kan kaste en exception
   + pointer at parallel tager en liste af vilkårlig størrelse
+  - argumenter hvorfor vi ikke har spawn
+    - flad eller hirakisk processmodel?
+  - beskriv at processer bruger en shared-memory model (Joakim)
+    - og at man derfor kan bruge OCaml's scoping-regler
+    - at man skal undgå at dele mutable state, men at vi ikke
+      kan garantere dette via typesystemet
 
 * alternation (Ramon)
   - alt hvad der står i missing
@@ -49,11 +52,6 @@ Ting der kan gøres nu (ikke prioriteret endnu):
     eller slet det
   + internal choice ER IKKE if/enabled - ret det!
   % vis hvad man kan gøre i ML for at filtrere en liste af guards
-
-* beskriv at processer bruger en shared-memory model (Joakim)
-  - og at man derfor kan bruge OCaml's scoping-regler
-  - at man skal undgå at dele mutable state, men at vi ikke
-    kan garantere dette via typesystemet
 
 + poison og termination (Ramon)
   + fjern "since no apps run forever" eller brug "most don't"
@@ -109,7 +107,7 @@ Ting der kan gøres nu (ikke prioriteret endnu):
     + drop poisoned
     + gå igennem koden og se om det bliver et problem
   + rename fork til spawn i rapport og kode
-  % fjern eventuelt fork/spawn
+  + fjern eventuelt fork/spawn
   + rename guards til guarded processes
   % overvej at lave remove_read etc. for permissions istedet
   + lav write_guard funktionen unit -> b istedet for a -> b

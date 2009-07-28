@@ -247,6 +247,7 @@ of any functions that come from our API.
 - there is probably no reference for this, but the number is limited by other
 factors (even if it's 100kb: 100kb*20000 = 200 mb).\\
 - skriv at vi har en hirakisk model og at spawn ikke findes\\
+- skriv at vi har en hirakisk model og at spawn ikke findes\\
 }
 
 Processes can be run in parallel in CSP using the $\parallel$ operator:
@@ -602,7 +603,8 @@ set.
 
 
 \subsection{Channels}
-A one to one channel is a channel that only allows one procees to read from it and one process 
+A one-to-one channel is a channel that only allows one procees to read from it
+and one process 
 to write to it. It may be implemented as a state machine as shown in figure \ref{channel-state}.
 When the channel is in the NobodyWaiting state and a process tries to read from the channel,
 it enters the ReaderWaiting state. When a writer comes along and tries to write to a channel
@@ -641,9 +643,10 @@ ReaderWaiting or the WriterWaiting state, the waiting process will wake up and t
 exception. Any further attempts to read from or write to the channel will result in this 
 exception being thrown again.
 
-For any to any channels that places no restrictions on the number of processes that can read
-from or write to it, we simply extend the above to keep a queue of readers (when in the 
-ReaderWaiting state) or writers (when in the WriterWaiting state).
+Any-to-any channels places no restrictions on the number of processes that can
+read from or write to it. To implement these we extend the above to keep a queue
+of readers (when in the ReaderWaiting state) or writers (when in the
+WriterWaiting state).
 
 The choice of using a queue gives a stronger guarentee than CSP gives, namely that no processes
 will be starved. By starvation we mean to say that a process waiting to read or write on the
@@ -654,16 +657,61 @@ would always be put behind the eager process with a stack, but with a queue, the
 will always advance in the queue every time a message is transmitted, guarenteeing that it will
 eventually get it's turn.
 
-In order to only wake up the waiting process, each process has it's own condition variable that
-it waits on. Additionally, readers have a function that takes in a value and performs a side 
-effect, while writers have a function that performs a side effect and produces a value. The side
-effect for both is to set it's internal reference to the transmitted value (instead of None),
-remove it from all the channels it's listening on and wake up the process.
+\goodbreak
+The internal state for channels looks like this:
 
-We use a lock that is global to the library, in order to protect the channel and processes from
-concurrent mutation. This lock is only taken when first trying to read from a channel, or
-right after a process has been woken up. We claim that this won't lead to performance degradation,
-since OCaml's threads only provides concurrency though time-sharing \cite{ocaml-threads}.
+\begin{verbatim}
+type 'a channel_state
+    = NobodyWaiting 
+    | ReaderWaiting of (Condition.t * ('a -> unit)) list
+    | WriterWaiting of (Condition.t * (unit -> 'a)) list
+    | Poisoned
+\end{verbatim}
+
+Both readers and writers have a condition variable that they are waiting on
+while in the queue. Readers have a function that when given a value may perform
+a side effect $(\alpha \to unit)$, and writers have a function that may perform
+a side effect and then returns the value to be written. These functions are
+only supposed to be called when transmitting a value. The side effects in both
+cases is to change the internal state of the waiting process and to remove it
+from all the channels it is waiting on. The state change is such that the
+process can tell that the transmit has happened, thus allowing it to continue.
+In the case of the readers, it stores the value transmitted.
+
+A process registers itself for reading or writing on any number of channels via
+the select construct, which takes a list of guarded processes. It augments each
+with a condition variable unique to the process. Then shuffles the list in order
+to avoid starvation as discussed in section \ref{api-design}. It checks if any
+of the channels associated with the guarded processes are poisoned, and if
+that is the case, throws a PoisonException. This is done by calling
+\emph{check\_poison} for each of them, which is part of the following record:
+
+\begin{verbatim}
+type 'a concrete_guard = {
+    attempt: unit -> 'a option;
+    check_poison: unit -> bool;
+    subscribe: ('a concrete_guard) list -> ('a option) ref -> unit;
+    unsubscribe: unit -> unit;
+}
+\end{verbatim}
+
+Otherwise it calls \emph{attempt} on each of them. The \emph{attempt} function
+may succeed, carrying out a transmission and returning $Some\ v$ where v is the
+transmitted value, or it may fail, returning $None$. If any of them succeeds,
+the corresponding guarded process is executed and the select returns the result
+of the guard. For readers, the guarded process is passed the read value.
+
+If none of the attempts succeed, it \emph{subscribes} each guarded process,
+adding the appropriate queue on the associated channel. Then it enters a loop
+where it waits on the process' condition variable each iteration. When it is
+woken up, it checks if it has been involved in a transmission, and if so
+returns the resulting value. 
+
+We use a lock that is global to the library, in order to protect the channel and
+processes from concurrent mutation. This lock is only taken when first trying to
+read from a channel, or right after a process has been woken up. We claim that
+this won't lead to performance degradation, since OCaml's threads only provides
+concurrency though time-sharing \cite{ocaml-threads}.
 
 \missing{
 - How do you get rid of this lock? (useful for porting). It is hard because you don't know which
@@ -672,12 +720,6 @@ that, you could simply take their locks in some well defined order (thus avoidin
 }
 
 \begin{verbatim}
-type 'a channel_state
-    = NobodyWaiting 
-    | ReaderWaiting of (Condition.t * ('a -> unit)) list
-    | WriterWaiting of (Condition.t * (unit -> 'a)) list
-    | Poisoned
-
 type ('a, 'b) channel = ('a channel_state) ref
 \end{verbatim}
 

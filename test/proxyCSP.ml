@@ -57,18 +57,22 @@ let url_process url c () =
     with e -> Csp.poison c1; Csp.poison c2; Csp.poison c3; Csp.poison c4; raise e
 
 let cache_process i o () =
-    let cache table url = 
-        try (table, Table.find url table)
-        with Not_found -> begin
-            let c = Csp.new_channel () in
-            Csp.spawn (url_process url c);
-            (Table.add url c table, c)
-        end in
+    let lookup v t = 
+        try Some (Table.find v t)
+        with Not_found -> None in
     let rec loop t =
         let u = Csp.read i in
-        let (t', c') = cache t u in
-        Csp.write o (Csp.read c');
-        loop t'
+        match lookup u t with
+          | Some c -> Csp.write o (Csp.read c); loop t
+          | None -> 
+                let c = Csp.new_channel () in
+                Csp.parallel [
+                    url_process u c;
+                    (fun () -> 
+                        Csp.write o (Csp.read c); 
+                        loop (Table.add u c t)
+                    );
+                ]
     in loop Table.empty
 
 let cache_rpc o i u = Csp.write o u; Csp.read i

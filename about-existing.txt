@@ -1,0 +1,80 @@
+These are definitions of functions from the existing libraries that we
+don't quite understand.
+
+==========================================================================
+priSelect with output guards does not work with the PRI ALT definition:
+
+Occam:
+    The inputs which guard alternatives in an alternation may be given 
+    a selection priority. Priority is determined by textual order, the 
+    alternative appearing first having the highest priority for 
+    selection. Consider the following example:
+         PRI ALT
+            disk ? block
+                d ()
+            keyboard ? char
+                k ()
+    This priority alternation will input values from the channel disk 
+    in preference to inputs from the channel keyboard. If both channels 
+    disk and keyboard become ready then disk will be selected as it has 
+    the highest priority.
+Problem:
+    Occam does not have output guards, but if they are added, as they
+    are in most CSP libraries, PRI ALT becomes contradictionary.
+    Consider this setup:
+        PAR
+            PRI ALT
+                disk ? x
+                    d ()
+                keyboard ? y
+                    k ()
+            PRI ALT
+                keyboard ! 42
+                    k ()
+                disk ! 3
+                    d ()
+    Which communication is selected? The one over disk or the one over
+    keyboard? By the PRI ALT definition they must *both* happen first,
+    which contradicts choosing *one* of the alternatives.
+
+Solution:
+    One solution may be to say that whoever comes first or whoever comes
+    last to the synchronization "wins" and gets it's priority.
+
+==========================================================================
+fairSelect doesn't seem fair:
+
+JCSP:
+    fairSelect also waits for one or more of the guards to become ready. 
+    If more than one become ready, it prioritises its choice so that the 
+    guard it chose the last time it was invoked has lowest priority this 
+    time. This corresponds to a common occam idiom used for real-time 
+    applications. If fairSelect is used in a loop, a ready guard has the 
+    guarantee that no other guard will be serviced twice before it will 
+    be serviced. This enables an upper bound on service times to be 
+    calculated and ensures that no ready guard can be indefinitely 
+    starved. 
+Problem:
+    For always ready processes A, B and C, in order ABC, one valid 
+    sequence that obeys that definition is: ABABABABAB... starving C.
+
+C++CSP:
+    A fair ALT returns when one of the guards is active. Over a number of 
+    calls it evens out the precedence given to each of the guards so that 
+    they are all given equal chance (over many calls) of being selected 
+    over the other guards.
+    It is equivalent to performing a PRI ALT while cycling the order of 
+    the guards each call.
+Problem:
+    For the never ready process A and the always ready processes B and C,
+    in order ABC, one valid sequence that obeys the second half of the
+    definition is: BBCBBCBBCBBC... with the cycle ABC BCA CAB, chosing B 
+    twice as often as C, which sort of contradicts the first half of the 
+    definition (depending on interpretation).
+
+Solution:
+    Guarentee that a guard cannot be ready N times without being chosen,
+    where N is the number of guards in the alternation. This can be 
+    implemented with a queue where the chosen guard is always put at the
+    back.
+

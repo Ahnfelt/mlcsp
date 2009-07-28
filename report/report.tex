@@ -223,18 +223,14 @@ http://github.com/Ahnfelt/mlcsp/
 \section{API design}
 \label{apidesign}
 \missing{
-- Describe why/why not we're throwing an exception from parallel.\\
 - What do we do about shared state?\\
-- Compare with the Event library.\\
-- More introduction.\\
-- Mention that we don't use OCaml's object model.\\
-- Compare more with Occam.\\
-- Mention that channels are typed.\\
+? Compare more with Occam. (context???)\\
+- Why is it good to have a small API?\\
 }
 
 The CSP theory is concerned with processes that communicate solely by synchronous 
 events. Synchronous channels are built on top of the basic abstraction, and this is
-what most implementations (including \cite{occam}, \cite{c++csp}, \cite{jcsp} and 
+what most implementations (including \cite{occam}, \cite{cppcsp2}, \cite{jcsp} and 
 \cite{pycsp}) provide for communication. 
 Additionally, it is possible to wait for communication from multiple sources at once.
 
@@ -245,7 +241,7 @@ of any functions that come from our API.
 
 \subsection{Processes}
 \missing{
-- More about the lack of parallelism.\\
+- skriv at vi har en hirakisk model og at spawn ikke findes\\
 }
 
 Processes can be run in parallel in CSP using the $\parallel$ operator:
@@ -260,7 +256,7 @@ Parallel(P, Q)
 \end{verbatim}
 Where $P$ and $Q$ must be specified as $Process$ instances. There may be more processes
 separated by commas. It runs the processes in parallel and returns when they have all 
-stopped executing. Thes API for C++CSP and JCSP are similar. In all cases the
+stopped executing. Thes API for C++CSP2 and JCSP are similar. In all cases the
 process objects only expose a \emph{run} method. It is unclear what happens if
 this method is called twice on the same instance (especially if the instance is
 used twice in the same parallel-construct).
@@ -285,31 +281,83 @@ inside the parallel construct, which is often convenient for small processes. Th
 are then run in parallel, and there is no way to get a handle to a running process
 through our API.
 
-Sometimes it is useful to define a function that starts a process as a side effect, but
-returns before the process has finished. This corresponds to running the process in 
-parallel with \emph{the rest of the program}. Since we don't have continuations, we 
-provide the special purpose function \emph{spawn} that simply starts a process
-and returns
-immediatly. JCSP does something similar with their \emph{ProcessManager}, but provides a
-\emph{stop} method that will terminate the process. It has since been deprecated because
-it is unsafe to terminate a running process from the outside. There is not much else to 
-do with such a handle, so we avoid returning one at all.
+Parallel only returns once all the processes have finished executing. A process
+may finish either by returning or by throwing an exception. In the latter case,
+we have to decide what to do with the exception. We can throw it away, but then
+we can't detect the exception and handle it outside the parallel construct. We
+could build up a list of exceptions, and attach data so it's possible to handle
+exceptions from each thread separatly. However, this fine grained handling can
+already be done individually within each process. We therefore pick one of the
+exceptions thrown (if any) and rethrow that. 
 
-We don't provide a special construct for sequence, since OCaml has a perfectly fine 
-sequence operator built in, and executing a list of processes in sequence is a simple
-matter of iterating over it and invoking each one. We also don't provide a way to specify 
-the stack size for a process, because the stack grows dynamically in OCaml user threads, 
-and there is little reason to use system threads (see section \ref{implementation}).
+The question is then, how to pick
+one of potentially many exceptions? One possible option is to pick the first
+exception that is thrown, since this may be the cause of exceptions thrown later
+by the other processes. However, then you would have to decide which one is
+``first'', which isn't clear when multiple processes are running in parallel.
+You could also choose the exception from whichever of the throwing processes
+comes first in the list passed to parallel. This gives the programmer some
+control over which of the processes that might throw the exceptions that are
+most important to handle. However, this kind of control can already be obtained
+by handling the exceptions in each process individually. We therefore say that
+an arbitrary exception will be picked if multiple processes throw.
 
-Note that the library \emph{does not provide parallel execution}; it only provides 
-perceived concurrency (see section \ref{implementation}).
+Note that the implementation \emph{does not provide actual parallelism}; it only
+provides perceived parallelism (see section \ref{implementation}).
+
+Being a functional language, it may be convenient to collect the \emph{return
+values} of processes. Consider the following CSP (assuming global scoping for
+$x$ and $y$ for the purpose of this example):
+\[(c_1\,?\,x \to SKIP \parallel c_2\,?\,y \to SKIP); c_3\,!\,(x + y)\]
+The intention of this is to read from $c_1$ and $c_2$ in parallel, and then
+send the sum via $c_3$. Consider a construct $parallel2$ that takes a pair 
+$(unit \to \alpha) \times (unit \to \beta)$, runs the two processes in parallel,
+and returns a pair $\alpha \times \beta$ containing the return value of each
+process. Then we could write:
+
+\begin{verbatim}
+let (x, y) = parallel2 (
+    (fun () -> Csp.read c1), 
+    (fun () -> Csp.read c2)
+) in Csp.write c3 (x + y)
+\end{verbatim}
+
+However, we can implement this using the parallel construct that throw away
+the result, but extra channels like this:
+
+\begin{verbatim}
+let c1' = Csp.new_channel () in
+let c2' = Csp.new_channel () in
+parallel [
+    (fun () -> Csp.write c1' (Csp.read c1));
+    (fun () -> Csp.write c2' (Csp.read c2));
+    (fun () -> Csp.write c3 (Csp.read c1' + Csp.read c2'));
+]
+\end{verbatim}
+
+You could generalize this to derive \emph{parallel2} from \emph{parallel}. You
+could also derive \emph{parallel} from \emph{parallel2}. Thus, in the name of
+minimalism, we want to provide the most useful one, and then leave it to the
+user to define the other one if she needs it. We had both versions in the API
+during development of the example code in section \ref{examples}. The above code
+is the only compelling use case for \emph{parallel2} we could identify, so we
+chose to provide \emph{parallel} which we have used throughout the code base.
+
+We don't provide a special construct for sequence, since OCaml has a perfectly
+fine sequence operator built in, and executing a list of processes in sequence
+is a simple matter of iterating over it and invoking each one. We also don't
+provide a way to specify the stack size for a process, because the stack grows
+dynamically in OCamls user threads, as described in the library Gc.control, you
+can assign at execution with ocamlrun a stack limit size which is not allocated
+totally at initial state but after need, and there is little reason to use
+system threads (see section \ref{implementation}).
 
 \subsection{Channels}
 
 As in CSP, channels are the only means of communication between processes that we provide.
 In PyCSP, C++CSP and JCSP, channels are created by constructing an instance of a channel
-class. Our channels correspond to their \emph{any2any} channels, meaning that any number
-of processes can send on and receive from a channel. However, any any message has exactly 
+class. Our channels correspond to their \emph{any-to-any} channels, meaning that any number
+of processes can send on and receive from a channel. However, any message has exactly 
 one sender and one receiver, and communication is synchronous.
 
 Creating a channel is just a call to a function which returns the new channel:
@@ -336,7 +384,7 @@ x = c.read()
 \end{verbatim}
 It's using methods to realize the read/write, and sequence to realize \emph{becoming}
 another process after the synchronization. Note that the channels are values, whereas
-they are names in CSP. JCSP and C++CSP are similar.
+they are names in CSP. JCSP and C++CSP2 are similar.
 
 The obvious way to look like CSP is to define operators ! and ? that works like the
 CSP counterpart. However, it is not possible in OCaml to declare that the right hand 
@@ -356,10 +404,13 @@ Csp.write c e; ...
 let x = Csp.read c in ...
 \end{verbatim}
 
-It is possible to transmit any OCaml value over a channel, including impure functions and mutable 
-state. Sharing mutable state between processes should only be done with caution however, since it 
-requires additional synchronization beyond the scope of this library. The remaining semantic 
-details of the channels are explained in the following section.
+It's important to mention that the channels are typed, as they are in C++CSP2
+but not in JCSP (cast objects) and PyCSP and it is possible to transmit any
+OCaml value over a channel, including impure functions and mutable state.
+Sharing mutable state between processes should only be done with caution however,
+since it requires additional synchronization beyond the scope of this library.
+The remaining semantic details of the channels are explained in the following
+section.
 
 \subsection{Alternation}
 Alternation corresponds to \emph{external choice} in CSP, which uses the $|$ operator:
@@ -414,6 +465,7 @@ Csp.select [
 ]
 \end{verbatim}
 
+
 Whereas external choice in CSP is between processes, our alternation is between guarded processes.
 The \verb|(fun ...)|s can be any OCaml expression. The read guards require that the expression is of type
 $\alpha \to \beta$ where $\alpha$ is the type of messages that can be sent over the guard's channel, whereas
@@ -449,8 +501,8 @@ every call to select.
       \Vertex{P}
       \EA(P){Q}
       \SetUpEdge[style={->,bend right,ultra thick},labelstyle = {draw}]
-      \Edge[label=PRI ALT](P)(Q)
-      \Edge[label=PRI ALT](Q)(P)
+      \Edge[label=c1](P)(Q)
+      \Edge[label=c2](Q)(P)
     \end{tikzpicture}
   \end{center}
   \caption{What to do when two opposite PRI ALT meet?}
@@ -490,16 +542,11 @@ detect), and thus we attempt to terminate the thread by throwing an exception. I
 enabled, and the empty select is an error, this might also provide the programmer with more information
 to determine where the error occured.
 
-In JCSP and C++CSP you can provide a list of flags that specify if a guard is
+In JCSP and C++CSP2 you can provide a list of flags that specify if a guard is
 active or inactive. We do not provide this as it is just as easy to simply
 filter the list of guarded processes.
 
 \subsection{Termination of process networks}
-\missing{
-- Why have a function to check if a channel is poisoned (it's almost useless)?\\
-- What about common design patterns for propagate poison?\\
-}
-
 Since few applications run forever, termination of process networks should be
 considered.
 
@@ -517,7 +564,7 @@ might not even be possible to determine. The process that wants to send the
 terminating process could loop forever, repeating the termination message to
 anybody who read from the channel, but then that process could never shut down.
 
-In PyCSP, JCSP and C++CSP, a channel may be \emph{poisoned}. Once a channel
+In PyCSP, JCSP and C++CSP2, a channel may be \emph{poisoned}. Once a channel
 has been poisoned, reading from or writing to that channel causes an exception.
 The exception may be handled, thus allowing the process to clean up, propagate
 the poison, or even ignore the poisoning. That way, the process remains in
@@ -553,12 +600,12 @@ and {\it out}, both get poisoned and hereby we have propagated the poison
 received by the input channel. For more information on this, look at
 \cite{pycsp}.
 
-In many cases this is the desired behaviour. JCSP and C++CSP do not provide it,
+In many cases this is the desired behaviour. JCSP and C++CSP2 do not provide it,
 and neither do we due to technical issues (see section \ref{implementation}).
 
 \subsection{Permissions}
 
-PyCSP, JCSP and C++CSP provide a concept called \emph{channel ends}, which are
+PyCSP, JCSP and C++CSP2 provide a concept called \emph{channel ends}, which are
 handles to channels though which you can only read or only write (or some other
 set of permissions). This is useful for specifying what a process might do with
 a channel, so unintended use of a channel can be caught early.
@@ -702,10 +749,7 @@ Read & Write & Poison & Function \\
 \subsection{Alternation}
 
 \missing{
-- Occam does not seem to sufficiently describe PRI ALT when two processes with inverse priorities
-on the same two channels use it (in the manual). This is why we don't support it. \\
-- Consider supporting something a bit like PRI ALT anyway since it's easier to build on top of
-than the current randomized select. \\
+- priSelect is a part of the impl. of select.\\
 }
 
 \subsection{Processes}
@@ -714,7 +758,7 @@ than the current randomized select. \\
 \label{testexamples}
 One of the goals for this project was that we needed to implement a simple
 network on top of the API, Fibonacci, and a more complex one but because Ocaml
-doesn't have support for parallelism, as mentioned in the section\ref{apidesign},
+doesn't have support for parallelism, as mentioned in the section \ref{apidesign},
 we decided to make a Webproxy, with a build in cache so we show that we actually
 use overlapping I/O.
 
@@ -736,12 +780,12 @@ A detailed description on how to run the test can be seen in appendix
       \hline
       maxthreads.ml (user thread) &
       The application creates as many threads as possible, once it reaches
-      about 15.000 it stops spawning more threads (deadlock ?).&
+      about 15.000 it stops spawning more threads.&
       OK \\
       \hline
       maxthreads.ml (system thread) &
       The application creates as many threads as possible, once it reaches
-      about 100 it stops spawning more threads (deadlock ?).&
+      about 100 it stops spawning more threads.&
       OK \\
       \hline
       nonblocking.ml &
@@ -947,34 +991,39 @@ library (Legoland)}, see  {\it appendix \ref{appendixLegoland}}.
   \label{webproxy}
 \end{figure}
 
+TODO: this is critical (refactoring of code? it's almost impossible to draw
+the network diagram) ...
+
 \section{Conclusion}
 \label{conclusion}
 
-If we compare how Brian Vinter teaches CSP\cite{vintercsp}:
-\begin{center}
-\begin{verbatim}
-PairsInt (in, out) = Delta2Int (in, a, c) || 
-                     TailInt (a, b) || 
-                     PlusInt (b, c, out) 
-\end{verbatim}
-\end{center}
+TODO: Write the conclusion last ...
 
-versus how we implement the simple network:
+%If we compare how Brian Vinter teaches CSP\cite{vintercsp}:
+%\begin{center}
+%\begin{verbatim}
+%PairsInt (in, out) = Delta2Int (in, a, c) || 
+%                     TailInt (a, b) || 
+%                     PlusInt (b, c, out) 
+%\end{verbatim}
+%\end{center}
 
-\begin{verbatim}
-let pairsInt i o () =
-  let a = Csp.new_channel () in
-  let b = Csp.new_channel () in
-  let c = Csp.new_channel () in
-    Csp.parallel [
-      delta2int i a c;
-      tailint a b;
-      plusint b c o;
-    ]
-\end{verbatim}
+%versus how we implement the simple network:
 
-We can see that there is almost no difference beside the {\it parallel operator}
-and definition of the channel variables.
+%\begin{verbatim}
+%let pairsInt i o () =
+%  let a = Csp.new_channel () in
+%  let b = Csp.new_channel () in
+%  let c = Csp.new_channel () in
+%    Csp.parallel [
+%      delta2int i a c;
+%      tailint a b;
+%      plusint b c o;
+%    ]
+%\end{verbatim}
+
+%We can see that there is almost no difference beside the {\it parallel operator}
+%and definition of the channel variables.
 
 % ----------------------------------------------------------------------
 % Bibliography

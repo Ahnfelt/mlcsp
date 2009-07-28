@@ -81,7 +81,7 @@ let rec unsubscribe_all l = match l with
     | [] -> ()
     | (h::t) -> (h.unsubscribe (); unsubscribe_all t)
     
-(* Uses the global lock *)
+(* Takes the global lock *)
 let select l = with_mutex global_mutex (fun m ->
     let s = Condition.create () in
     let l = List.map (fun x -> x s) (shuffle l) in
@@ -155,33 +155,22 @@ let write_guard c v f s = let f _ = f () in {
 let read c = select [read_guard c (fun x -> x)]
 let write c v = select [write_guard c v (fun () -> ())]
 
-let thread_function f () = try f () with PoisonException -> ()
-
-let spawn f = ignore (Thread.create (thread_function f) ())
-
 let parallel fs =
-    let rec number fs l i = match fs with
-        | [] -> l
-        | (f::fs) -> number fs ((f, i)::l) (i + 1) in
-    let fs = number fs [] 0 in
     let e = ref None in
-    let set_exception i v = with_mutex global_mutex (fun _ -> 
-        match !e with
-        | Some (j, _) -> if i < j then e := Some (i, v) else ()
-        | None -> e := Some (i, v)) in
+    let set_exception v = with_mutex global_mutex (fun _ -> e := Some v) in
     let rec loop fs ts = match fs with
         | [] -> List.iter Thread.join ts
-        | [(f, i)] -> (try f () with
-            | PoisonException -> set_exception i PoisonException; loop [] ts
-            | e -> set_exception i e; print_endline (Printexc.to_string e); loop [] ts)
-        | ((f, i)::l) -> let t = Thread.create 
+        | [f] -> (try f () with
+            | PoisonException -> set_exception PoisonException; loop [] ts
+            | e -> set_exception e; print_endline (Printexc.to_string e); loop [] ts)
+        | (f::l) -> let t = Thread.create 
             (fun () -> try f () with 
-            | PoisonException -> set_exception i PoisonException; ()
-            | e -> set_exception i e; print_endline (Printexc.to_string e)) ()
+            | PoisonException -> set_exception PoisonException; ()
+            | e -> set_exception e; print_endline (Printexc.to_string e)) ()
             in loop l (t::ts)
     in loop (shuffle fs) []; 
     match !e with
-        | Some (_, e) -> raise e
+        | Some e -> raise e
         | None -> ()
 
 let read_only x = x

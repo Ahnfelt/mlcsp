@@ -72,7 +72,8 @@ val write : ('a, _ * on * _) channel -> 'a -> unit
 (** Sends a value via the channel. [write c v] is
     equivalent to [select [write_guard c v (fun _ -> ())]]. *)
 
-(** {[(* Alternation. *)
+(** {[(* Example: *)
+(* Alternation. *)
 Csp.select [
     read_guard c1 (fun x -> print_string ("read " ^ x ^ " from c1"));
     read_guard c2 (fun x -> print_string ("read " ^ x ^ " from c2"));
@@ -93,7 +94,8 @@ val parallel : (unit -> unit) list -> unit
     first processes, in the order of the process list, 
     will be rethrown. *)
 
-(** {[(* Read from two channels in parallel and sum the values. *)
+(** {[(* Example: *)
+(* Read from two channels in parallel and sum the values. *)
 let parallel_add i1 i2 o () = while true do
     let i1o = Csp.channel () in
     let i2o = Csp.channel () in
@@ -134,7 +136,8 @@ val poison_only :
     ('a, _   * _   * on) channel -> 
     ('a, off * off * on) channel
     
-(** {[(* Chosing permissions on a "need to know" basis. *)
+(** {[(* Example: *)
+(* Chosing permissions on a "need to know" basis. *)
 let rec counter c n () = 
     if n == 0 then Csp.poison c else begin
         (* Csp.read c   <-- would be a compile time error. *)

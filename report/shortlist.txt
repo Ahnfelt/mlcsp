@@ -75,14 +75,12 @@ implementation
 skriv at vi konceptuelt gør det samme som CSP med read 
 og write, idet prefixing er external choices med et valg.
 
-ocamltest
-maxthreads mangler en konklusion (hvor mange tråde kan
-man så få?)
++maxthreads mangler en konklusion (hvor mange tråde kan
++man så få?)
 nonblocking forklar referencen "brug systhreads", og fortæl
 om konflikten mellem den og det vi siger, og hvorfor det
 virker med user threads (hvis det gør!). skriv hvornår 
-referencen er 
-referencer til testkoden før detaljer i testafsnittene.
++referencer til testkoden før detaljer i testafsnittene.
 
 webproxy
 - hvad skal den kunne

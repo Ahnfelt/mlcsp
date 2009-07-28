@@ -4,7 +4,7 @@
 
     -> when incrementing the heap limit with
     -> export OCAMLRUNPARAM='b,s=1024k'
-    -> we get about 467000 VM threads
+    -> we get about 467000 VM threads but still amount of system threads
 
     -> about a 100 system threads, then it crashes with an exception.
 *)

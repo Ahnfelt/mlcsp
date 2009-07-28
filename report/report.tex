@@ -707,7 +707,6 @@ set.
 
 \section{Implementation}
 \missing{
-- Mention that we do everything within OCaml's type system.\\
 - Mention why we can't have parallelism.\\
 - Mention why it isn't interesting to use system threads.\\
 - Describe why we cannot provide automatic poison propagation.\\
@@ -840,6 +839,8 @@ Read and write are implemented as selects a trivial guarded process:
 let read c = select [read_guard c (fun x -> x)]
 let write c v = select [write_guard c v (fun () -> ())]
 \end{verbatim}
+This is similar to the way CSP defines prefixing as an external choice with one
+guarded process.
 
 \missing{
 - How do you get rid of this lock? (useful for porting). It is hard because you don't know which

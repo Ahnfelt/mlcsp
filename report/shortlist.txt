@@ -39,9 +39,9 @@ Ramon:
 ?i csp er kanaler altid mellem to forskellige processer.
 
 Joakim:
-?du kan faktisk godt lave polling med shuffle select og
-?skip guards (well en kanal der altid har noget at læse),
-?det kan tage bare længere tid end ved priSelect.
++du kan faktisk godt lave polling med shuffle select og
++skip guards (well en kanal der altid har noget at læse),
++det kan tage bare længere tid end ved priSelect.
 
 Ramon:
 concurrent = samtidighedsmodellen

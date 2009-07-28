@@ -2,6 +2,10 @@
     -> about 15000 - 20000 VM threads, then enters a deadlock-like state.
     -> the memory usage is minimal
 
+    -> when incrementing the heap limit with
+    -> export OCAMLRUNPARAM='b,s=1024k'
+    -> we get about 467000 VM threads
+
     -> about a 100 system threads, then it crashes with an exception.
 *)
 let loop () = while true do () done

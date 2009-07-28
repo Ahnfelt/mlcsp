@@ -51,8 +51,6 @@ Ramon:
 nonblocking forklar referencen "brug systhreads", og fortæl
 om konflikten mellem den og det vi siger, og hvorfor det
 virker med user threads (hvis det gør!). skriv hvornår 
-referencen er 
-referencer til testkoden før detaljer i testafsnittene.
 
 webproxy
 - hvad skal den kunne

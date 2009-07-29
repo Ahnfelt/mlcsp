@@ -7,12 +7,7 @@ Ting der først kan gøres til sidst, men som skal gøres:
 
 Generelle ting:
 
-* argumenter mere for hvorfor vi har gjort som vi har gjort
-  i API-et
-* flere kodeeksempler i API design
-+ ret alle P(x) til (fun () -> ...) eller lignende
 * vær præcis med forskellen på CSP processes, unix og threads.
-* husk alle missing-tingene
 * stavefejl
   - it's -> its i ejefald
 
@@ -23,3 +18,26 @@ Ting der kan gøres nu (ikke prioriteret endnu):
 
 * test (Ramon)
   - læg meget vægt på proxyen (vores "flagskib")
+
+\section{API design}
+\subsection{Processes}
+\missing{
+        There is a big reason to use system threads: it allows for native code
+        generation. And maybe it interacts better with C code that calls
+        leave\_blocking\_section\\
+}
+
+\section{Implementation}
+\missing{
+- Mention why we can't have parallelism.\\
+- Mention why it isn't interesting to use system threads.\\
+- Describe why we cannot provide automatic poison propagation.\\
+}
+
+\section{Implementation}
+\subsection{Channels and alternation}
+\missing{
+- How do you get rid of this lock? (useful for porting). It is hard because you don't know which
+channels you will touch before you have chosen a target process to transmit to/from. If you knew
+that, you could simply take their locks in some well defined order (thus avoiding deadlock). \\
+}

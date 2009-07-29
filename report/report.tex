@@ -366,12 +366,6 @@ you can assign at execution time with ocamlrun a stack limit size which is not
 allocated totally at initial state but after need, and there is little reason to
 use system threads (see section \ref{implementation}).
 
-\missing{
-There is a big reason to use system threads: it allows for native code
-generation. And maybe it interacts better with C code that calls
-leave\_blocking\_section\\
-}
-
 \subsection{Channels}
 
 As in CSP, channels are the only means of communication between processes that we provide.
@@ -495,7 +489,6 @@ $\alpha \to \beta$ where $\alpha$ is the type of messages that can be sent over 
 for the write guards it must be of type $unit \to \beta$. The $\beta$ types must be the same for all guards in 
 a list. It will return the result of evaluating the chosen guarded process.
 
-%TODO: Joakim
 Returning to external choice in CSP, because we allow to have both read and
 write guards in the same select and on the same channel, we may think that we
 actually would read and write to the same channel. This is really not possible
@@ -744,11 +737,6 @@ functions can add permissions. See secion \ref{implementation} for the complete
 set.
 
 \section{Implementation}
-\missing{
-- Mention why we can't have parallelism.\\
-- Mention why it isn't interesting to use system threads.\\
-- Describe why we cannot provide automatic poison propagation.\\
-}
 \label{implementation}
 
 Our implementation does not use any type casts or other features that
@@ -881,12 +869,6 @@ let write c v = select [write_guard c v (fun () -> ())]
 \end{verbatim}
 This is similar to the way CSP defines prefixing as an external choice with one
 guarded process.
-
-\missing{
-- How do you get rid of this lock? (useful for porting). It is hard because you don't know which
-channels you will touch before you have chosen a target process to transmit to/from. If you knew
-that, you could simply take their locks in some well defined order (thus avoiding deadlock). \\
-}
 
 \subsection{Permissions}
 
@@ -1204,6 +1186,7 @@ library (Legoland)}, see  {\it appendix \ref{appendixLegoland}}.
 TODO: this is critical (refactoring of code? it's almost impossible to draw
 the network diagram) ...
 
+\newpage
 \section{Conclusion}
 \label{conclusion}
 
@@ -1247,8 +1230,9 @@ The documentation can be created with following command:
 \end{center}
 
 \newpage
-\secttoc
 \section{Appendix: Source code}
+\secttoc
+\newpage
 \label{appendixSrc}
 
 \scriptsize
@@ -1265,8 +1249,9 @@ The documentation can be created with following command:
 
 
 \newpage
-\secttoc
 \section{Appendix: Test, performance \& examples}
+\secttoc
+\newpage
 \label{appendixTest}
 
 \subsection{Ocaml tests}
@@ -1358,6 +1343,8 @@ Retrieve concurrent the files bar.mp3 and foo.mp3 from the two webservers:
 
 \newpage
 \section{Appendix: Parallelism \& non-blocking I/O}
+\secttoc
+\newpage
 \subsection{Why systhreads? (Xavier Leroy, November 2002)}
 \label{appendixSysthreads}
 {\tt

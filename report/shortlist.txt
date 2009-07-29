@@ -3,5 +3,11 @@ webproxy:
 - hvorfor er det bedre at bruge csp end mutexes etc.?
 - kig evt. på den web proxy der er i "use sythreads".
 
+Brainstorm:
+-GatewayController: connects to the world ...
+-Cache: map mellem url og filer.
+-FileLocalReader: instantiated from GC, through name of file (cache). Send to client.
+-FileRemoteReader: instantiated from GC, download file from web
+
 aflever elektronisk i studieadm cc til andrzej + fysisk
 kopi. vedhæft koden som zip

@@ -1,5 +1,5 @@
 let poison_list l fn () = 
-  try fn () with Csp.PoisonException -> List.iter (fun f -> f ()) l
+  try fn () with e -> List.iter (fun f -> f ()) l; raise e
 
 let poison_raise () =
   raise Csp.PoisonException

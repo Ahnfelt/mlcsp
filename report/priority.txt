@@ -22,5 +22,4 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   ! alt hvad der står i missing (Hvad med Polling - Andrzej)
 
 * test (Ramon)
-  % bruger vi en test-metodologi?
   - læg meget vægt på proxyen (vores "flagskib")

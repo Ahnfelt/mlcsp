@@ -4,7 +4,7 @@ open Cspu
 let bii = Big_int.big_int_of_int
 let sbi = Big_int.string_of_big_int
 let (++) = Big_int.add_big_int
-let pc = poison_channel
+let pc = Cspu.poison_channel
 
 let terminator i () =
   let pl = poison_list [pc i] in
@@ -12,7 +12,7 @@ let terminator i () =
     while true do
       Csp.read i;
     done
-  with Csp.PoisonException -> pl raise_poison ()
+  with Csp.PoisonException -> pl poison_raise ()
 
 let stop n i o () =
   let pl = poison_list [pc i; pc o] in
@@ -20,8 +20,8 @@ let stop n i o () =
     for j = 0 to n do
       Csp.write o (Csp.read i);
     done;
-    pl raise_poison ()
-  with Csp.PoisonException -> pl raise_poison ()
+    pl poison_raise ()
+  with Csp.PoisonException -> pl poison_raise ()
     
 let printer i () =
   let pl = poison_list [pc i] in
@@ -29,7 +29,7 @@ let printer i () =
     while true do
       print_endline(sbi (Csp.read i));
     done
-  with Csp.PoisonException -> pl raise_poison ()
+  with Csp.PoisonException -> pl poison_raise ()
         
 let idint i o () =
   let pl = poison_list [pc i; pc o] in
@@ -37,7 +37,7 @@ let idint i o () =
     while true do
       Csp.write o (Csp.read i);
     done
-  with Csp.PoisonException -> pl raise_poison ()
+  with Csp.PoisonException -> pl poison_raise ()
 
 let succint i o () =
   let pl = poison_list [pc i; pc o] in
@@ -45,7 +45,7 @@ let succint i o () =
     while true do
       Csp.write o (Csp.read i ++ bii 1);
     done
-  with Csp.PoisonException -> pl raise_poison ()
+  with Csp.PoisonException -> pl poison_raise ()
 
 let plusint i1 i2 o () =
   let i1' = Csp.new_channel () in
@@ -59,7 +59,7 @@ let plusint i1 i2 o () =
         pl (fun () -> Csp.write o (Csp.read i1' ++ Csp.read i2'))
       ];
     done 
-  with Csp.PoisonException -> pl raise_poison ()
+  with Csp.PoisonException -> pl poison_raise ()
       
 let rec delta2int i o1 o2 () =
   let pl = poison_list [pc i; pc o1; pc o2;] in
@@ -71,14 +71,14 @@ let rec delta2int i o1 o2 () =
           pl (fun () -> Csp.write o2 x);
         ];
     done
-  with Csp.PoisonException -> pl raise_poison ()
+  with Csp.PoisonException -> pl poison_raise ()
 
 let prefixint n i o () =
   let pl = poison_list [pc i; pc o] in
   try
     Csp.write o (n);
     idint i o ()
-  with Csp.PoisonException -> pl raise_poison ()
+  with Csp.PoisonException -> pl poison_raise ()
 
 let tailint i o () =
   let pl = poison_list [pc i; pc o] in
@@ -87,7 +87,7 @@ let tailint i o () =
     while true do
       idint i o ()
     done
-  with Csp.PoisonException -> pl raise_poison ()
+  with Csp.PoisonException -> pl poison_raise ()
 
 let blockingFifo i o () =
   let c = Csp.new_channel () in

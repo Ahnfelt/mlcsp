@@ -1,0 +1,35 @@
+\begin{verbatim}
+Date:	NaN-NaN-NaN (NaN:NaN)
+From:	Xavier Leroy <Xavier.Leroy@i...>
+Subject:	Re: [Caml-list] Thread safe Str
+> The new Str module not only made it LGPL but also very fast (100% more
+> than Pcre in some cases).  However it is still not thread safe -- and
+> it is not possible given its interface.  However, from a quick look,
+> it seems to me that what is under the hood is almost thread safe.
+
+You are correct: the regexp compiler (written in Caml) and the
+execution engine (written in C) are thread-safe, it's only the API (in
+Caml) that uses global state.
+
+> So why not to write a new module (say Regexp) which would be thread
+> safe and on top of which Str would be build?
+
+That's a very good idea.  My initial plan was to have two APIs, the
+old Str for compatibility and a newer, better designed one for new
+programs.  Besides being thread-safe, the new API could also expose
+the abstract syntax tree for regexps, allowing easier construction of
+complex regexps by programs than can be done by working at the level
+of the string representation of regexps.  It's just that I never got
+to design that new API :-(
+
+> This would not be too much work, would it?
+
+The implementation work should be quite small indeed, but don't
+underestimate the work needed to design the API.  API design is harder
+than it seems...  But if a few persons on this list want to team up to
+design an API, that would be wonderful indeed.  (A small group is
+better than individual designers in that several pairs of eyes spot
+inconsistencies better.)
+
+- Xavier Leroy
+\end{verbatim}

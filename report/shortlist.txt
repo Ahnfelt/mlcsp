@@ -1,39 +1,13 @@
-abstract:
-
-struktur:
-
-Joakim
-?sammenlign med Communicating Haskell Processes, som er
-?CSP-agtigt til haskell med monader. argumenter for at det
-?modellen ikke passer i ocaml hvis det er tilfældet.
-tror mest det er en smagssag, men:
-- der er ingen speciel syntax for monader i OCaml, det giver
-  ingen garantier mht. sideeffekter og der er ikke tradition
-  for at bruge det i OCaml.
-
-API design:
-Ramon
-?skriv at man kan lave både read og write guards på den
-?samme kanal i samme select, men at den ikke kommunikerer
-?med sig selv. 
-?vi er lidt mere over i general choice da vi kan
-?sige skriv a og skriv b til den samme kanal i en select.
-?på hvilken måde er vi ext og gen choice? fremhæv at det
-?er lidt forskelligt fra csp fordi vi har any2any.
-?i csp er kanaler altid mellem to forskellige processer.
-
-implementation:
-Joakim
-skriv at vi konceptuelt gør det samme som CSP med read 
-og write, idet prefixing er external choices med et valg.
-
-ocamltest:
-
-webproxy
+webproxy:
 - hvad skal den kunne
 - hvorfor er det bedre at bruge csp end mutexes etc.?
 - kig evt. på den web proxy der er i "use sythreads".
 
+Brainstorm:
+-GatewayController: connects to the world ...
+-Cache: map mellem url og filer.
+-FileLocalReader: instantiated from GC, through name of file (cache). Send to client.
+-FileRemoteReader: instantiated from GC, download file from web
+
 aflever elektronisk i studieadm cc til andrzej + fysisk
 kopi. vedhæft koden som zip
-

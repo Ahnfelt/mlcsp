@@ -371,12 +371,6 @@ Gc.control}, you can assign at execution time with ocamlrun a stack limit size
 which is not allocated totally at initial state but after need, and there is
 little reason to use system threads (see section \ref{implementation}).
 
-\missing{
-There is a big reason to use system threads: it allows for native code
-generation. And maybe it interacts better with C code that calls
-leave\_blocking\_section\\
-}
-
 \subsection{Channels}
 
 As in CSP, channels are the only means of communication between processes that we provide.
@@ -440,7 +434,7 @@ The remaining semantic details of the channels are explained in the following
 section.
 
 \subsection{Alternation}
-Alternation is similar to to \emph{external choice} in CSP:
+Alternation is similar to \emph{external choice} in CSP:
 \[(c_1\,?\,x \to ...\ |\ c_2\,?\,y \to ...\ |\ c_3\,!\,e \to ...)\]
 The operands of the operator are guarded processes. The semantics is that once one or 
 more of the alternatives can take a step, then an arbitrary one of these is chosen to take a 
@@ -494,12 +488,34 @@ Csp.select [
 ]
 \end{verbatim}
 
-Whereas external choice in CSP is between processes, our alternation is between
-guarded processes.
+Whereas external choice in CSP is between processes, our alternation is between guarded processes.
 The \verb|(fun ...)|s can be any OCaml expression. The read guards require that the expression is of type
 $\alpha \to \beta$ where $\alpha$ is the type of messages that can be sent over the guard's channel, whereas
 for the write guards it must be of type $unit \to \beta$. The $\beta$ types must be the same for all guards in 
 a list. It will return the result of evaluating the chosen guarded process.
+
+Returning to external choice in CSP, because we allow to have both read and
+write guards in the same select and on the same channel, we may think that we
+actually would read and write to the same channel. This is really not possible
+because the hole point of the selection of a guard is to choose {\it one}
+guarded process that is ready to read or write. This behavior is actually closer
+to the {\it general choice} operator in CSP:
+\[
+(c\,?\,x \to ...)\, \square \, (c\,?\,x \to ...) =
+(c\,?\,x \to ...) \sqcap (c\,?\,x \to ...)
+\]
+
+In our library this would look like:
+\begin{verbatim}
+Csp.select [
+    Csp.read_guard c (fun x -> ...);
+    Csp.read_guard c (fun x -> ...);
+]
+\end{verbatim}
+
+Where we achieve, as in CSP, that the {\it internal choice} operator actually
+needs not to be fair. It is op to the implementation of select to choose which
+one of the guarded processes is chosen.
 
 In CSP, any process that can take a step may be chosen arbitrarily. However, if the same list of 
 alternatives is used in a loop, this might lead to starvation. If one of the guards is always ready,
@@ -557,7 +573,7 @@ PAR
 The problem is which communication to chose? It seems the specification of
 \emph{PRI ALT} says that \emph{both} must be selected, which contradicts the
 semantics of any \emph{ALT} that \emph{one} of them will be chosen.
-Both C++CSP2and JCSP support output guards and refer to \emph{PRI ALT} in their
+Both C++CSP2 and JCSP support output guards and refer to \emph{PRI ALT} in their
 \emph{priSelect} definition. CHP supports it, but avoids specifying the
 relative priority between guards of the read or write variety. We choose not to
 offer \emph{priSelect} because it's semantics are unclear.
@@ -726,11 +742,6 @@ functions can add permissions. See secion \ref{implementation} for the complete
 set.
 
 \section{Implementation}
-\missing{
-- Mention why we can't have parallelism.\\
-- Mention why it isn't interesting to use system threads.\\
-- Describe why we cannot provide automatic poison propagation.\\
-}
 \label{implementation}
 
 Our implementation does not use any type casts or other features that
@@ -863,12 +874,6 @@ let write c v = select [write_guard c v (fun () -> ())]
 \end{verbatim}
 This is similar to the way CSP defines prefixing as an external choice with one
 guarded process.
-
-\missing{
-- How do you get rid of this lock? (useful for porting). It is hard because you don't know which
-channels you will touch before you have chosen a target process to transmit to/from. If you knew
-that, you could simply take their locks in some well defined order (thus avoiding deadlock). \\
-}
 
 \subsection{Permissions}
 
@@ -1138,7 +1143,7 @@ overflow. Once we rewrote the components from recursive to using {\it while true
 do} we was able to run more than a 1.000.000 iterations, We supouse we can
 run even more but we didn't test it out.
 
-A description on how this simple network works can be seen in figure
+A descriptive diagram on how this simple network works can be seen in figure
 \ref{fibonaccicomp} and \ref{fibonacci} where we use the {\it Legoland
 fibonacciInt} component running concurrently with a {\it stop} component which,
 ensures that the network shuts down correctly after the number of iterations
@@ -1186,6 +1191,7 @@ library (Legoland)}, see  {\it appendix \ref{appendixLegoland}}.
 TODO: this is critical (refactoring of code? it's almost impossible to draw
 the network diagram) ...
 
+\newpage
 \section{Conclusion}
 \label{conclusion}
 
@@ -1229,8 +1235,9 @@ The documentation can be created with following command:
 \end{center}
 
 \newpage
-\secttoc
 \section{Appendix: Source code}
+\secttoc
+\newpage
 \label{appendixSrc}
 
 \scriptsize
@@ -1247,8 +1254,9 @@ The documentation can be created with following command:
 
 
 \newpage
-\secttoc
 \section{Appendix: Test, performance \& examples}
+\secttoc
+\newpage
 \label{appendixTest}
 
 \subsection{Ocaml tests}
@@ -1340,6 +1348,8 @@ Retrieve concurrent the files bar.mp3 and foo.mp3 from the two webservers:
 
 \newpage
 \section{Appendix: Parallelism \& non-blocking I/O}
+\secttoc
+\newpage
 \subsection{Why systhreads? (Xavier Leroy, November 2002)}
 \label{appendixSysthreads}
 {\tt
@@ -1363,6 +1373,16 @@ Retrieve concurrent the files bar.mp3 and foo.mp3 from the two webservers:
   \input{appendix/changeLog203.txt}
   \normalsize
 }
+
+\newpage
+\subsection{Thread safe Str (Xavier Leroy, September 2005)}
+\label{appendixThreadsafestr}
+{\tt
+  \scriptsize
+  \input{appendix/threadSafeStr.txt}
+  \normalsize
+}
+
 
 % ----------------------------------------------------------------------
 % Bibliography

@@ -1,10 +1,10 @@
 let poison_list l fn () = 
   try fn () with Csp.PoisonException -> List.iter (fun f -> f ()) l
 
-let raise_poison () =
+let poison_raise () =
   raise Csp.PoisonException
 
-let pc c () = Csp.poison c
+let poison_channel c () = Csp.poison c
 
 let finally f g = let v = try f () with e -> g (); raise e in g (); v
 
@@ -47,15 +47,16 @@ let read_file f o () =
     in read_chunk (input io b 0 size)) (fun () -> Csp.poison o; close_in io)
 
 let delta c c1 c2 () = 
-    let pl = poison_list [pc c; pc c1; pc c2] in
+  let pc = poison_channel in
+  let pl = poison_list [pc c; pc c1; pc c2] in
     try while true do
-        let v = Csp.read c in
+      let v = Csp.read c in
         Csp.parallel [
-            pl (fun () -> Csp.write c1 v);
-            pl (fun () -> Csp.write c2 v);
+          pl (fun () -> Csp.write c1 v);
+          pl (fun () -> Csp.write c2 v);
         ]
-    done with e -> pl raise_poison (); raise e
-
+    done with e -> pl poison_raise (); raise e
+      
 let printer c () =
     try while true do print_endline (Csp.read c) done
     with Csp.PoisonException -> Csp.poison c

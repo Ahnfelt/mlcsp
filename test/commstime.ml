@@ -2,7 +2,6 @@ open Cspu
 open Legoland
 
 let consumer i () =
-  let pl = poison_list [pc i] in
   let n = 5000 in
   (* let ts = Unix.time in *)
   let ts = Unix.gettimeofday in
@@ -16,7 +15,7 @@ let consumer i () =
       Printf.printf "DT = %f.\nTime per ch : %f/(4*%d) = %f s = %f us\n"
         dt dt n tchan (tchan *. 1000000.0);
       Printf.printf "consumer done, poisoning channel";
-      pl raise_poison()
+      Csp.poison i
       
 let _ = 
   let a = Csp.new_channel () in

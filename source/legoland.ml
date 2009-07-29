@@ -1,10 +1,21 @@
-open Cspu
+(* helper functions for poison propagation *)
+
+let poison_list l fn () = 
+  try fn () with e -> List.iter (fun f -> f ()) l; raise e
+
+let poison_raise () =
+  raise Csp.PoisonException
+
+let poison_channel c () = Csp.poison c
 
 (* abbreviations *)
+
 let bii = Big_int.big_int_of_int
 let sbi = Big_int.string_of_big_int
 let (++) = Big_int.add_big_int
-let pc = Cspu.poison_channel
+let pc = poison_channel
+
+(* processes *)
 
 let terminator i () =
   let pl = poison_list [pc i] in

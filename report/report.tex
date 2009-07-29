@@ -1155,70 +1155,64 @@ Other examples on how to write some simple processes and them put them together
 running concurrently in another process can be seen in our {\it CSP component 
 library (Legoland)}, see  {\it appendix \ref{appendixLegoland}}.
 
-\subsubsection{web proxy}
-\begin{figure}[h]
-  \begin{center}
-    \begin{tikzpicture}[node distance = 4 cm]
-      \GraphInit[vstyle=Normal]
-      \tikzset{LabelStyle/.style =   {draw}}
-      \SetVertexNormal[Shape = circle,
-                       TextColor = black,
-                       LineWidth = 2pt]
+\subsubsection{Web proxy}
 
-      \Vertex{HRP}
-      \SOWE(HRP){SLP}
-      \SOEA(SLP){CP}
-      \EA(CP){UP}
-      \SOEA(UP){HDP}
-      \SetUpEdge[style={->,bend left,ultra thick},labelstyle = {draw}]
-      \Edge[label=co](SLP)(CP)
-      \Edge[label=ci](CP)(SLP)
-      \Edge[label=i](HRP)(SLP)
-      \Edge[label=o](SLP)(HRP)
-      \SetUpEdge[style={->,ultra thick},labelstyle = {draw}]
-      \Edge[label=c](CP)(UP)
-      \Edge[label=c1](UP)(HDP)
-    \end{tikzpicture}
-  \end{center}
-  \caption{Web proxy CSP network. Where HRP is an argument to SLP, CP is an
-    internal process in SLP, UP is an internal process in CP and HDP is and
-    internal process in UP. HRP is an abreviation for {\it http\_request\_process},
-    SLP is {\it socket\_listener\_process}, CP is {\it ocache\_process}, UP is
-    {\it url\_process} and HDP is {\it http\_download\_process}.}
-  \label{webproxy}
-\end{figure}
+The web proxy proxies all HTTP GET requests on a specific port. It serves as a
+non-trivial example of an application built using the library. It also features
+a cache that demonstrates how to implement shared knowledge with the library.
+Additionally, it shows how to communicate with the outside world using sockets.
+It is purely for demonstration purposes and not meant to be used in production.
+This section will be easier to follow while looking at the code in appendix
+\ref{appendixProxy}.
 
-\begin{figure}[h]
-  \begin{center}
-    \begin{tikzpicture}[node distance = 4 cm]
-      \GraphInit[vstyle=Normal]
-      \tikzset{LabelStyle/.style =   {draw}}
-      \SetVertexNormal[Shape = circle,
-                       TextColor = black,
-                       LineWidth = 2pt]
+All the socket (and thus file) input/output is done via three general purpose
+processes called \emph{file\_reader}, \emph{file\_line\_reader} and
+\emph{file\_writer} from \emph{Cspu} (see appendix \ref{appendixCspu}). This
+allows us to treat the sockets like channels.
 
-      \Vertex{HRP}
-      \SOWE(HRP){SLP}
-      \SOEA(SLP){CP}
-      \EA(CP){UP}
-      \SOEA(UP){HDP}
-      \SetUpEdge[style={->,bend left,ultra thick},labelstyle = {draw}]
-      \Edge[label=co](SLP)(CP)
-      \Edge[label=ci](CP)(SLP)
-      \Edge[label=i](HRP)(SLP)
-      \Edge[label=o](SLP)(HRP)
-      \SetUpEdge[style={->,ultra thick},labelstyle = {draw}]
-      \Edge[label=c](CP)(UP)
-      \Edge[label=c1](UP)(HDP)
-    \end{tikzpicture}
-  \end{center}
-  \caption{Web proxy CSP network..}
-  \label{webproxy}
-\end{figure}
+The top process is called \emph{gateway}. Inside it, two processes run
+concurrently: the \emph{cache} and the \emph{accept loop}.
 
+The \emph{cache} process knows three channels: $i$, $o$ and $d$. When an URL is
+written to $i$ it either writes $Some\,f$ on $o$, where $f$ is the file name of
+a file holding the cached resource, or writes $None$ on $o$ if the resource is
+not in the cache. Whenever a pair consisting of an URL and a filename is
+written on $d$, it will add this to the cache. Note that it uses \emph{select}
+to chose between reading from $i$ and $d$.
 
-TODO: this is critical (refactoring of code? it's almost impossible to draw
-the network diagram) ...
+The \emph{accept loop} accepts an incoming socket connection. Then it runs
+itself concurrently with the \emph{handler} process. Note that running
+\emph{the rest of the process} concurrently with some other process is a
+general technique for creating a dynamic number of worker processes. We shall
+call resulting sockets from accepts \emph{client sockets}.
+
+The \emph{handler} process reads the header from the client socket and extracts
+the requested URL. It writes this to the cache which either responds with the
+file name or with $None$. In the former case, it simply reads the cached
+resource from the file and writes it to the client socket. In the latter case,
+it becomes the \emph{http\_downloader} process.
+
+The \emph{http\_downloader} process extracts the hostname, port and path from
+the URL and opens a connection to the server specified by the hostname. We
+shall call the resulting socket the \emph{server socket}. It then writes a
+suitable HTTP header to the server socket and then becomes the
+\emph{socket\_downloader} process.
+
+The \emph{socket\_downloader} process creates a file for caching the resource
+it is about to download. It then proceeds to read the resource from the
+\emph{server socket}. This stream is duplicated using the \emph{delta} process
+and written to the client socket and via the \emph{registrator} process to the
+newly created cache file. 
+
+The \emph{registrator} process process simply writes everything it reads from
+its input channel to its output channel. However, when it detects successful
+end of file (in the form of \emph{None}), it writes a pair (url, filename) to
+the cache (using its $d$ channel), thus adding the file to the cache.
+
+In order to test the proxy, we wrote a small file server and used \emph{wget}
+as a client. The source code for the server and instructions for testing the
+proxy can be found in appendix \ref{appendixProxy} together with the test
+output. The tests ran successfully.
 
 \newpage
 \section{Conclusion}
@@ -1334,33 +1328,36 @@ The documentation can be created with following command:
 
 \newpage
 \subsubsection{Web proxy}
+\label{appendixProxy}
 \includecode{proxy.ml}{../test/proxy.ml}
 \includecode{server.rb}{../test/web/server.rb}
-Start two sequential webservers (ruby):
+Start two sequential web servers (ruby):
 
 \runtest{ruby server.rb 4040 0.1 \&}
 
 \runtest{ruby server.rb 4041 0.3 \&}
 
 
-Start the webproxy:
+Start the web proxy:
 
 \runtest{./buildProxy.sh \&\& ./proxyCSP \&}
 
 
-Add the webproxy to the terminal session:
+Add the web proxy to the terminal session:
 
 \runtest{export http\_proxy=http://localhost:8080}
 
 
-Retrieve the file foo.mp3 from the first webserver:
+Retrieve the file foo.mp3 from the first web server:
 
 \runtest{wget http://localhost:4040/foo.mp3}
 \includeoutput{proxy\_get\_file\_first\_time.txt}{
   test/proxy_get_file_first_time.txt}
 
+Note that the web server serves all its files from a directory called
+\emph{mp3} inside the path in which it was started.
 
-Retrieve the file foo.mp3 again from the first webserver (cache):
+Retrieve the file foo.mp3 again from the first web server (cache):
 
 \runtest{wget http://localhost:4040/foo.mp3}
 
@@ -1368,7 +1365,7 @@ Retrieve the file foo.mp3 again from the first webserver (cache):
   test/proxy_get_file_second_time.txt}
 
 
-Retrieve concurrent the files bar.mp3 and foo.mp3 from the two webservers:
+Retrieve concurrent the files bar.mp3 and foo.mp3 from the two web servers:
 
 \includeoutput{proxy\_same\_time\_bar.txt}{
   test/proxy_same_time_bar.txt}
@@ -1390,6 +1387,7 @@ Retrieve concurrent the files bar.mp3 and foo.mp3 from the two webservers:
 \newpage
 \subsection{ThreadUnix module}
 \label{appendixThreadunix}
+This is generated by ocamldoc, which is why it does not have page numbers.
 \begin{center}
   \includepdf[pages=-]{appendix/threadUnix.pdf}
 \end{center}

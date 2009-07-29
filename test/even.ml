@@ -9,14 +9,14 @@ let rec print i () =
   print_endline(string_of_int (Csp.read i)); print i ()
 
 let even_numbers o () =
-  let c = Csp.channel () in
+  let c = Csp.new_channel () in
     Csp.parallel [
       counter 1 c;
       double c o;
     ]
 
 let _ =
-  let c = Csp.channel () in
+  let c = Csp.new_channel () in
     Csp.parallel [
       even_numbers c;
       print c

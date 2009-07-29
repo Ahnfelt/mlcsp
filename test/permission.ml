@@ -6,7 +6,6 @@ let sbi = Big_int.string_of_big_int
 let _ = print_endline ""
 
 let custom_printer i1 i2 () =
-  let pl = Cspu.poison_list [pc i1; pc i2] in
   try
     while true do
       Csp.select [
@@ -14,16 +13,15 @@ let custom_printer i1 i2 () =
         Csp.read_guard i2 (fun x -> print_endline (sbi x));
       ]
     done
-  with Csp.PoisonException -> pl raise_poison ()
+  with Csp.PoisonException -> Csp.poison i1; Csp.poison i2
 
 let custom_stop n i o () =
-  let pl = poison_list [pc i] in
   try
     for j = 1 to n do
       Csp.write o (Csp.read i);
     done;
-    pl raise_poison ()
-  with Csp.PoisonException -> pl raise_poison ()
+    Csp.poison i
+  with Csp.PoisonException -> Csp.poison i
 
 (* permission - compiler error when uncommented *)
 let _ = 

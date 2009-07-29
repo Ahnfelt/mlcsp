@@ -13,9 +13,6 @@ Generelle ting:
 
 Ting der kan gøres nu (ikke prioriteret endnu):
 
-! alternation (Joakim)
-  ! alt hvad der står i missing (Hvad med Polling - Andrzej)
-
 * test (Ramon)
   - læg meget vægt på proxyen (vores "flagskib")
 

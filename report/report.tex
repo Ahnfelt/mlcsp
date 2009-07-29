@@ -273,15 +273,20 @@ Csp.parallel [
 ]
 \end{verbatim}
 
-Even though the construct is called parallel, there is no guarentee that they
-actually run in parallel on the hardware. In particular, our implementation
-does not support this (see section \ref{implementation}). It does guarentee
-that the processes will be run concurrently however.
+Even though the construct is called \emph{parallel}, there is no guarentee that
+they actually run in parallel on the hardware. In particular, our implementation
+does not support this. However, it does guarentee that the processes will be run
+concurrently.
+
+With the parallel construct, every process can be said to be a \emph{subprocess}
+of some other process, meaning that it blocks the process until it finishes.
+Like in CSP, this makes for a hierakial process model where all processes are in
+some sense contained within another process.
 
 Note that processes share memory and can share any kind of OCaml values, which
 it may get a handle to via OCamls standard scoping rules or any other way a
 value can travel in a shared-memory environment. Although you can also share
-mutable state this way, don't recommend this since it requires careful
+mutable state this way, we don't recommend this since it requires careful
 syncronization beyond the scope of this library.
 
 We use a list so it is possible to specify any number of processes. The 
@@ -351,21 +356,21 @@ during development of the example code in section \ref{examples}. The above code
 is the only compelling use case for \emph{parallel2} we could identify, so we
 chose to provide \emph{parallel} which we have used throughout the code base.
 
-At the beginning we also thought about having spawn, as JCSP with their
-\emph{ProcessManager} but this would give us a flat model, where the processes
-have no affinity between them. Instead we noticed that we actually just would
-need to add {\it parallel} and hereby achieving a hierarchical model, processes
-with subprocesses.
+JCSP has the ability to \emph{spawn} processes (via it's \emph{ProcessManager})
+whose lifetime are not related to the process that spawns them. This makes for
+a flat process model. There is already direct support for it in the standard
+OCaml Thread library. We don't provide it in our API, since it doesn't
+correspond to anything in CSP, and it can be hard to keep track of the lifetime
+of processes if there is no hierarchy.
 
 We don't provide a special construct for sequence, since OCaml has a perfectly
 fine sequence operator built in, and executing a list of processes in sequence
 is a simple matter of iterating over it and invoking each one. We also don't
 provide a way to specify the stack size for a process, because the stack grows
 dynamically in OCamls user threads; as described in the library {\it
-Gc.control},
-you can assign at execution time with ocamlrun a stack limit size which is not
-allocated totally at initial state but after need, and there is little reason to
-use system threads (see section \ref{implementation}).
+Gc.control}, you can assign at execution time with ocamlrun a stack limit size
+which is not allocated totally at initial state but after need, and there is
+little reason to use system threads (see section \ref{implementation}).
 
 \subsection{Channels}
 

@@ -157,7 +157,8 @@ let write c v = select [write_guard c v (fun () -> ())]
 
 let parallel fs =
     let e = ref None in
-    let set_exception v = with_mutex global_mutex (fun _ -> e := Some v) in
+    let set_exception v = with_mutex global_mutex (fun _ -> 
+        if !e = None or v <> PoisonException then e := Some v else ()) in
     let rec loop fs ts = match fs with
         | [] -> List.iter Thread.join ts
         | [f] -> (try f () with

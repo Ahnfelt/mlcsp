@@ -35,9 +35,9 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   + pointer at parallel tager en liste af vilkårlig størrelse
   - argumenter hvorfor vi ikke har spawn
     - flad eller hirakisk processmodel?
-  - beskriv at processer bruger en shared-memory model (Joakim)
-    - og at man derfor kan bruge OCaml's scoping-regler
-    - at man skal undgå at dele mutable state, men at vi ikke
+  + beskriv at processer bruger en shared-memory model (Joakim)
+    + og at man derfor kan bruge OCaml's scoping-regler
+    + at man skal undgå at dele mutable state, men at vi ikke
       kan garantere dette via typesystemet
 
 ! alternation (Ramon)
@@ -50,7 +50,7 @@ Ting der kan gøres nu (ikke prioriteret endnu):
     + giver fail-fast
     % men gør det mindre sandsynligt at programmet opfører sig på
       samme måde hver gang
-    - og gør skip-guards ubrugelige og polling umulig?
+    % og gør skip-guards ubrugelige og polling umulig?
   + giv et eksempel på den korte version af pycsp's alternation
     eller slet det
   + internal choice ER IKKE if/enabled - ret det!
@@ -66,9 +66,9 @@ Ting der kan gøres nu (ikke prioriteret endnu):
   + hvad er en pycsp process constructor? hvad gør pycsp præcist?
     + evt. eksempel
 
-* permissions (Joakim)
-  - skriv om remove_read vs write_poison_only
-  - skriv i analysen at en måde at channel rights kunne være et 
++ permissions (Joakim)
+  % skriv om remove_read vs write_poison_only
+  + skriv i analysen at en måde at channel rights kunne være et 
     dynamisk tjek, og skriv fordele og ulemper (f.eks. at man 
     ikke kan have en liste af kanaler med forskellige rights?).
 

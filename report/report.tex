@@ -366,6 +366,12 @@ you can assign at execution time with ocamlrun a stack limit size which is not
 allocated totally at initial state but after need, and there is little reason to
 use system threads (see section \ref{implementation}).
 
+\missing{
+There is a big reason to use system threads: it allows for native code
+generation. And maybe it interacts better with C code that calls
+leave\_blocking\_section\\
+}
+
 \subsection{Channels}
 
 As in CSP, channels are the only means of communication between processes that we provide.
@@ -546,9 +552,10 @@ PAR
 The problem is which communication to chose? It seems the specification of
 \emph{PRI ALT} says that \emph{both} must be selected, which contradicts the
 semantics of any \emph{ALT} that \emph{one} of them will be chosen.
-Both C++CSP and JCSP support output guards and refer to \emph{PRI ALT} in their
-\emph{priSelect} definition. We choose not to offer \emph{priSelect} since it's
-semantics are unclear.
+Both C++CSP2and JCSP support output guards and refer to \emph{PRI ALT} in their
+\emph{priSelect} definition. CHP supports it, but avoids specifying the
+relative priority between guards of the read or write variety. We choose not to
+offer \emph{priSelect} because it's semantics are unclear.
 
 The existing processes provide skip guards that are always ready, which is
 mostly useful in the bottom of a \emph{priSelect} in order to \emph{poll} the
@@ -563,8 +570,8 @@ repeatidly, but it becomes less and less likely that it will be starved in this
 sence as the number of calls to select grows. Polling in a loop like this may
 lead to busy waiting or multiple responsibilities for a single process. We
 don't provide special support for it, but a skip-like construct can be
-implemented on top of the library by a read guard that reads from a channel to
-which another process writes in a loop.
+implemented on top of the library by using a channel, that some process writes
+to in a loop, in read guarded process.
 
 JCSP and C++CSP2 provides a construct called \emph{fairSelect}, which has
 slightly different specifications in the two libraries. The intended semantics
@@ -603,7 +610,7 @@ let conditional_select l =
     Csp.select l''
 \end{verbatim}
 
-Since we don't have to build the guards that aren't enabled, we can avoid
+Since we can pass None for guarded processes that aren't enabled, we can avoid
 calculating the values that disabled write-guarded processes could have sent if
 they were enabled. This is useful because in some cases, it is not possible to
 calculate such a value if the condition is false. As an example, consider the
@@ -693,7 +700,15 @@ handles to channels though which you can only read or only write (or some other
 set of permissions). This is useful for specifying what a process might do with
 a channel, so unintended use of a channel can be caught early.
 
-We provide this through a set of functions, each of which takes a channel
+It can be done via the static type system as in JCSP and C++CSP2 or as a dynamic
+check as in PyCSP. In the name of detecting the unintended use as early as
+possible, we want to provide a static check. Encoding this in the type system
+however does have the disadvantage that you cannot have a list of channels that
+have different permissions. This means you must strip the rights down to the
+lowest common denominator for the channels in the list, before adding the
+channel to the list. We think it's worth paying this price for early detection.
+
+We provide it through a set of functions, each of which takes a channel
 returns a handle with only a specific set of permissions:
 
 \begin{verbatim}

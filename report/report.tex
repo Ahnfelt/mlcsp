@@ -152,11 +152,12 @@ programming in general.
 We have designed and implemented the abstract concepts of CSP in a functional
 language. In the chossen programming language \cite{ocaml}, we found out
 that there already was a concurrent library, {\it Event}, but this was inspired
-on \cite{concurrentml} and not on CSP as ours. Whenever we didn't find a
-theoretical guidance from \cite{hoare} on how to implement something, for
-example shutting correctly down a network, we used the other CSP libraries,
-\cite{pycsp}, \cite{jcsp}, \cite{cppcsp2}, as inspiration on how
-they use {\it Poison} to perform this action.
+on \cite{concurrentml} and not on CSP as ours.
+
+Whenever we didn't find a theoretical guidance from \cite{hoare} on how to
+implement something, for example shutting correctly down a network, we used the
+other CSP libraries, \cite{pycsp}, \cite{jcsp}, \cite{cppcsp2}, as inspiration
+on how they use {\it Poison} to perform this action.
 
 One of our goals was to offer true parallelism, run several processors
 over several CPUs or cores, but the library cannot offer this because of the
@@ -353,7 +354,7 @@ chose to provide \emph{parallel} which we have used throughout the code base.
 At the beginning we also thought about having spawn, as JCSP with their
 \emph{ProcessManager} but this would give us a flat model, where the processes
 have no affinity between them. Instead we noticed that we actually just would
-need to add {\it parallel} and hereby achiving a hierarchical model, processes
+need to add {\it parallel} and hereby achieving a hierarchical model, processes
 with subprocesses.
 
 We don't provide a special construct for sequence, since OCaml has a perfectly
@@ -1179,6 +1180,34 @@ library (Legoland)}, see  {\it appendix \ref{appendixLegoland}}.
     internal process in UP. HRP is an abreviation for {\it http\_request\_process},
     SLP is {\it socket\_listener\_process}, CP is {\it ocache\_process}, UP is
     {\it url\_process} and HDP is {\it http\_download\_process}.}
+  \label{webproxy}
+\end{figure}
+
+\begin{figure}[h]
+  \begin{center}
+    \begin{tikzpicture}[node distance = 4 cm]
+      \GraphInit[vstyle=Normal]
+      \tikzset{LabelStyle/.style =   {draw}}
+      \SetVertexNormal[Shape = circle,
+                       TextColor = black,
+                       LineWidth = 2pt]
+
+      \Vertex{HRP}
+      \SOWE(HRP){SLP}
+      \SOEA(SLP){CP}
+      \EA(CP){UP}
+      \SOEA(UP){HDP}
+      \SetUpEdge[style={->,bend left,ultra thick},labelstyle = {draw}]
+      \Edge[label=co](SLP)(CP)
+      \Edge[label=ci](CP)(SLP)
+      \Edge[label=i](HRP)(SLP)
+      \Edge[label=o](SLP)(HRP)
+      \SetUpEdge[style={->,ultra thick},labelstyle = {draw}]
+      \Edge[label=c](CP)(UP)
+      \Edge[label=c1](UP)(HDP)
+    \end{tikzpicture}
+  \end{center}
+  \caption{Web proxy CSP network..}
   \label{webproxy}
 \end{figure}
 

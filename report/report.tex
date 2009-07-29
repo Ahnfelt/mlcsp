@@ -921,7 +921,7 @@ reference (protected by a mutex) that is initially $None$. When all threads have
 been joined, the reference is checked. If it's $None$ then it just returns.
 Otherwise it throws the saved exception.
 
-\section{Test, performance and examples}
+\section{Test, performance \& examples}
 \label{testexamples}
 One of the goals for this project was that we needed to implement a simple
 network on top of the API, \emph{Fibonacci}, and a more complex one but because Ocaml
@@ -986,21 +986,32 @@ on the options of {\it ocamlrun} as before, do not give more threads.
 The test can be seen in appendix \ref{appendixOcamltest}.
 
 To implement the web proxy we need to know if one of the processes is waiting
-to recieve a chunck of data, if it block the I/O until it has recieved the data
+to recieve a chunk of data, if it block the I/O until it has recieved the data
 or if another process that is also waiting for a chunck.
 
-We discovered that Ocaml support non-blocking I/O so it will be no problem have
-several clients waiting to recieve data from our web proxy. An example could
-be a client that connects over the web proxy to a very slow website. The website
-can only deliver a small amount of data every second. If another client that
-also connects over the web proxy to a fast website. While the first client
-waits to recieve data from the webserver, the second client can read chunks
-of data from the fast website.
+We discovered that Ocaml support non-blocking I/O, in the documentation to
+\emph{ThreadUnix}\footnote{The \emph{ThreadUnix} module is \emph{deprecated}
+but all functionality is moved to the Unix module.} in appendix
+\ref{appendixThreadunix} we read that we may block the calling thread but not
+all the threads in the process. Even though the arguments of \emph{Mr. Leroy} is
+to use the \emph{system threads} instead of \emph{user threads}, see appendix
+\ref{appendixSysthreads}, OCaml offers since it's version $2.03$, see change log
+in appendix \ref{appendixChangelog}, that the \emph{bytecode threads} standard
+I/O descriptors are set to non-blocking mode. This gives us the possibility to
+compile to both native-code, \emph{thread} compiler flag, or byte-code,
+\emph{vmthread} compiler flag.
+
+This means that  it will be no problem to have several clients waiting to
+recieve data from our web proxy. An example could be a client that connects over
+the web proxy to a very slow website. The website can only deliver a small
+amount of data every second. If another client that also connects over the web
+proxy to a fast website. While the first client waits to recieve data from the
+webserver, the second client can read chunks of data from the fast website.
 
 So what we have done is that we run two processes concurrently, the first one
 waits for the user input, while the second one reads a line from its own
-code file after a second of waiting (\emph{Thread.sleep}). As we can see in the test
-the second process is able to read the line even if the first process waits,
+code file after a second of waiting (\emph{Thread.sleep}). As we can see in the
+test the second process is able to read the line even if the first process waits,
 hereby we can see that we don't have non-blocking I/O.
 
 \subsection{OcamlCSP tests}
@@ -1232,7 +1243,7 @@ The documentation can be created with following command:
 
 \newpage
 \secttoc
-\section{Appendix: Test, performance and examples}
+\section{Appendix: Test, performance \& examples}
 \label{appendixTest}
 
 \subsection{Ocaml tests}
@@ -1323,11 +1334,28 @@ Retrieve concurrent the files bar.mp3 and foo.mp3 from the two webservers:
   test/proxy_same_time_foo.txt}
 
 \newpage
-\section{Appendix: Why systhreads? (Xavier Leroy)}
+\section{Appendix: Parallelism \& non-blocking I/O}
+\subsection{Why systhreads? (Xavier Leroy, November 2002)}
 \label{appendixSysthreads}
 {\tt
   \scriptsize
   \input{appendix/whySysthreads.txt}
+  \normalsize
+}
+
+\newpage
+\subsection{ThreadUnix module}
+\label{appendixThreadunix}
+\begin{center}
+  \includepdf[pages=-]{appendix/threadUnix.pdf}
+\end{center}
+
+\newpage
+\subsection{Change log, Objective Caml 2.03}
+\label{appendixChangelog}
+{\tt
+  \scriptsize
+  \input{appendix/changeLog203.txt}
   \normalsize
 }
 
@@ -1380,6 +1408,7 @@ University of Kent at Canterbury\\
 http://www.cs.kent.ac.uk/projects/ofa/jcsp/\\
 Last visited: $26^{th}$ july 2009
 
+\newpage
 \bibitem[C++CSP2]{cppcsp2}
 :\\
 C++CSP2: A Many-to-Many Threading Model for Multicore Architectures\\
@@ -1389,7 +1418,6 @@ ISBN-13: 978-1586037673\\
 http://www.cs.kent.ac.uk/projects/ofa/c++csp/\\
 Last visited: $26^{th}$ july 2009
 
-\newpage
 \bibitem[Occam]{occam}
 :\\
 Occam 2 Reference Manual\\

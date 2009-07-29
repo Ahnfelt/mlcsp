@@ -2,7 +2,7 @@ abstract:
 
 struktur:
 
-Joakim:
+Joakim
 ?sammenlign med Communicating Haskell Processes, som er
 ?CSP-agtigt til haskell med monader. argumenter for at det
 ?modellen ikke passer i ocaml hvis det er tilfældet.
@@ -12,20 +12,7 @@ tror mest det er en smagssag, men:
   for at bruge det i OCaml.
 
 API design:
-Joakim:
-+sig klarerer hvorfor vi bruger funktioner (to suspend the
-+evaluation of the processes in a CBV language)
-
-Joakim:
-+skriv mangel på parallelism lige ved parallel
-+skriv shared state lige ved parallel og nævn at det også
-kan deles ved scope.
-
-Joakim:
-+Alle processer i external choice skal eksponere deres "guard"! nævn at vores er
-+tættere på CSP external choice end de andre. 
-
-Ramon:
+Ramon
 ?skriv at man kan lave både read og write guards på den
 ?samme kanal i samme select, men at den ikke kommunikerer
 ?med sig selv. 
@@ -35,24 +22,12 @@ Ramon:
 ?er lidt forskelligt fra csp fordi vi har any2any.
 ?i csp er kanaler altid mellem to forskellige processer.
 
-Joakim:
-+du kan faktisk godt lave polling med shuffle select og
-+skip guards (well en kanal der altid har noget at læse),
-+det kan tage bare længere tid end ved priSelect.
-
-implementation
-
-Joakim:
+implementation:
+Joakim
 skriv at vi konceptuelt gør det samme som CSP med read 
 og write, idet prefixing er external choices med et valg.
 
-ocamltest
-Ramon:
-nonblocking forklar referencen "brug systhreads", og fortæl
-om konflikten mellem den og det vi siger, og hvorfor det
-virker med user threads (hvis det gør!). skriv hvornår 
-referencen er 
-referencer til testkoden før detaljer i testafsnittene.
+ocamltest:
 
 webproxy
 - hvad skal den kunne

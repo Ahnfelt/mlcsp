@@ -1214,37 +1214,62 @@ as a client. The source code for the server and instructions for testing the
 proxy can be found in appendix \ref{appendixProxy} together with the test
 output. The tests ran successfully.
 
+
 \newpage
 \section{Conclusion}
 \label{conclusion}
 
-TODO: Write the conclusion last ...
 
-%If we compare how Brian Vinter teaches CSP\cite{vintercsp}:
-%\begin{center}
-%\begin{verbatim}
-%PairsInt (in, out) = Delta2Int (in, a, c) || 
-%                     TailInt (a, b) || 
-%                     PlusInt (b, c, out) 
-%\end{verbatim}
-%\end{center}
 
-%versus how we implement the simple network:
+The goals to this project were:
+\begin{itemize}
+ \item Desing and implement an API for a CSP-based concurrency library in a
+   functional language, in this case OCaml.
+ \item Be able to evaluate the API, by implementing an application on top of it.
+   And compare the library with other existing CSP libraries, with emphasis on
+   design, composability, extendability and usability.
+ \item Deliver a short, at most one page, but complete documentation to the API.
+\end{itemize}
 
-%\begin{verbatim}
-%let pairsInt i o () =
-%  let a = Csp.new_channel () in
-%  let b = Csp.new_channel () in
-%  let c = Csp.new_channel () in
-%    Csp.parallel [
-%      delta2int i a c;
-%      tailint a b;
-%      plusint b c o;
-%    ]
-%\end{verbatim}
+We are satisfied with the result of the design and afterwards implementation. 
+Even though at the very beginning discovered that we could not achieve true
+paralelism, we still believe that our library is the one that is closest to
+the theoretical aspects of CSP. If we look on how Brian Vinter, professor at
+Copenhagen University, teaches CSP\cite{vintercsp} through practical simple
+networks:
+\begin{verbatim}
+PairsInt (in, out) = Delta2Int (in, a, c) || 
+                     TailInt (a, b) || 
+                     PlusInt (b, c, out) 
+\end{verbatim}
+versus how we implement the network:
+\begin{verbatim}
+let pairsInt i o () =
+  let a = Csp.new_channel () in
+  let b = Csp.new_channel () in
+  let c = Csp.new_channel () in
+    Csp.parallel [
+      delta2int i a c;
+      tailint a b;
+      plusint b c o;
+    ]
+\end{verbatim}
+We can see that there is almost no difference beside the {\it parallel operator}
+and definition of the channel variables. Besides this, we offer a library that
+is typed. We can check at compiler time if the network actually can run, this
+is an advantage over other libraries, such as PyCSP and JCSP, this last one
+chooses to send \emph{objects} over channels to afterwards \emph{cast} them,
+which gives no sense at all if you have a typed language.
 
-%We can see that there is almost no difference beside the {\it parallel operator}
-%and definition of the channel variables.
+%TODO: evaluation, talk a bit of proxy
+
+%TODO: our documentation is so nice in comparsion to JCSP :)
+
+%TODO: already library to conccurency in event? why not wrapper on it ... cos
+%we build on csp and they on concurrent ml, already in intro :/
+
+%TODO: idea on how to achieve true paralelism through sockets, but future ...
+
 
 \appendix
 \newpage

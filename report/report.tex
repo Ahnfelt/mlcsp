@@ -119,17 +119,14 @@
 \newpage
 \selectlanguage{english}
 \begin{abstract}
-% Grue: Højest 10 linjer: Hvad handler rapporten om? Hvilke resultater er
-% opnået?
-We present a concurrent library in a functional language designed and
-implemented after the abstract concepts of CSP\cite{hoare}. The library does
-not offer true parallelism due to the limitation of the chossen programming
-language but we can offer overlapping I/O operations.
-\\ \\
-We provide some examples on how to implement components with the concurrent
-library.
-\\ \\
-TODO: some more here ...
+We present a concurrency library for the non-lazy impure functional language
+OCaml. It is inspired by Communicating Sequential Processes \cite{hoare} and a
+selection of existing libraries that are based on CSP. The library provides a
+hierarchical process model and a construct for waiting on input and output
+from/to an arbitrary number of channels. The implementation is based on OCaml's
+threads and thus allow for concurrency and overlapping I/O, but not for true
+hardware parallelism. We provide reusable processes built on top of the library
+as well as a non-trivial application in the form of a web proxy.
 \end{abstract}
 
 \newpage
@@ -143,90 +140,58 @@ TODO: some more here ...
 \parskip=8pt plus 2pt minus 4pt
 
 \section{Introduction}
-When we took the course Extreme Multiprogramming 2009 at the Department of
-Computer Science, Copenhagen University, we missed a CSP\cite{hoare} library for
-a functional programming language. All the presented libraries were for
-imperative languages. We missed a library that was based on ML or functional
-programming in general.
+During a course on Communicating Sequential Processes \cite{hoare} in theory and
+practice (specifically Extreme Multiprogramming 2009 at Department of Computer
+Science, Copenhagen University), we were introduced to multiple concurrency
+libraries based on CSP. However, none of them supported any of the languages in
+the ML family (these are strict, impure functional programming languages).
 
-We have designed and implemented the abstract concepts of CSP in a functional
-language. In the chossen programming language \cite{ocaml}, we found out
-that there already was a concurrent library, {\it Event}, but this was inspired
-on \cite{concurrentml} and not on CSP as ours.
+The library presented in this document is for the ML variant OCaml, and is
+inspired by CSP and the existing libraries based on CSP (including
+\cite{pycsp}, \cite{jcsp}, \cite{cppcsp2} and \cite{chp}). The design choices
+are explained and documentation and source code is provided.
 
-Whenever we didn't find a theoretical guidance from \cite{hoare} on how to
-implement something, for example shutting correctly down a network, we used the
-other CSP libraries, \cite{pycsp}, \cite{jcsp}, \cite{cppcsp2}, as inspiration
-on how they use {\it Poison} to perform this action.
+We base our implementation on the standard OCaml Threads library. Due to the
+lack of a concurrent garbage collector, these do not support true hardware
+parallelism (see appendix \ref{appendixSysthreads}). However, it does provide
+concurrency and overlapping I/O (see appendix \ref{appendixThreadunix}).
 
-One of our goals was to offer true parallelism, run several processors
-over several CPUs or cores, but the library cannot offer this because of the
-limitations of Ocaml, see {\it appendix \ref{appendixSysthreads}}. Based on
-Xavier Leroys $[$ Cam-list $]$ answer we can see that the goals for threads in a
-Ocaml context is to offer:
-\begin{itemize}
- \item {\it Overlapping I/O and computation}.
- \item {\it Supporting the "coroutine" programming style}.
-\end{itemize}
-but not {\it Parallelism on shared-memory multiprocessors}. Even though we can't
-offer parallelism over several multiprocessors or kernels we can still offer
-concurrency over a single processor and {\it Overlapping I/O and computation}.
-Thanks to this we have been able to implement a web proxy with non-blocking I/O.
+As a demonstration of a non-trivial application built with the library, we
+provide a web proxy with caching. This example takes advantage of overlapping
+I/O and shows how to use the library in conjunction with sockets. We provide a
+number of reusable processes for computation as well as for treating sockets as
+channels. As an example of the computation processes, we provide a process
+that writes the Fibonacci series to a channel. 
 
-Besides the implementation of the web proxy, we also implemented a CSP Library
-({\it Legoland\cite{vintercsp}}), with these components we are able to create
-simple networks as the one that gives us Fibonacci numbers. But just to show how
-simple it is to write a CSP network with our library we show the following example
-where we print even numbers in $\mathbb{N}$:
-\newpage
-\begin{verbatim}
-let rec counter n o () =
-  Csp.write o n; counter (n+1) o ()
+We provide channels that may be read from or written to by any number of
+processes, alternation with both read and write guards, a hierarchical
+process model, and a method for terminating process networks.
 
-let rec double i o () =
-  let x = Csp.read i in
-  Csp.write o (x*2); double i o ()
+The final API has some similarities with the \emph{Event} module in the
+standard OCaml library. However, that library is based on Concurrent ML and
+uses a model with first class composable events. It does not provide any
+process model and no special support for termination of process networks.
 
-let rec print i () =
-  print_endline(string_of_int (Csp.read i)); print i ()
+Most of the text is a discussion, so if you just want to know how to use the
+library, the fastest way to get acquainted with it is probably to read the
+documentation in appendix \ref{appendixDoc}, the source code for computation
+processes in \ref{appendixLegoland} and the source code for the web proxy in
+\ref{appendixProxy}.
 
-let even_numbers o () =
-  let c = Csp.new_channel () in
-    Csp.parallel [
-      counter 1 c;
-      double c o;
-    ]
-
-let _ =
-  let c = Csp.new_channel () in
-    Csp.parallel [
-      even_numbers c;
-      print c
-    ]
-\end{verbatim}
-We have a counter component, which sends a number over a channel and another
-component which recieves a number from a input channel and sends the
-double of the value through an output channel. If we combine those two
-components together by running concurrently and we give the counter $1$ as
-initial parameter we have a new component that will gives us the even numbers in
-$\mathbb{N}$.
-
-The resulting documentation, API source code, CSP utility and component library,
-and documentation can be seen in the appendix \ref{appendixDoc} and
-\ref{appendixSrc}. A online version is also avaliable at:
-
+The full source code and this report is also available online at:
 \begin{center}
 http://github.com/Ahnfelt/mlcsp/
 \end{center}
 
+\newpage
 \section{API design}
 \label{apidesign}
 
 The CSP theory is concerned with processes that communicate solely by synchronous 
 events. Synchronous channels are built on top of the basic abstraction, and this is
 what most implementations (including \cite{occam}, \cite{chp}, \cite{cppcsp2},
-\cite{jcsp} and \cite{pycsp}) provide for communication. Additionally, it is
-possible to wait for communication from multiple sources at once.
+\cite{jcsp}, \cite{pycsp} and this one) provide for communication. Additionally,
+it is possible to wait for communication from multiple sources at once.
 
 For each construct, we are going to look at how it's done in CSP and in some of
 the existing CSP libraries, how we would like to write it in OCaml, and what
@@ -280,14 +245,15 @@ concurrently.
 
 With the parallel construct, every process can be said to be a \emph{subprocess}
 of some other process, meaning that it blocks the process until it finishes.
-Like in CSP, this makes for a hierakial process model where all processes are in
-some sense contained within another process.
+Like in CSP, this makes for a hierarchical process model where all processes are
+in some sense contained within another process.
 
 Note that processes share memory and can share any kind of OCaml values, which
 it may get a handle to via OCamls standard scoping rules or any other way a
 value can travel in a shared-memory environment. Although you can also share
 mutable state this way, we don't recommend this since it requires careful
-syncronization beyond the scope of this library.
+syncronization beyond the scope of this library. There seems to be no obvious
+way to limit side effects in OCaml's type system.
 
 We use a list so it is possible to specify any number of processes. The 
 \verb|(fun ...)|s may be any OCaml expression, although we require that they are of type
@@ -316,7 +282,7 @@ control over which of the processes that might throw the exceptions that are
 most important to handle. However, this kind of control can already be obtained
 by handling the exceptions in each process individually. We therefore say that
 an arbitrary exception will be picked if multiple processes are thrown. This
-will result in an easier implementation.
+might result in an easier implementation.
 
 Being a functional language, it may be convenient to collect the \emph{return
 values} of processes. Consider the following CSP (assuming global scoping for
@@ -336,7 +302,7 @@ let (x, y) = parallel2 (
 \end{verbatim}
 
 However, we can implement this using the parallel construct that throws away
-the result, but extra channels like this:
+the result, by using extra channels like this:
 
 \begin{verbatim}
 let c1' = Csp.new_channel () in
@@ -356,7 +322,7 @@ during development of the example code in section \ref{examples}. The above code
 is the only compelling use case for \emph{parallel2} we could identify, so we
 chose to provide \emph{parallel} which we have used throughout the code base.
 
-JCSP has the ability to \emph{spawn} processes (via it's \emph{ProcessManager})
+JCSP has the ability to \emph{spawn} processes (via its \emph{ProcessManager})
 whose lifetime are not related to the process that spawns them. This makes for
 a flat process model. There is already direct support for it in the standard
 OCaml Thread library. We don't provide it in our API, since it doesn't
@@ -367,14 +333,14 @@ We don't provide a special construct for sequence, since OCaml has a perfectly
 fine sequence operator built in, and executing a list of processes in sequence
 is a simple matter of iterating over it and invoking each one. We also don't
 provide a way to specify the stack size for a process, because the stack grows
-dynamically in OCamls user threads; as described in the library {\it
-Gc.control}, you can assign at execution time with ocamlrun a stack limit size
-which is not allocated totally at initial state but after need, and there is
-little reason to use system threads (see section \ref{implementation}).
+dynamically in OCaml's VM-level threads. With system threads, the amount of
+threads that you can spawn seem rather limited (see section
+\ref{testMaxthreads}), so stack size will not be the limiting factor.
 
 \subsection{Channels}
 
-As in CSP, channels are the only means of communication between processes that we provide.
+Channels are the only means of communication between processes that we provide
+(except for the shared state that we can't prevent).
 In PyCSP, C++CSP2 and JCSP, channels are created by constructing an instance of a channel
 class. Our channels correspond to their \emph{any-to-any} channels, meaning that any number
 of processes can send on and receive from a channel. However, any message has exactly 
@@ -424,12 +390,9 @@ Csp.write c e; ...
 let x = Csp.read c in ...
 \end{verbatim}
 
-It's important to mention that the channels are typed, as they are in C++CSP2
-but not in JCSP (cast objects) and PyCSP and it is possible to transmit any
-OCaml value over a channel, including impure functions and mutable state.
-Sharing mutable state between processes should only be done if the data is for
-read else we discourages the use of this method. Besides, since we're in a
-functional language it is even less natural to have shared mutable state.
+Note that channels are typed, which is also the case in C++CSP2, but not
+really in JCSP (that doesn't use generics) and not at all in PyCSP (which has
+no static type system).
 
 The remaining semantic details of the channels are explained in the following
 section.
@@ -437,9 +400,11 @@ section.
 \subsection{Alternation}
 Alternation is similar to \emph{external choice} in CSP:
 \[(c_1\,?\,x \to ...\ |\ c_2\,?\,y \to ...\ |\ c_3\,!\,e \to ...)\]
-The operands of the operator are guarded processes. The semantics is that once one or 
-more of the alternatives can take a step, then an arbitrary one of these is chosen to take a 
-step, and then the whole process acts as the remainder of the chosen alternative.
+This construct lists any number of alternative guarded processes
+separateoperandsd by $|$. The semantics is that once one or more of the
+alternatives can take a step, then an arbitrary one of these is chosen to take
+a step, and then the whole process acts as the remainder of the chosen
+alternative.
 
 In PyCSP it looks like (where in1 = c1.read, in2 = c2.read, out3 = c3.write):
 \begin{verbatim}
@@ -495,35 +460,24 @@ $\alpha \to \beta$ where $\alpha$ is the type of messages that can be sent over 
 for the write guards it must be of type $unit \to \beta$. The $\beta$ types must be the same for all guards in 
 a list. It will return the result of evaluating the chosen guarded process.
 
-Returning to external choice in CSP, because we allow to have both read and
-write guards in the same select and on the same channel, we may think that we
-actually would read and write to the same channel. This is really not possible
-because the hole point of the selection of a guard is to choose {\it one}
-guarded process that is ready to read or write. This behavior is actually closer
-to the {\it general choice} operator in CSP:
-\[
-(c\,?\,x \to ...)\, \square \, (c\,?\,x \to ...) =
-(c\,?\,x \to ...) \sqcap (c\,?\,x \to ...)
-\]
+Note that you can have multiple guarded processes that wait on the same
+channel. This is similar to \emph{internal choice} in CSP:
 
-In our library this would look like:
-\begin{verbatim}
-Csp.select [
-    Csp.read_guard c (fun x -> ...);
-    Csp.read_guard c (fun x -> ...);
-]
-\end{verbatim}
+\[(c\,?\,x \to ...) \sqcap (c\,?\,x \to ...)\]
 
-Where we achieve, as in CSP, that the {\it internal choice} operator actually
-needs not to be fair. It is op to the implementation of select to choose which
-one of the guarded processes is chosen.
+This means that the implementation may chose whichever of the alternatives
+that are convenient. The combination of external and internal choice is actually
+similar to \emph{general choice} in CSP (although our operand processes must be
+guarded).
 
-In CSP, any process that can take a step may be chosen arbitrarily. However, if the same list of 
-alternatives is used in a loop, this might lead to starvation. If one of the guards is always ready,
-an arbitrary choice can be to chose this one every time. This means that any other guards that are 
-ready will be skipped indefinatly, and thus be starved.
+In CSP, any process that can take a step may be chosen arbitrarily. However, if
+the same list of alternatives is used in a loop, this might lead to starvation.
+If one of the guards is always ready, an arbitrary choice can be to chose this
+one every time. This means that any other guards that are ready will be skipped
+indefinatly, and thus be starved.
 
-We solve this by prioritizing the guards in a random order each time select is called. That way the
+We solve this by prioritizing the guards in a random order each time select is
+called. That way the
 chance that a ready guard is not taken approaches zero as the number of calls to select grows.
 
 If multiple processes repeatily wait to act on the same channel, and one process is chosen every time,
@@ -556,7 +510,7 @@ the highest priority.
 \end{quote}
 
 Occam does not have output guards, but if they are added, as they
-are in most CSP libraries, PRI ALT becomes contradictionary:
+are in most CSP libraries, the meaning of PRI ALT is no longer clear:
 \begin{verbatim}
 PAR
   PRI ALT
@@ -574,10 +528,10 @@ PAR
 The problem is which communication to chose? It seems the specification of
 \emph{PRI ALT} says that \emph{both} must be selected, which contradicts the
 semantics of any \emph{ALT} that \emph{one} of them will be chosen.
-Both C++CSP2 and JCSP support output guards and refer to \emph{PRI ALT} in their
+JCSP supports output guards and refer to \emph{PRI ALT} in its
 \emph{priSelect} definition. CHP supports it, but avoids specifying the
 relative priority between guards of the read or write variety. We choose not to
-offer \emph{priSelect} because it's semantics are unclear.
+offer \emph{priSelect} because its semantics are unclear to us.
 
 The existing processes provide skip guards that are always ready, which is
 mostly useful in the bottom of a \emph{priSelect} in order to \emph{poll} the
@@ -593,9 +547,9 @@ sence as the number of calls to select grows. Polling in a loop like this may
 lead to busy waiting or multiple responsibilities for a single process. We
 don't provide special support for it, but a skip-like construct can be
 implemented on top of the library by using a channel, that some process writes
-to in a loop, in read guarded process.
+to in a loop, and then using the channel in a read guarded process.
 
-JCSP and C++CSP2 provides a construct called \emph{fairSelect}, which has
+JCSP and C++CSP2 both provides a construct called \emph{fairSelect}, which has
 slightly different specifications in the two libraries. The intended semantics
 seems to be that if the alternatives are ready in an equal number of calls to
 select, no one alternative is chosen again before all other alternatives have
@@ -724,14 +678,9 @@ a channel, so unintended use of a channel can be caught early.
 
 It can be done via the static type system as in JCSP and C++CSP2 or as a dynamic
 check as in PyCSP. In the name of detecting the unintended use as early as
-possible, we want to provide a static check. Encoding this in the type system
-however does have the disadvantage that you cannot have a list of channels that
-have different permissions. This means you must strip the rights down to the
-lowest common denominator for the channels in the list, before adding the
-channel to the list. We think it's worth paying this price for early detection.
-
-We provide it through a set of functions, each of which takes a channel
-returns a handle with only a specific set of permissions:
+possible, we want to provide a static check. We provide this through a set of
+functions, each of which takes a channel returns a handle with only a specific
+set of permissions:
 
 \begin{verbatim}
 let i = Csp.read_only c
@@ -742,6 +691,7 @@ The permissions are provided purely through the type system, and none of the
 functions can add permissions. See secion \ref{implementation} for the complete
 set.
 
+\newpage
 \section{Implementation}
 \label{implementation}
 
@@ -749,7 +699,7 @@ Our implementation does not use any type casts or other features that
 circumvent the type system. We use functions to hide differing type variables
 whenever we need to put them in lists or similar.
 
-The source code to the CSP library can be seen in appendix \ref{appendixAPI}.
+The source code for the library can be seen in appendix \ref{appendixAPI}.
 
 \subsection{Channels and alternation}
 A \emph{one-to-one} channel is a channel that only allows one procees to read from it
@@ -856,8 +806,8 @@ This means creating a function that fits into the channel waiting queue
 as discussed earlier, and putting it into the queue. Then it enters a loop
 where it waits on the process' condition variable each iteration. When woken up
 due to a signal on the condition variable, it checks if it has been involved in
-a transmission, and then executes the process part of the chosen guarded
-process.
+a transmission, and if so exits the loop and executes the process part of the
+chosen guarded process.
 
 We use a lock that is global to the library in order to protect the state
 associated with channels and processes from concurrent mutation (and
@@ -868,13 +818,20 @@ though time-sharing (see appendix \ref{appendixSysthreads}). The execution of
 the process part of guarded processes are done outside this lock since they do
 not require it and because they may run for a very long time (or even diverge).
 
-Read and write are implemented as selects a trivial guarded process:
+Read and write are implemented as selects with a trivial guarded process:
 \begin{verbatim}
 let read c = select [read_guard c (fun x -> x)]
 let write c v = select [write_guard c v (fun () -> ())]
 \end{verbatim}
 This is similar to the way CSP defines prefixing as an external choice with one
 guarded process.
+
+We considered implementing automatic poison propagation as they provide in
+PyCSP. However, they do this by reflectively iterating though the arguments to
+the process constructor, checking each if it's a channel, and poisoning it if it
+is. We cannot use this strategy since there is no facility for iterating
+through the list of arguments to a function. It would also not cover the case
+where channels are obtained by lexical scoping.
 
 \subsection{Permissions}
 
@@ -884,12 +841,12 @@ Channel permissions are enforced solely by the type system.
 type ('a, 'b) channel = ('a channel_state) ref
 \end{verbatim}
 
-The phantom type 'b is used for the channel permissions. This is enforced solely via the type
-system, and is represented with a product of three booleans values: \emph{read * write * poison}.
-Reading, writing and poisoning are initially enabled for a channel, but handles with less 
-permissions can be obtained through the functions shown in figure \ref{channel-permissions}. 
-Permissions can only be taken away, not gained, which is evident from the types of the 
-functions, for example: 
+The phantom type 'b is used for the channel permissions. This is represented
+with a product of three booleans: \emph{read * write * poison}.
+Reading, writing and poisoning are initially enabled for a channel, but handles
+with less permissions can be obtained through the functions shown in figure
+\ref{channel-permissions}. Permissions can only be taken away, not gained, which
+is evident from the types of the functions, for example: 
 
 \begin{verbatim}
 val read_poison_only : ('a, on * _ * on) channel -> 
@@ -897,9 +854,10 @@ val read_poison_only : ('a, on * _ * on) channel ->
 \end{verbatim}
 
 Apart from the type, all of these functions are simply identity functions. We provide a
-type alias \texttt{'a t = ('a, on * on * on) channel} for people who don't want to write the
-longer (often optional) type annotations that the permission types incur. All
-the useful functions are provided, as shown in figure \ref{channel-permissions}.
+type alias \texttt{'a chan = ('a, on * on * on) channel} for people who don't
+want to write the longer (often optional) type annotations that the permission
+types incur. All the useful functions are provided, as shown in figure
+\ref{channel-permissions}.
 
 \begin{figure}[h]
 \centering
@@ -932,17 +890,21 @@ reference (protected by a mutex) that is initially $None$. When all threads have
 been joined, the reference is checked. If it's $None$ then it just returns.
 Otherwise it throws the saved exception.
 
-\section{Test, performance \& examples}
+\newpage
+\section{Test \& examples}
 \label{testexamples}
-One of the goals for this project was that we needed to implement a simple
-network on top of the API, \emph{Fibonacci}, and a more complex one but because Ocaml
-doesn't have support for parallelism, as mentioned in the section \ref{apidesign},
-we decided to make a \emph{web proxy}, with a built in cache so we show that we actually
-use overlapping I/O.
+We originally wanted to provide both a simple example of process networks with
+a Fibonacci process, and a more complex example, and compare both to a similar
+implementation with an existing library. 
 
-But before we made this two applications we needed to know the limitations of
-Ocamls thread library and I/O library.
-\subsection{Ocaml tests}
+However, we decided that since we do not have true hardware parallelism, there
+was more value in providing an example that took advantage of overlapping I/O.
+We thus decided to make a web proxy. 
+
+Before we do that however, it would be nice to know what kind of limits the
+libraries our own library is built on has.
+
+\subsection{OCaml tests}
 \label{ocamltests}
 \begin{table}[!h]
   \begin{center}
@@ -969,14 +931,17 @@ Ocamls thread library and I/O library.
       OK \\
       \hline
     \end{tabular} 
-    \caption{The test checks Ocaml implementation of the thread and I/O library.}
+    \caption{The test checks OCaml implementation of the thread and I/O
+library.}
     \label{testtable}
   \end{center}
 \end{table}
+
 \subsubsection{Maxthreads}
+\label{testMaxthreads}
 Both test can be seen in appendix \ref{appendixOcamltest}.
 
-In this test we try to find an upperbound of how many threads we can create,
+In this test we try to find an upper bound of how many threads we can create,
 user threads and/or system threads. In the first case when using user threads we
 find that after creating between 15.000 - 20.000 threads the application
 freezes. We are not able to find any kind of documentation that can helps us
@@ -1000,32 +965,32 @@ To implement the web proxy we need to know if one of the processes is waiting
 to recieve a chunk of data, if it block the I/O until it has recieved the data
 or if another process that is also waiting for a chunck.
 
-We discovered that Ocaml support non-blocking I/O, in the documentation to
+We discovered that OCaml support non-blocking I/O, in the documentation to
 \emph{ThreadUnix}\footnote{The \emph{ThreadUnix} module is \emph{deprecated}
 but all functionality is moved to the Unix module.} in appendix
 \ref{appendixThreadunix} we read that we may block the calling thread but not
 all the threads in the process. Even though the arguments of \emph{Mr. Leroy} is
 to use the \emph{system threads} instead of \emph{user threads}, see appendix
-\ref{appendixSysthreads}, OCaml offers since it's version $2.03$, see change log
+\ref{appendixSysthreads}, OCaml offers since version $2.03$, see change log
 in appendix \ref{appendixChangelog}, that the \emph{bytecode threads} standard
 I/O descriptors are set to non-blocking mode. This gives us the possibility to
-compile to both native-code, \emph{thread} compiler flag, or byte-code,
-\emph{vmthread} compiler flag.
+compile to both native-code, with the \emph{-thread} compiler flag, or
+byte-code, with the \emph{-vmthread} compiler flag.
 
 This means that  it will be no problem to have several clients waiting to
 recieve data from our web proxy. An example could be a client that connects over
 the web proxy to a very slow website. The website can only deliver a small
-amount of data every second. If another client that also connects over the web
+amount of data every second. Another client that also connects over the web
 proxy to a fast website. While the first client waits to recieve data from the
-webserver, the second client can read chunks of data from the fast website.
+web server, the second client can read chunks of data from the fast website.
 
 So what we have done is that we run two processes concurrently, the first one
 waits for the user input, while the second one reads a line from its own
-code file after a second of waiting (\emph{Thread.sleep}). As we can see in the
+code file after a second of waiting (\emph{Thread.delay}). As we can see in the
 test the second process is able to read the line even if the first process waits,
 hereby we can see that we don't have non-blocking I/O.
 
-\subsection{OcamlCSP tests}
+\subsection{OCamlCSP tests}
 \label{ocamlcsptests}
 \subsubsection{Channel permisions}
 In order to perform this test, we use some of the implemented components
@@ -1033,7 +998,7 @@ of {\it Legoland}, see appendix \ref{appendixLegoland}. The test can bee seen
 in detail in appendix \ref{appendixOcamlcsptest}. One of the features this API
 has is that you have the possibility to set read/write/poision permissions on
 the channels. With this test we will demostrate where this is useful. What we
-do is that we have to components that just counts integers. When the second
+do is that we have two components that just counts integers. When the second
 counter reaches $20$ we want to poison the whole network. But we have sat the
 first count to only count to 10 and it will shutdown the hole network through
 the {\it stop} component from the {\it Legoland} library. But this is a problem,
@@ -1047,13 +1012,6 @@ We now make a {\it custom\_stop} component which only propagates poison to
 the input channel. We are now able to compile and run the application knowing
 that our first counter will never shutdown our network through poison.
 
-Even though we don't allow to propagate poison whenever the second counter
-reaches its number and poison the printer component. Then when the first
-counter will write over the {\it custom\_stop} component, it will actually
-raise a {\it PoisonException} which will be progated back to the counter
-ensuring that all of the processes terminate and hereby ensuring that network
-shuts down correctly.
-
 \subsubsection{Alternation}
 The results of the test can be seen in appendix \ref{appendixOcamlcsptest}.
 
@@ -1065,20 +1023,24 @@ that the {\it custom\_printer} component will see if any of the to
 {\it read\_guards} are ready to read from the counters and because one stop
 early it will keep reading from the second.
 
-\subsection{Performance}
-\label{performance}
-Even though we don't set focus on performance and optimization, we still wanted
-to implement the Commstime\cite{vinterpycsp} process that's used to compare
-PyCSP against JCSP.
-
-\subsubsection{Commstime}
-The results of the test can be seen in appendix \ref{appendixPerformance}.
-
-The only change we made to the code is that we use {\it Unix.gettimeofday} in
-order to get the same time precision as Pythons {\it time.time} has. By running
-both application on the same computer\footnote{Macbook Pro 2,6 GHz Core 2 Duo
-4GB RAM. Mac OS 10.5.7}, we achieve a execution time that it's about twenty
-times faster. Results can be seen in appendix \ref{appendixPerformance}.
+% Jeg var noedt til at fjerne dette, sorry! Der stod ikke hvordan Python-koden
+% var blevet koert, og resultaterne kan derfor ikke rigtig tolkes. Det ville
+% være fedt at have med til mundtlig dog.
+%\subsection{Performance}
+%\label{performance}
+%Even though we don't set focus on performance and optimization, it's still
+%interesting to see what kind of performance we get in the
+%Commstime \cite{vinterpycsp} benchmark that's used to compare
+%PyCSP against JCSP.
+%
+%We have tried to keep the code as as close to an exact copy of the PyCSP
+%benchmark code as possible in OCaml. The results can be seen in appendix
+%
+%The results of the test can be seen in appendix \ref{appendixPerformance}. It
+%has been run on a Macbook Pro 2,6 GHz Core 2 Duo with 4GB RAM and Mac OS 10.5.7
+%and the results can be seen in appendix \ref{appendixPerformance}. Please note
+%that we didn't apply any JIT compilation to the Python code, but executed it in
+%the standard CPython implementation.
 
 \subsection{Examples}
 \label{examples}
@@ -1138,11 +1100,11 @@ our first implementation didn't work correctly.
 \end{figure}
 
 Another thing was that we implemented our {\it Legoland} components as
-recursive function, but not tail-recursive, after running this application
-for a lot of iteration, about 75.000, we began to get messages of stack
-overflow. Once we rewrote the components from recursive to using {\it while true
-do} we was able to run more than a 1.000.000 iterations, We supouse we can
-run even more but we didn't test it out.
+recursive function, but not tail-recursive due to exception handling, after
+running this application for a lot of iteration, about 75.000, we began to get
+messages of stack overflow. Once we rewrote the components from recursive to
+using {\it while true do} we were able to run more than a 1.000.000 iterations,
+and there shouldn't be any inherent limit to the number of iterations.
 
 A descriptive diagram on how this simple network works can be seen in figure
 \ref{fibonaccicomp} and \ref{fibonacci} where we use the {\it Legoland
@@ -1219,57 +1181,39 @@ output. The tests ran successfully.
 \section{Conclusion}
 \label{conclusion}
 
+We set out to design a concurrency API inspired by CSP and the existing
+libraries based on CSP in OCaml. The constructs we have provided are quite
+similar to the corresponding constructs in CSP, and not much more verbose
+syntactically. In addition, they have some useful properties, such as
+starvation avoidance and support for termination of process networks. The
+channel construct has also been generalized so that any number of processes can
+read from and write to a single channel, and we do not sacrifize write guarded
+processes. The channels carry typed messages and the implementation is type
+safe. Standard ocamldoc documentation has been provided for all the constructs.
 
+We did not provide true hardware parallelism, but there is nothing in the API
+that prevents the implementation from supporting it, should OCaml ever get a
+concurrent garbage collector. We have implemented an example of the kind of
+application that the library is well suited for in form of a web proxy, and
+provided reusable processes for mapping buffered sockets to channels.
 
-The goals to this project were:
-\begin{itemize}
- \item Desing and implement an API for a CSP-based concurrency library in a
-   functional language, in this case OCaml.
- \item Be able to evaluate the API, by implementing an application on top of it.
-   And compare the library with other existing CSP libraries, with emphasis on
-   design, composability, extendability and usability.
- \item Deliver a short, at most one page, but complete documentation to the API.
-\end{itemize}
+One route to parallelism may be through distribution, by spawning actual
+system processes (with separate memory spaces) and building a channel
+abstraction on top of sockets. It is not obvious how to do this transparently
+given our API, as it would take a lot of work to keep the lexical
+scoping if \verb|Csp.parallel| might spawn real system processes, maybe even
+on another computer across the network. Although OCaml does provide marshalling,
+it is not clear how to expose the failures that a socket based channel
+implementation would have to handle. Presumably, the hardest part would be to
+figure out how to effectively synchronize communication over a network.
+Searching the existing libraries for a solution would be a good starting point.
 
-We are satisfied with the result of the design and afterwards implementation. 
-Even though at the very beginning discovered that we could not achieve true
-paralelism, we still believe that our library is the one that is closest to
-the theoretical aspects of CSP. If we look on how Brian Vinter, professor at
-Copenhagen University, teaches CSP\cite{vintercsp} through practical simple
-networks:
-\begin{verbatim}
-PairsInt (in, out) = Delta2Int (in, a, c) || 
-                     TailInt (a, b) || 
-                     PlusInt (b, c, out) 
-\end{verbatim}
-versus how we implement the network:
-\begin{verbatim}
-let pairsInt i o () =
-  let a = Csp.new_channel () in
-  let b = Csp.new_channel () in
-  let c = Csp.new_channel () in
-    Csp.parallel [
-      delta2int i a c;
-      tailint a b;
-      plusint b c o;
-    ]
-\end{verbatim}
-We can see that there is almost no difference beside the {\it parallel operator}
-and definition of the channel variables. Besides this, we offer a library that
-is typed. We can check at compiler time if the network actually can run, this
-is an advantage over other libraries, such as PyCSP and JCSP, this last one
-chooses to send \emph{objects} over channels to afterwards \emph{cast} them,
-which gives no sense at all if you have a typed language.
-
-%TODO: evaluation, talk a bit of proxy
-
-%TODO: our documentation is so nice in comparsion to JCSP :)
-
-%TODO: already library to conccurency in event? why not wrapper on it ... cos
-%we build on csp and they on concurrent ml, already in intro :/
-
-%TODO: idea on how to achieve true paralelism through sockets, but future ...
-
+You could decide that distributed processes use a flat process model and
+leave spawning of these processes up to the programmer. Additionally, you may
+say that channels are exposed to such processes by a named socket, and that
+exposed channels are buffered. With these assumptions it can be done with the 
+Unix module, marshalling and the buffered socket channel abstraction we already
+provided. However, you would lose synchronization for the exposed channels.
 
 \appendix
 \newpage
@@ -1302,12 +1246,12 @@ The documentation can be created with following command:
 
 
 \newpage
-\section{Appendix: Test, performance \& examples}
+\section{Appendix: Test \& examples}
 \secttoc
 \newpage
 \label{appendixTest}
 
-\subsection{Ocaml tests}
+\subsection{OCaml tests}
 \label{appendixOcamltest}
 \subsubsection{Maxthreads}
 \includecode{maxthreads.ml}{../test/maxthreads.ml}
@@ -1326,7 +1270,7 @@ The documentation can be created with following command:
   \&\& ./nonblocking}
 \includeoutput{nonblocking.txt}{test/nonblocking.txt}
 
-\subsection{OcamlCSP tests}
+\subsection{OCamlCSP tests}
 \label{appendixOcamlcsptest}
 \subsubsection{Channel permisions}
 \includecode{permission.ml}{../test/permission.ml}
@@ -1337,13 +1281,13 @@ The documentation can be created with following command:
 \includeoutput{alternation\_one\_guard.txt}{test/alternation_one_guard.txt}
 \includeoutput{alternation\_poison.txt}{test/alternation_poison.txt}
 
-\subsection{Performance}
-\label{appendixPerformance}
-\subsubsection{Commstime}
-\includecode{commstime.ml}{../test/commstime.ml}
-\runtest{./buildCommstime.sh \&\& ./commstime}
-\includeoutput{ocamlcsp\_commstime.txt}{test/ocamlcsp_commstime.txt}
-\includeoutput{pycsp\_commstime.txt}{test/pycsp_commstime.txt}
+%\subsection{Performance}
+%\label{appendixPerformance}
+%\subsubsection{Commstime}
+%\includecode{commstime.ml}{../test/commstime.ml}
+%\runtest{./buildCommstime.sh \&\& ./commstime}
+%\includeoutput{ocamlcsp\_commstime.txt}{test/ocamlcsp_commstime.txt}
+%\includeoutput{pycsp\_commstime.txt}{test/pycsp_commstime.txt}
 
 \subsection{Examples}
 \subsubsection{Fibonacci}
@@ -1451,7 +1395,7 @@ ISBN-10: 0-13-153271-5\\
 ISBN-13: 978-0-13-153271-7\\
 http://www.usingcsp.com/cspbook.pdf
 
-\bibitem[Ocaml]{ocaml}
+\bibitem[OCaml]{ocaml}
 :\\
 Objective Caml\\
 Xavier Leroy, Jérôme Vouillon, Damien Doligez, Didier Rémy\\

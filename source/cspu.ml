@@ -1,3 +1,6 @@
+(* Build: ocamlc -vmthread threads.cma -c csp.mli csp.ml cspu.ml 
+   Append myfile.ml -o myfile to use it in your own programs. *)
+
 (** Reads from the input channel and repeats the message in parallel to
     both o1 and o2. When both have read, it does the whole thing again. *)
 let delta i o1 o2 () =

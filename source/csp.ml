@@ -1,4 +1,5 @@
-(* Compile with: ocamlc -vmthread threads.cma -o csp csp.mli csp.ml *)
+(* Build: ocamlc -vmthread threads.cma -c csp.mli csp.ml
+   Append myfile.ml -o myfile to use it in your own programs. *)
 
 exception PoisonException
 

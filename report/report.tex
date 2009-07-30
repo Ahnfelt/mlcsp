@@ -168,8 +168,8 @@ processes, alternation with both read and write guards, a hierarchical
 process model, and a method for terminating process networks.
 
 The final API has some similarities with the \emph{Event} module in the
-standard OCaml library. However, that library is based on Concurrent ML and
-uses a model with first class composable events. It does not provide any
+standard OCaml library. However, that library is based on \cite{concurrentml}
+and uses a model with first class composable events. It does not provide any
 process model and no special support for termination of process networks.
 
 Most of the text is a discussion, so if you just want to know how to use the
@@ -225,11 +225,11 @@ cases the process objects only expose a \emph{run} method. It is unclear what
 happens if this method is called twice on the same instance (especially if the
 instance is used twice in the same parallel-construct).
 
-To avoid that kind of undefined behaviour we do not provide handles to 
+To avoid that kind of undefined behavior we do not provide handles to 
 \emph{running processes}.
 A process is simply any OCaml expression, although since OCaml is
 call-by-value we use functions to suspend the evaluation of them until their
-side effects are desireable (if ever). Our parallel construct looks like this:
+side effects are desirable (if ever). Our parallel construct looks like this:
 
 \begin{verbatim}
 Csp.parallel [
@@ -238,9 +238,9 @@ Csp.parallel [
 ]
 \end{verbatim}
 
-Even though the construct is called \emph{parallel}, there is no guarentee that
+Even though the construct is called \emph{parallel}, there is no guarantee that
 they actually run in parallel on the hardware. In particular, our implementation
-does not support this. However, it does guarentee that the processes will be run
+does not support this. However, it does guarantee that the processes will be run
 concurrently.
 
 With the parallel construct, every process can be said to be a \emph{subprocess}
@@ -249,10 +249,10 @@ Like in CSP, this makes for a hierarchical process model where all processes are
 in some sense contained within another process.
 
 Note that processes share memory and can share any kind of OCaml values, which
-it may get a handle to via OCamls standard scoping rules or any other way a
+it may get a handle to via OCaml's standard scoping rules or any other way a
 value can travel in a shared-memory environment. Although you can also share
 mutable state this way, we don't recommend this since it requires careful
-syncronization beyond the scope of this library. There seems to be no obvious
+synchronization beyond the scope of this library. There seems to be no obvious
 way to limit side effects in OCaml's type system.
 
 We use a list so it is possible to specify any number of processes. The 
@@ -267,7 +267,7 @@ process may finish either by returning or by throwing an exception. In the
 latter case, we have to decide what to do with the exception. We can throw it
 away, but then we can't detect the exception and handle it outside the parallel
 construct. We could build up a list of exceptions, and attach data so it's
-possible to handle exceptions from each thread separatly. However, this fine
+possible to handle exceptions from each thread separately. However, this fine
 grained handling can already be done individually within each process. We
 therefore pick one of the exceptions thrown (if any) and rethrow that. 
 
@@ -374,13 +374,14 @@ they are names in CSP. JCSP and C++CSP2 are similar.
 
 The obvious way to look like CSP is to define operators ! and ? that work like the
 CSP counterpart. However, it is not possible in OCaml to declare that the right hand 
-side of the question mark introduces a binding. It is also not desireable to redefine
+side of the question mark introduces a binding. It is also not desirable to
+redefine
 the ! operator that is used for dereferencing mutable references in OCaml.
 
 We therefore have to decide between methods and functions. The OCaml standard library
 primarily uses functions to provide its functionality, and few if any other ML 
 variants share OCaml's object model. Since we don't anticipate any need for an
-exstensible inheritance hierachy for channels, we choose functions for the task.
+extensible inheritance hierarchy for channels, we choose functions for the task.
 We use the \textbf{let in} construct to provide binding.
 
 \begin{verbatim}
@@ -401,7 +402,7 @@ section.
 Alternation is similar to \emph{external choice} in CSP:
 \[(c_1\,?\,x \to ...\ |\ c_2\,?\,y \to ...\ |\ c_3\,!\,e \to ...)\]
 This construct lists any number of alternative guarded processes
-separateoperandsd by $|$. The semantics is that once one or more of the
+separated by $|$. The semantics is that once one or more of the
 alternatives can take a step, then an arbitrary one of these is chosen to take
 a step, and then the whole process acts as the remainder of the chosen
 alternative.
@@ -423,7 +424,7 @@ Here $s$ becomes one of $in1$, $in2$ and $out3$, which are \emph{channel ends}. 
 of ordinary classes that define a special method that allows for the call-like syntax above.
 The JCSP and C++CSP2 selects take in a list of guards and return the index of the guard, which you can 
 then switch on. In both cases, you have to \emph{promise} to read from the chosen channel, or the 
-behaviour will be undefined.
+behavior will be undefined.
 
 Starting from CSP's syntax, we might want to write something like \texttt{(A | B | C)}, where $A$, $B$
 and $C$ are processes. One might define an operator $|$ that takes two processes and returns the result 
@@ -474,18 +475,20 @@ In CSP, any process that can take a step may be chosen arbitrarily. However, if
 the same list of alternatives is used in a loop, this might lead to starvation.
 If one of the guards is always ready, an arbitrary choice can be to chose this
 one every time. This means that any other guards that are ready will be skipped
-indefinatly, and thus be starved.
+indefinitely, and thus be starved.
 
 We solve this by prioritizing the guards in a random order each time select is
 called. That way the
 chance that a ready guard is not taken approaches zero as the number of calls to select grows.
 
-If multiple processes repeatily wait to act on the same channel, and one process is chosen every time,
-the other processes will be starved. We solve this by serving processes wating on any given channel
+If multiple processes repeatedly wait to act on the same channel, and one
+process is chosen every time,
+the other processes will be starved. We solve this by serving processes waiting
+on any given channel
 on a first come, first served basis.
 
-Note that this is also a valid behaviour of the arbitrary choice, which we don't
-provide separatly. Providing this as the arbitrary choice alternation is
+Note that this is also a valid behavior of the arbitrary choice, which we don't
+provide separately. Providing this as the arbitrary choice alternation is
 beneficial because a program cannot accidentally depend on an undocumented
 order of prioritization. On the other hand, it does incur a small overhead on
 every call to select.
@@ -542,8 +545,8 @@ priority. However, if a select with a skip-guard like guarded process is used
 in a loop, it will never block, allowing the process to perform other tasks
 while waiting for one of the guarded processes to become ready. A ready
 alternative may be skipped any number of times due to skip being chosen
-repeatidly, but it becomes less and less likely that it will be starved in this
-sence as the number of calls to select grows. Polling in a loop like this may
+repeatedly, but it becomes less and less likely that it will be starved in this
+sense as the number of calls to select grows. Polling in a loop like this may
 lead to busy waiting or multiple responsibilities for a single process. We
 don't provide special support for it, but a skip-like construct can be
 implemented on top of the library by using a channel, that some process writes
@@ -566,12 +569,12 @@ select that has exactly one guard.
 
 The semantics of the select so far is to block until one of the guards become
 ready. The obvious
-way to define a select with no guards at all is therefore to block indefinatly,
+way to define a select with no guards at all is therefore to block indefinitely,
 causing a deadlock.
 Preferably, the thread would not take up any further resources in this case (since it's trivial to 
 detect), and thus we attempt to terminate the thread by throwing an exception. If stack traces are
 enabled, and the empty select is an error, this might also provide the programmer with more information
-to determine where the error occured.
+to determine where the error occurred.
 
 In JCSP and C++CSP2 you can provide a list of flags that specify if a guard is
 active or inactive. We provide similar functionality in the utility module Cspu,
@@ -646,7 +649,7 @@ alternation may thus chose to throw a \emph{PoisonException} if one or more of
 its guards' channels are poisoned.
 
 In order to shut down process networks, which may have internal subnetworks, it
-is nessecary to propagate the poison to the other processes in the network. As
+is necessary to propagate the poison to the other processes in the network. As
 mentioned, this can be done in the handler for PoisonException. PyCSP
 automatically poisons channels that are arguments to process constructors. In 
 the following PyCSP example:
@@ -666,7 +669,7 @@ and {\it out}, both get poisoned and hereby we have propagated the poison
 received by the input channel. For more information on this, look at
 \cite{pycsp}.
 
-In many cases this is the desired behaviour. JCSP and C++CSP2 do not provide it,
+In many cases this is the desired behavior. JCSP and C++CSP2 do not provide it,
 and neither do we due to technical issues (see section \ref{implementation}).
 
 \subsection{Permissions}
@@ -688,7 +691,7 @@ let i = Csp.read_only c
 
 It is a compile time error to attempt to write to or poison the returned handle.
 The permissions are provided purely through the type system, and none of the
-functions can add permissions. See secion \ref{implementation} for the complete
+functions can add permissions. See section \ref{implementation} for the complete
 set.
 
 \newpage
@@ -702,7 +705,8 @@ whenever we need to put them in lists or similar.
 The source code for the library can be seen in appendix \ref{appendixAPI}.
 
 \subsection{Channels and alternation}
-A \emph{one-to-one} channel is a channel that only allows one procees to read from it
+A \emph{one-to-one} channel is a channel that only allows one process to read
+from it
 and one process 
 to write to it. It may be implemented as a state machine as shown in figure \ref{channel-state}.
 When the channel is in the NobodyWaiting state and a process tries to read from the channel,
@@ -751,10 +755,11 @@ The choice of using a queue gives a stronger guarentee than CSP gives, namely th
 will be starved. By starvation we mean to say that a process waiting to read or write on the
 channel can be blocked indefinately even though an infinite number of messages is transmitted
 over the channel. This would happen with a stack if another process is always ready to read or 
-write again before the channel was ready to accomodate the starving process. The starving process
+write again before the channel was ready to accommodate the starving process.
+The starving process
 would always be put behind the eager process with a stack, but with a queue, the starving process
-will always advance in the queue every time a message is transmitted, guarenteeing that it will
-eventually get its turn.
+will always advance in the queue every time a message is
+transmitted, guaranteeing that it will eventually get its turn.
 
 \goodbreak
 The internal state for channels looks like this:
@@ -1403,7 +1408,7 @@ National Institute for Research in Computer and Control Sciences\\
 http://caml.inria.fr/ocaml/\\
 Last visited: $24^{th}$ july 2009
 
-\bibitem[ConcurrentML]{concurrentml}
+\bibitem[Concurrent ML]{concurrentml}
 :\\
 Concurrent Programming in ML\\
 John H. Reppy\\

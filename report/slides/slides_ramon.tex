@@ -1,0 +1,57 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[danish, english]{babel}
+\usepackage{beamerthemesplit}
+\usepackage{color}
+
+% Math support
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+\title[OCamlCSP]{
+  OCamlCSP - A concurrency library for OCaml
+}
+\author[Ramón Soto]{
+  Ramón Soto Mathiesen
+}
+\institute{Computer Science Department \\ Copenhagen University}
+\date{28$^{th}$ August 2009}
+
+\definecolor{kugreen}{RGB}{50,93,61}
+\definecolor{kugreenlys}{RGB}{132,158,139}
+\definecolor{kugreenlyslys}{RGB}{173,190,177}
+\definecolor{kugreenlyslyslys}{RGB}{214,223,216}
+\setbeamercovered{transparent}
+\mode<presentation> {
+ \usetheme{PaloAlto}
+ \usecolortheme[named=kugreen]{structure}
+ \useinnertheme{circles}
+ \usefonttheme[onlymath]{serif}
+ \setbeamercovered{transparent}
+ \setbeamertemplate{blocks}[rounded][shadow=true]
+}
+\logo{\includegraphics[width=1cm]{figures/B_NAT_cmyk.pdf}}
+
+% Line breaks between paragraphs instead of indentation
+%\parindent=0pt
+%\parskip=8pt plus 2pt minus 4pt
+
+\begin{document}
+
+\frame{
+ \titlepage
+}
+
+\frame{
+ \frametitle{Contents}
+ \setcounter{tocdepth}{2}
+ %\tableofcontents
+}
+
+\section[CSP]{Communicating concurrent processes}
+\frame{
+  \frametitle{Communicating concurrent processes}
+  Hello world!
+}
+
+\end{document}

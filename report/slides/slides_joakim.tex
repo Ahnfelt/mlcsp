@@ -11,10 +11,12 @@
 \title[OCamlCSP]{
   OCamlCSP - A concurrency library for OCaml
 }
-\author[]{
+\author[Joakim A.]{
   Joakim Ahnfelt-Rønne
 }
-\institute{Datalogisk Institut \\ Københavns Universitet}
+\institute[DIKU]{
+  Datalogisk Institut \\ Københavns Universitet
+}
 \date{28. august 2009}
 
 \definecolor{kugreen}{RGB}{50,93,61}
@@ -32,10 +34,6 @@
 }
 \logo{\includegraphics[width=1cm]{figures/B_NAT_cmyk.pdf}}
 
-% Line breaks between paragraphs instead of indentation
-%\parindent=0pt
-%\parskip=8pt plus 2pt minus 4pt
-
 \begin{document}
 
 \frame{
@@ -50,11 +48,12 @@
     \begin{itemize}
       \item Hierakisk processmodel
       \item Synkron beskedudveksling
+      \item Passiv venten på flere kanaler samtidig
     \end{itemize}
   \end{itemize}
 }
 \frame{
-  \frametitle{Hvorfor?}
+  \frametitle{Eksistensberettigelse}
   \begin{itemize}
     \item Flere biblioteker eksisterer allerede:
     \begin{itemize}
@@ -66,7 +65,7 @@
   \end{itemize}
 }
 \frame{
-  \frametitle{Hvorfor?}
+  \frametitle{Eksistensberettigelse}
   \begin{itemize}
     \item Flere biblioteker eksisterer allerede:
     \begin{itemize}
@@ -78,7 +77,7 @@
   \end{itemize}
 }
 \frame{
-  \frametitle{Hvorfor?}
+  \frametitle{Eksistensberettigelse}
   \begin{itemize}
     \item Flere biblioteker eksisterer allerede:
     \begin{itemize}
@@ -89,7 +88,7 @@
       \item \textbf{OCamlCSP} 
       \begin{itemize}
         \item Urent funktionelt sprog (sideeffekter)
-        \item Traditionelt funktionelt design
+        \item Traditionelt ML-design (moduler)
         \item I stil med eksisterende OCaml-biblioteker
       \end{itemize}
     \end{itemize}
@@ -101,7 +100,11 @@
 \frame{
   \frametitle{Målsætning}
   \begin{itemize}
-    \item 
+    \item Mål
+      \begin{itemize}
+      \item At bruge processmodellen og kanalerne fra CSP som fundament for et samtidighedsbibliotek
+      \item At levere et lille interface der passer ind i stilen for OCamls eksisterende biblioteker
+      \end{itemize}
   \end{itemize}
 }
 
@@ -112,6 +115,36 @@
   \frametitle{Design}
   \begin{itemize}
     \item 
+      \begin{itemize}
+        \item ??? Et argument for den hierakiske processmodel
+      \end{itemize}
+  \end{itemize}
+}
+\frame{
+  \frametitle{Design}
+  \begin{itemize}
+    \item 
+      \begin{itemize}
+        \item ??? hvorfor kanaler skal være data
+        \item ??? hvorfor kanaler skal være any2any
+        \item ??? hvorfor vi skal have select
+        \item ??? hvorfor vi ikke skal have priSelect
+        \item ??? hvorfor vi skal have randomSelect
+        \item ??? hvorfor vi skal have read og write guards
+        \item ??? Argumenter hvorfor vi skal have guarded processes
+        \item ??? beskrivelse af hvorfor select er lidt som external choice og lidt som general choice
+      \end{itemize}
+  \end{itemize}
+}
+\frame{
+  \frametitle{Design}
+  \begin{itemize}
+    \item En finurlig konsekvens
+      \begin{itemize}
+      \item Alle typer data kan sendes over kanaler
+      \item Kanaler er data
+      \item Ergo kan kanaler sendes over kanaler, som i $\pi$-calculus
+      \end{itemize}
   \end{itemize}
 }
 
@@ -120,16 +153,56 @@
 \frame{
   \frametitle{Eksempler}
   \begin{itemize}
-    \item 
+    \item ??? Eksempel fra Fib
+    \item ??? Eksempel fra Proxy
+    \item ??? Hvad er biblioteket godt til?
   \end{itemize}
 }
 
 
 \section[Kode]{}
 \frame{
-  \frametitle{Kode}
+  \frametitle{Implementation}
   \begin{itemize}
-    \item 
+  \item Alternation
+    \begin{itemize}
+    \item Select er som de andre bibliotekers priSelect
+    \item Bortset fra at vi permuterer listen tilfældigt først
+    \item Først tjekkes det om der er nogen der venter på en af kanalerne
+    \item Derefter stiller den sig i kø på hver af kanalerne
+    \item Ved kommunikation fjerner den sig fra hver kanals kø
+    \end{itemize}
+  \end{itemize}
+}
+\frame{
+  \frametitle{Implementation}
+  \begin{itemize}
+  \item Kanaler
+    \begin{itemize}
+    \item Kanalers state tager udgang i en finite state machine
+    \item Men udvider den til et arbitrært antal af ventende processer
+    \item Og understøtter poison
+    \end{itemize}
+  \end{itemize}
+}
+\frame{
+  \frametitle{Implementation}
+  \begin{itemize}
+    \item ??? Hastighed
+  \end{itemize}
+}
+\frame{
+  \frametitle{Implementation}
+  \begin{itemize}
+    \item ??? Mangel på halekald i parallel?
+  \end{itemize}
+}
+\frame{
+  \frametitle{Implementation}
+  \begin{itemize}
+    \item OCaml har ingen garbage collector der kan håndtere samtidighed
+    \item Derfor kan et bibliotek bygget på OCamls trådbibliotek ikke understøtte samtidighed på hardware-niveau
+    \item Men det kunne måske gøres via inter process communication
   \end{itemize}
 }
 
@@ -137,6 +210,9 @@
 \section[Spørgsmål]{}
 \frame{
   \frametitle{Spørgsmål}
+  \begin{itemize}
+    \item Slut på præsentationen
+  \end{itemize}
 }
 
 \end{document}

@@ -1,0 +1,142 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[danish, english]{babel}
+\usepackage{beamerthemesplit}
+\usepackage{color}
+
+% Math support
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+\title[OCamlCSP]{
+  OCamlCSP - A concurrency library for OCaml
+}
+\author[]{
+  Joakim Ahnfelt-Rønne
+}
+\institute{Datalogisk Institut \\ Københavns Universitet}
+\date{28. august 2009}
+
+\definecolor{kugreen}{RGB}{50,93,61}
+\definecolor{kugreenlys}{RGB}{132,158,139}
+\definecolor{kugreenlyslys}{RGB}{173,190,177}
+\definecolor{kugreenlyslyslys}{RGB}{214,223,216}
+\setbeamercovered{transparent}
+\mode<presentation> {
+ \usetheme{PaloAlto}
+ \usecolortheme[named=kugreen]{structure}
+ \useinnertheme{circles}
+ \usefonttheme[onlymath]{serif}
+ \setbeamercovered{transparent}
+ \setbeamertemplate{blocks}[rounded][shadow=true]
+}
+\logo{\includegraphics[width=1cm]{figures/B_NAT_cmyk.pdf}}
+
+% Line breaks between paragraphs instead of indentation
+%\parindent=0pt
+%\parskip=8pt plus 2pt minus 4pt
+
+\begin{document}
+
+\frame{
+ \titlepage
+}
+
+\section[Hvorfor?]{}
+\frame{
+  \frametitle{Hvorfor?}
+  \begin{itemize}
+    \item CSP som model for samtidighed:
+    \begin{itemize}
+      \item Hierakisk processmodel
+      \item Synkron beskedudveksling
+    \end{itemize}
+  \end{itemize}
+}
+\frame{
+  \frametitle{Hvorfor?}
+  \begin{itemize}
+    \item Flere biblioteker eksisterer allerede:
+    \begin{itemize}
+      \item C++CSP (C++) 
+      \item JCSP (Java)
+      \item PyCSP (Python)
+      \item CHP (Haskell)
+    \end{itemize}
+  \end{itemize}
+}
+\frame{
+  \frametitle{Hvorfor?}
+  \begin{itemize}
+    \item Flere biblioteker eksisterer allerede:
+    \begin{itemize}
+      \item C++CSP $\leftarrow$ imperativt sprog, objektorienteret design
+      \item JCSP $\leftarrow$ ditto
+      \item PyCSP $\leftarrow$ ditto
+      \item CHP $\leftarrow$ rent funktionelt sprog, monadisk design
+    \end{itemize}
+  \end{itemize}
+}
+\frame{
+  \frametitle{Hvorfor?}
+  \begin{itemize}
+    \item Flere biblioteker eksisterer allerede:
+    \begin{itemize}
+      \item C++CSP $\leftarrow$ imperativt sprog, objektorienteret design
+      \item JCSP $\leftarrow$ ditto
+      \item PyCSP $\leftarrow$ ditto
+      \item CHP $\leftarrow$ rent funktionelt sprog, monadisk design
+      \item \textbf{OCamlCSP} 
+      \begin{itemize}
+        \item Urent funktionelt sprog (sideeffekter)
+        \item Traditionelt funktionelt design
+        \item I stil med eksisterende OCaml-biblioteker
+      \end{itemize}
+    \end{itemize}
+  \end{itemize}
+}
+
+
+\section[Målsætning]{}
+\frame{
+  \frametitle{Målsætning}
+  \begin{itemize}
+    \item 
+  \end{itemize}
+}
+
+
+
+\section[Design]{}
+\frame{
+  \frametitle{Design}
+  \begin{itemize}
+    \item 
+  \end{itemize}
+}
+
+
+\section[Eksempler]{}
+\frame{
+  \frametitle{Eksempler}
+  \begin{itemize}
+    \item 
+  \end{itemize}
+}
+
+
+\section[Kode]{}
+\frame{
+  \frametitle{Kode}
+  \begin{itemize}
+    \item 
+  \end{itemize}
+}
+
+
+\section[Spørgsmål]{}
+\frame{
+  \frametitle{Spørgsmål}
+}
+
+\end{document}

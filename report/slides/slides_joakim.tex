@@ -150,14 +150,74 @@
 
 
 \section[Eksempler]{}
-\frame{
-  \frametitle{Eksempler}
-  \begin{itemize}
-    \item ??? Eksempel fra Fib
-    \item ??? Eksempel fra Proxy
-    \item ??? Hvad er biblioteket godt til?
-  \end{itemize}
+\begin{frame}[fragile]
+  \frametitle{Eksempel: Fibonacci (parallel)}
+\begin{verbatim}
+FibonacciInt (out) =              (* pseudo-code *)
+    PrefixInt (1, c4, c1)   ||
+    PrefixInt (0, c1, c2)   ||
+    Delta2Int (c2, out, c3) ||
+    PairsInt (c3, c4)
+\end{verbatim}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Eksempel: Fibonacci (parallel)}
+{\tiny
+\begin{verbatim}
+FibonacciInt (out) =                                               (* pseudo-code *)
+    PrefixInt (1, c4, c1)   ||
+    PrefixInt (0, c1, c2)   ||
+    Delta2Int (c2, out, c3) ||
+    PairsInt (c3, c4)
+\end{verbatim}
 }
+\begin{verbatim}
+let fibonacciInt out () =         (* actual code *)
+  let c1 = Csp.new_channel () in
+  let c2 = Csp.new_channel () in
+  let c3 = Csp.new_channel () in
+  let c4 = Csp.new_channel () in
+    Csp.parallel [
+      prefixInt 1 c4 c1;
+      prefixInt 0 c1 c2;
+      delta2Int c2 out c3;
+      pairsInt c3 c4
+    ]
+\end{verbatim}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Eksempel: Proxy (select)}
+\begin{verbatim}
+let cache i o d () =
+    let rec loop t =
+        Csp.select [
+            Csp.read_guard i (fun u ->
+                (try let n = Table.find u t in
+                    Csp.write o (Some n)
+                with Not_found -> Csp.write o None);
+                loop t
+            );
+            Csp.read_guard d (fun (u, n) ->
+                loop (Table.add u n t)
+            );
+        ]
+    in loop Table.empty
+\end{verbatim}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Anvendelse}
+  \begin{itemize}
+    \item Anvendelse
+    \begin{itemize}
+      \item Applikationer der indbyder til en samtidig struktur
+        \begin{itemize}
+          \item Grafiske brugergrænseflader (event-handling)
+          \item Servere (en process til hvert request)
+        \end{itemize}
+      \item I/O-bundene programmer
+    \end{itemize}
+  \end{itemize}
+\end{frame}
 
 
 \section[Kode]{}
@@ -202,7 +262,9 @@
   \begin{itemize}
     \item OCaml har ingen garbage collector der kan håndtere samtidighed
     \item Derfor kan et bibliotek bygget på OCamls trådbibliotek ikke understøtte samtidighed på hardware-niveau
-    \item Men det kunne måske gøres via inter process communication
+    \item Er det overhovedet interessant at basere hardware-samtidighed på en shared-memory model?
+    \item Måske kunne man lave en løsning med kommunikation over TCP eller UDP - måske er det ikke praktisk
+          på grund af synkroniseringen.
   \end{itemize}
 }
 

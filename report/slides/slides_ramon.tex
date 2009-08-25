@@ -32,6 +32,9 @@
 }
 \logo{\includegraphics[width=1cm]{figures/B_NAT_cmyk.pdf}}
 
+% Macros
+\newcommand{\green}[1] {\textcolor{kugreen}{#1}}
+
 % Line breaks between paragraphs instead of indentation
 \parindent=0pt
 \parskip=8pt plus 2pt minus 4pt
@@ -42,24 +45,30 @@
  \titlepage
 \end{frame}
 
-%\begin{frame}
-% \frametitle{Contents}
-% \setcounter{tocdepth}{2}
-% \tableofcontents
-%\end{frame}
+\begin{frame}
+ \frametitle{Contents}
+ \setcounter{tocdepth}{2}
+ \tableofcontents
+\end{frame}
 
 \section[Intro]{Introduction to OcamlCSP}
 \begin{frame}
   \frametitle{Introduction to OcamlCSP}
-  What ocamlcsp is ...
+  \begin{itemize}
+  \item Is a concurrency library for the functional language OCaml.
+  \item It is based on Communicating Sequential Processes by Tony Hoare and
+    a other existing libraries that are based on CSP (PyCSP, JCSP, CPPCSP2).
+  \item We provide overlapping I/O and concurrency.
+  \item We don't provide true parallelism.
+  \end{itemize}
 \end{frame}
 
 \section[CSP]{Communicating concurrent processes}
 \begin{frame}
   \frametitle{Communicating concurrent processes}
   \begin{itemize}
-    \item Each process has it's own data structures and algorithms.
-    \item The only way to communicate between processes it's between syncronised
+    \item Each process has it's own encapsulated data structures and algorithms.
+    \item The only way to communicate between processes it's between synchronised
       messages.
     \item Each process should be thought as a piece of hardware placed on a
       circuit board and the CSP network as the Electrical network. This way you
@@ -83,13 +92,13 @@
     \item Alternation (Guards).
       \begin{itemize}
         \item General choice (CSP).
-        \item No PRI ALT (Ambiguos definition in Occam).
+        \item No PRI ALT (Ambiguous definition in Occam).
       \end{itemize}
     \item Poison.
       \begin{itemize}
         \item No propagation.
       \end{itemize}
-    \item Permision.
+    \item Permission.
       \begin{itemize}
         \item Compile time error.
       \end{itemize}
@@ -109,8 +118,8 @@ Csp.parallel [
 ]
 \end{verbatim}
 \normalsize
-Remark: The only way to retrieve a value from the processes running in parallel
-is to create internal channels ...
+\green{Remark:} The only way to retrieve a value from the processes running in
+parallel is to create internal channels ...
 \end{frame}
 
 \begin{frame}[fragile]
@@ -166,7 +175,7 @@ let x = Csp.read c in ...
   Expanding one-to-one channel to a any-to-any channel is done by adding a queue
   of readers and a queue of writers.
 
-  Remark: We ensure that no process will be starved. 
+  \green{Remark:} We ensure that no process will be starved. 
 \end{frame}
 
 
@@ -189,9 +198,9 @@ Csp.select [
 \begin{frame}[fragile]
   \frametitle{Alternation (Guards)}
   We provide guarded processes, where the action is carried out whenever
-  the guarded is chosen, this removes the responsability from the developer,
-  as in most of the other libraries, the developer recieves the index value
-  from the list of guards and it's his responsability to perform the desired
+  the guarded is chosen, this removes the responsibility from the developer,
+  as in most of the other libraries, the developer receives the index value
+  from the list of guards and it's his responsibility to perform the desired
   action.
 
   CSP syntax, $c?x$ or $c?x$ (non-deterministic):
@@ -215,23 +224,36 @@ Csp.select [
 Csp.poison c 
 \end{verbatim}
 \normalsize
-Because we need some kind of mechanism to shut down the CSP network correctly,
+We need some kind of mechanism to shut down the CSP network correctly,
 we couldn't come up with a better idea than the one they use in most of the
 other CSP libraries. So we also decided to implement Poison. Which means, that
 once a channel is poisoned it can never get back to normal state and if a
 process reads or writes to a poisoned channel, it throws a poison exception,
 which can be handled to propagate the poison to other channels. In PyCSP, this
-is done automaticly.
+is done automatically.
 \end{frame}
 
 
-\begin{frame}
-  \frametitle{Permision}
-  Because of the implementation of poison, we would like to ensure that some
-  part of our CSP networks would not be able to shutdown the entire network.
+\begin{frame}[fragile]
+  \frametitle{Permission}
+  CSP syntax, none:
+  \[\]
+  Our representation:
+\scriptsize
+\begin{verbatim}
+let rec p c () =
+  let _ = Csp.read (Csp.read_poison_only c); p c ()
+\end{verbatim}
+\normalsize
+  Because we implemented poison, we would like to ensure that some part of our
+  CSP networks will not be able to shutdown the entire network.
 
-  By adding channel permisions, we can ensure that a process don't read, write
+  By adding channel permissions, we can ensure that a process don't read, write
   or poison a specified channel (compiler error).
+\end{frame}
+
+\begin{frame}
+  \frametitle{Permission}
   \begin{figure}[h]
     \centering
     \begin{tabular}{c|c|c|l}
@@ -248,10 +270,13 @@ is done automaticly.
     \end{tabular}
   \end{figure}
 \end{frame}
+
+
 %\begin{frame}
 %  \frametitle{OcamlCSP Utility Library}
 %  CSPU
 %\end{frame}
+
 
 \section[Legoland]{OcamlCSP Component Library (Legoland)}
 \begin{frame}[fragile]
@@ -299,41 +324,59 @@ let _ =
 \normalsize
 \end{frame}
 
-\begin{frame}[fragile]
-  \frametitle{Simple example (even numbers)}
-  \tiny
-\begin{verbatim}
-let rec counter n o () =
-  Csp.write o n; counter (n+1) o ()
+%\begin{frame}[fragile]
+%  \frametitle{Simple example (even numbers)}
+%  \tiny
+%\begin{verbatim}
+%let rec counter n o () =
+%  Csp.write o n; counter (n+1) o ()
+%
+%let rec double i o () =
+%  let x = Csp.read i in
+%  Csp.write o (x*2); double i o ()
+%
+%let rec print i () =
+%  print_endline(string_of_int (Csp.read i)); print i ()
+%
+%let even_numbers o () =
+%  let c = Csp.new_channel () in
+%    Csp.parallel [
+%      counter 1 c;
+%      double c o;
+%    ]
+%
+%let _ =
+%  let c = Csp.new_channel () in
+%    Csp.parallel [
+%      even_numbers c;
+%      print c
+%    ]
+%\end{verbatim}
+%  \normalsize
+%\end{frame}
 
-let rec double i o () =
-  let x = Csp.read i in
-  Csp.write o (x*2); double i o ()
 
-let rec print i () =
-  print_endline(string_of_int (Csp.read i)); print i ()
-
-let even_numbers o () =
-  let c = Csp.new_channel () in
-    Csp.parallel [
-      counter 1 c;
-      double c o;
-    ]
-
-let _ =
-  let c = Csp.new_channel () in
-    Csp.parallel [
-      even_numbers c;
-      print c
-    ]
-\end{verbatim}
-  \normalsize
-\end{frame}
-
-
-\section[Comparsion]{Comparison to other CSP Libraries}
+\section[Comparison]{Comparison to other CSP Libraries}
 \begin{frame}
   \frametitle{Comparison to other CSP Libraries}
+  \begin{figure}[h]
+    \centering
+    \begin{tabular}{l|c|c|c|c}
+      Constructs & PyCSP & JCSP & CPPCSP2 & OcamlCSP \\
+      \hline
+       True parallelism\footnote{Multiple CPUs/cores.} & No & No & Yes & No \\
+       Alternation & Yes & Yes & Yes & Yes\footnote{No PRI ALT implementation,
+         but combination of read/write guards.} \\
+       Read guards & Yes & Yes & Yes & Yes \\
+       Write guards & No & Yes & No & Yes \\
+       Guarded processes & No & No & No & Yes \\
+       Channel any-to-any & Yes & Yes & Yes & Yes \\
+       Channel poison & Yes & Yes & Yes & Yes \\
+       Channel permissions & Yes & Yes & Yes & Yes\footnote{Disallow
+         read/write/poison from/to/of channel at compile time.} \\
+       Type system & No & No\footnote{JCSP cast objects.} & Yes & Yes \\
+    \end{tabular}
+  \end{figure}
 \end{frame}
 
 \begin{frame}[fragile]
@@ -353,7 +396,7 @@ let consumer i () =
     done;
     let t2 = ts () in
     let dt = t2 -. t1 in
-    let tchan = dt /. (4.0 *. float_of_int n) in
+    let tcha = dt /. (4.0 *. float_of_int n) in
       Printf.printf "DT = %f.\nTime per ch : %f/(4*%d) = %f s = %f us\n"
         dt dt n tchan (tchan *. 1000000.0);
       Printf.printf "consumer done, poisoning channel";
@@ -411,9 +454,44 @@ consumer done, poisoning channel
 \end{frame}
 
 
-\section[Demo]{Demostration (Web proxy)}
+\section[Web proxy]{Web proxy}
 \begin{frame}
-  \frametitle{Demostration (Web proxy)}
+  \frametitle{Web proxy}
+  \begin{itemize}
+    \item Gateway
+      \begin{itemize}
+        \item Accept loop
+          \begin{itemize}
+            \item Handler
+          \end{itemize}
+        \item Cache
+      \end{itemize}
+  \end{itemize}
+  \begin{itemize}
+    \item Handler (client socket) 
+      \begin{itemize}
+        \item http\_downloader (server socket)
+          \begin{itemize}
+          \item socket\_downloader
+          \end{itemize}
+      \end{itemize}
+  \end{itemize}
+  \begin{itemize}
+    \item socket\_downloader
+      \begin{itemize}
+        \item delta
+          \begin{itemize}
+            \item client socket
+            \item registrator (cache)
+          \end{itemize}
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\section[Demo]{Demonstration (Web proxy)}
+\begin{frame}
+  \frametitle{Demonstration (Web proxy)}
   \begin{itemize}
     \item Start the web proxy.
     \item Choose two mirrors from Gentoo (Denmark and Thailand).
@@ -421,12 +499,6 @@ consumer done, poisoning channel
     \item Retrieve concurrent two big files from mirrors where the slowest,
       Thailand, is chosen first. (Non blocking I/O).
   \end{itemize}
-\end{frame}
-
-
-\section[Conclusion]{Conclusion}
-\begin{frame}
-  \frametitle{Conclusion}
 \end{frame}
 
 \end{document}

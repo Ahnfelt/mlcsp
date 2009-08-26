@@ -2,6 +2,7 @@
    Append myfile.ml -o myfile to use it in your own programs. *)
 
 exception PoisonException
+exception HybrisException
 
 type 'a concrete_guard = {
     attempt: unit -> (unit -> 'a) option;
@@ -118,7 +119,7 @@ let read_guard c f s = {
         | NobodyWaiting -> c := ReaderWaiting [g]
         | ReaderWaiting gs -> c := ReaderWaiting (gs @ [g])
         | Poisoned -> () (* Ignore *)
-        | WriterWaiting _ -> () (* Shouldn't ever happen *)
+        | WriterWaiting _ -> raise HybrisException
     );
     unsubscribe = (fun () -> match !c with
         | ReaderWaiting gs -> 
@@ -142,7 +143,7 @@ let write_guard c v f s = let f _ = f () in {
         | NobodyWaiting -> c := WriterWaiting [g]
         | WriterWaiting gs -> c := WriterWaiting (gs @ [g])
         | Poisoned -> () (* Ignore *)
-        | ReaderWaiting _ -> () (* Shouldn't ever happen *)
+        | ReaderWaiting _ -> raise HybrisException
     );
     unsubscribe = (fun () -> match !c with
         | WriterWaiting gs -> 
